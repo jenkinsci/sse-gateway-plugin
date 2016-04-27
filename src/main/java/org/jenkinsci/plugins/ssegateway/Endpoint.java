@@ -85,26 +85,7 @@ public class Endpoint implements RootAction {
                 
                 if (requestedResource.equals(SSE_GATEWAY_URL + "/listen")) {
                     HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
-                    final EventDispatcher dispatcher = EventDispatcherFactory.start(httpServletRequest, httpServletResponse);
-                    
-                    new Thread() {
-                        @Override
-                        public void run() {
-                            for (int i = 0; i < 10000; i++) {
-                                try {
-                                    Thread.sleep(1000);
-                                    dispatcher.dispatchEvent("message", ("message-" + i));
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
-                                } catch (ServletException e) {
-                                    e.printStackTrace();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                    }.start();
-                    
+                    EventDispatcherFactory.start(httpServletRequest, httpServletResponse);
                     return; // Do not allow this request on to Stapler
                 }
             }
