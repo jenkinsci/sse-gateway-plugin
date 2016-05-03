@@ -25,10 +25,15 @@ package org.jenkinsci.plugins.ssegateway;
 
 import hudson.Extension;
 import hudson.model.RootAction;
+import hudson.util.HttpResponses;
 import hudson.util.PluginServletFilter;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -67,10 +72,16 @@ public class Endpoint implements RootAction {
         return SSE_GATEWAY_URL;
     }
     
-    public void doConfigure(StaplerRequest request) {
+    @RequirePOST
+    @Restricted(DoNotUse.class) // Web only
+    public HttpResponse doConfigure(StaplerRequest request) {
+        EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(request.getSession());
+        
         if (isUnsubscribeAll(request)) {
-            EventDispatcher.unsubscribeAll(request.getSession());
+            dispatcher.unsubscribeAll();
         }
+
+        return HttpResponses.okJSON();
     }
 
     private boolean isUnsubscribeAll(StaplerRequest request) {

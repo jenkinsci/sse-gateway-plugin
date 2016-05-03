@@ -77,7 +77,7 @@ public abstract class EventDispatcher implements Serializable {
         response.setHeader("Connection","keep-alive");
     }
     
-    public static void unsubscribeAll(@Nonnull HttpSession session) {
+    public void unsubscribeAll() {
         
     }
 
@@ -88,7 +88,7 @@ public abstract class EventDispatcher implements Serializable {
     public static final class SSEHttpSessionListener extends HttpSessionListener {
         @Override
         public void sessionDestroyed(HttpSessionEvent httpSessionEvent) {
-            unsubscribeAll(httpSessionEvent.getSession());
+            EventDispatcherFactory.getDispatcher(httpSessionEvent.getSession()).unsubscribeAll();
         }
     }
 }
