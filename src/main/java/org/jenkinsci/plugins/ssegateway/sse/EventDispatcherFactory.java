@@ -23,8 +23,10 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -47,7 +49,7 @@ public class EventDispatcherFactory {
     
     public static EventDispatcher start(HttpServletRequest request, HttpServletResponse response) {
         try {
-            EventDispatcher instance = runtimeClass.newInstance();
+            EventDispatcher instance = getDispatcher(request.getSession());
             instance.start(request, response);
             instance.setDefaultHeaders();
             instance.dispatchEvent("open", null);
@@ -55,6 +57,28 @@ public class EventDispatcherFactory {
         } catch (Exception e) {
             throw new IllegalStateException("Unexpected Exception.", e);
         }
+    }
+
+    /**
+     * Get the session {@link EventDispatcher} from the {@link HttpSession}.
+     * <p>
+     * Creates a new {@link EventDispatcher} (and binds it to the {@link HttpSession}) if
+     * non exists.
+     *     
+     * @param session The {@link HttpSession}.
+     * @return The session {@link EventDispatcher}.
+     */
+    public synchronized static EventDispatcher getDispatcher(@Nonnull HttpSession session) {
+        EventDispatcher dispatcher = (EventDispatcher) session.getAttribute(EventDispatcher.class.getName());
+        if (dispatcher == null) {
+            try {
+                dispatcher = runtimeClass.newInstance();
+                session.setAttribute(EventDispatcher.class.getName(), dispatcher);
+            } catch (Exception e) {
+                throw new IllegalStateException("Unexpected Exception.", e);
+            }
+        }
+        return dispatcher;
     }
 
     private static boolean isAsyncSupported() {
