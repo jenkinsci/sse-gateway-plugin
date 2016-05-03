@@ -87,12 +87,7 @@ public abstract class EventDispatcher implements Serializable {
     @Extension
     public static final class SSEHttpSessionListener extends HttpSessionListener {
         @Override
-        public void sessionCreated(HttpSessionEvent httpSessionEvent) {
-            System.out.println("*** session created");
-        }
-        @Override
         public void sessionDestroyed(HttpSessionEvent httpSessionEvent) {
-            System.out.println("*** session destroyed");
             unsubscribeAll(httpSessionEvent.getSession());
         }
     }
