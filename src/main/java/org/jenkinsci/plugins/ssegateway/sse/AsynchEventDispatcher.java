@@ -34,7 +34,7 @@ import java.io.Serializable;
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-class AsynchEventDispatcher extends EventDispatcher implements Serializable {
+class AsynchEventDispatcher extends EventDispatcher {
 
     private static final long serialVersionUID = -1L;
     
@@ -43,11 +43,10 @@ class AsynchEventDispatcher extends EventDispatcher implements Serializable {
     @Override
     void start(HttpServletRequest request, HttpServletResponse response) {
         asyncContext = request.startAsync();
-        asyncContext.setTimeout(-1);
+        asyncContext.setTimeout(-1); // No timeout
         asyncContext.addListener(new AsyncListener() {
             @Override
             public void onTimeout(AsyncEvent event) throws IOException {
-                asyncContext = null;
                 event.getAsyncContext().complete();
             }
             @Override
@@ -58,6 +57,7 @@ class AsynchEventDispatcher extends EventDispatcher implements Serializable {
             }
             @Override
             public void onComplete(AsyncEvent event) throws IOException {
+                asyncContext = null;
             }
         });
     }
@@ -73,6 +73,5 @@ class AsynchEventDispatcher extends EventDispatcher implements Serializable {
     @Override
     public void stop() {
         asyncContext.complete();
-        asyncContext = null;
     }
 }

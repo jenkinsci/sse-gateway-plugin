@@ -23,16 +23,23 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import hudson.Extension;
+import jenkins.util.HttpSessionListener;
+
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import javax.servlet.http.HttpSessionEvent;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Serializable;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-public abstract class EventDispatcher {
+public abstract class EventDispatcher implements Serializable {
     
     abstract void start(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException;
     abstract HttpServletResponse getResponse();
@@ -68,5 +75,25 @@ public abstract class EventDispatcher {
         response.setCharacterEncoding("UTF-8");
         response.setHeader("Cache-Control","no-cache");
         response.setHeader("Connection","keep-alive");
+    }
+    
+    public static void unsubscribeAll(@Nonnull HttpSession session) {
+        
+    }
+
+    /**
+     * Http session listener.
+     */
+    @Extension
+    public static final class SSEHttpSessionListener extends HttpSessionListener {
+        @Override
+        public void sessionCreated(HttpSessionEvent httpSessionEvent) {
+            System.out.println("*** session created");
+        }
+        @Override
+        public void sessionDestroyed(HttpSessionEvent httpSessionEvent) {
+            System.out.println("*** session destroyed");
+            unsubscribeAll(httpSessionEvent.getSession());
+        }
     }
 }

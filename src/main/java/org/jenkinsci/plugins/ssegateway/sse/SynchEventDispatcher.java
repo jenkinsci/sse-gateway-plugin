@@ -36,7 +36,7 @@ import java.util.logging.Logger;
  *     
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-class SynchEventDispatcher extends EventDispatcher implements Serializable {
+class SynchEventDispatcher extends EventDispatcher {
 
     private static final long serialVersionUID = -1L;
 

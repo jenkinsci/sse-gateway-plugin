@@ -28,6 +28,7 @@ import hudson.model.RootAction;
 import hudson.util.PluginServletFilter;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
+import org.kohsuke.stapler.StaplerRequest;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -66,12 +67,23 @@ public class Endpoint implements RootAction {
         return SSE_GATEWAY_URL;
     }
     
+    public void doConfigure(StaplerRequest request) {
+        if (isUnsubscribeAll(request)) {
+            EventDispatcher.unsubscribeAll(request.getSession());
+        }
+    }
+
+    private boolean isUnsubscribeAll(StaplerRequest request) {
+        String unsubAll = request.getParameter("unsubscribeAll");
+        return (unsubAll != null && unsubAll.equals("true"));
+    }
+
     // Using a Servlet Filter for the async channel. We're doing this because we
     // do not want these requests making their way to Stapler. This is really
     // down to fear of the unknown magic that happens in Stapler and the effect
     // on it of changing requests from sync to async. The Filter is simple and
     // helps us to side-step any possible issues in Stapler.
-    private class SSEListenChannelFilter implements Filter {
+    private static class SSEListenChannelFilter implements Filter {
 
         @Override
         public void init(FilterConfig filterConfig) throws ServletException {
@@ -97,7 +109,7 @@ public class Endpoint implements RootAction {
         }
     }
 
-    private String getRequestedResourcePath(HttpServletRequest httpServletRequest) {
+    private static String getRequestedResourcePath(HttpServletRequest httpServletRequest) {
         return httpServletRequest.getRequestURI().substring(httpServletRequest.getContextPath().length());
     }
 }

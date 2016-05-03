@@ -69,7 +69,7 @@
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.modules</groupId>
-      <artifactId>jenkins-message-bus</artifactId>
+      <artifactId>jenkins-pubsub-light</artifactId>
       <version>1.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
