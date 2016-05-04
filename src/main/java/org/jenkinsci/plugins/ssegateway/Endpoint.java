@@ -27,10 +27,15 @@ import hudson.Extension;
 import hudson.model.RootAction;
 import hudson.util.HttpResponses;
 import hudson.util.PluginServletFilter;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONException;
+import net.sf.json.JSONObject;
+import org.jenkins.pubsub.EventFilter;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.interceptor.RequirePOST;
@@ -44,16 +49,27 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
+@Restricted(NoExternalUse.class)
 @Extension
 public class Endpoint implements RootAction {
 
     private static final String SSE_GATEWAY_URL = "/sse-gateway";
+    private static final Logger LOGGER = Logger.getLogger(Endpoint.class.getName());
 
     public Endpoint() throws ServletException {
+        init();
+    }
+
+    protected void init() throws ServletException {
         PluginServletFilter.addFilter(new SSEListenChannelFilter());
     }
 
@@ -74,19 +90,23 @@ public class Endpoint implements RootAction {
     
     @RequirePOST
     @Restricted(DoNotUse.class) // Web only
-    public HttpResponse doConfigure(StaplerRequest request) {
-        EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(request.getSession());
-        
-        if (isUnsubscribeAll(request)) {
-            dispatcher.unsubscribeAll();
+    public HttpResponse doConfigure(StaplerRequest request) throws IOException {
+        SubscriptionConfig subscriptionConfig = SubscriptionConfig.fromRequest(request);
+
+        if (subscriptionConfig.hasConfigs()) {
+            EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(request.getSession());
+            if (subscriptionConfig.unsubscribeAll) {
+                dispatcher.unsubscribeAll();
+            }
+            for (EventFilter filter : subscriptionConfig.unsubscribeSet) {
+                dispatcher.unsubscribe(filter);
+            }
+            for (EventFilter filter : subscriptionConfig.subscribeSet) {
+                dispatcher.subscribe(filter);
+            }
         }
 
         return HttpResponses.okJSON();
-    }
-
-    private boolean isUnsubscribeAll(StaplerRequest request) {
-        String unsubAll = request.getParameter("unsubscribeAll");
-        return (unsubAll != null && unsubAll.equals("true"));
     }
 
     // Using a Servlet Filter for the async channel. We're doing this because we
@@ -122,5 +142,51 @@ public class Endpoint implements RootAction {
 
     private static String getRequestedResourcePath(HttpServletRequest httpServletRequest) {
         return httpServletRequest.getRequestURI().substring(httpServletRequest.getContextPath().length());
+    }
+
+    private static class SubscriptionConfig {
+        private Set<EventFilter> subscribeSet = Collections.emptySet();
+        private Set<EventFilter> unsubscribeSet = Collections.emptySet();
+        private boolean unsubscribeAll = false;
+        
+        private static SubscriptionConfig fromRequest(StaplerRequest request) throws IOException {
+            JSONObject payload = Util.readJSONPayload(request);
+            SubscriptionConfig config = new SubscriptionConfig();
+            
+            config.subscribeSet = extractFilterSet(payload, "subscribe");
+            config.unsubscribeSet = extractFilterSet(payload, "unsubscribe");
+            if (config.unsubscribeSet.isEmpty()) {
+                String unsubscribe = payload.optString("unsubscribe", null);
+                if ("*".equals(unsubscribe) || "all".equalsIgnoreCase(unsubscribe)) {
+                    config.unsubscribeAll = true;
+                }
+            }
+            
+            return config;
+        }
+
+        private static Set<EventFilter> extractFilterSet(JSONObject payload, String key) {
+            JSONArray jsonObjs = payload.optJSONArray(key);
+            
+            if (jsonObjs != null && !jsonObjs.isEmpty()) {
+                Set<EventFilter> filterSet = new LinkedHashSet<>();
+                for (int i = 0; i < jsonObjs.size(); i++) {
+                    try {
+                        JSONObject jsonObj = jsonObjs.getJSONObject(i);
+                        EventFilter filter = (EventFilter) jsonObj.toBean(EventFilter.class);
+                        filterSet.add(filter);
+                    } catch (JSONException e) {
+                        LOGGER.log(Level.SEVERE, "Invalid SSE payload. Expecting an array of JSON Objects for property " + key, e);
+                    }
+                }
+                return filterSet;
+            }
+
+            return Collections.emptySet();
+        }
+
+        public boolean hasConfigs() {
+            return !(subscribeSet.isEmpty() && unsubscribeSet.isEmpty()) || unsubscribeAll;
+        }
     }
 }

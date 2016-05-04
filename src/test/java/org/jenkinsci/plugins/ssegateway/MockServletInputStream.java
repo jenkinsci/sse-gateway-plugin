@@ -21,37 +21,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.plugins.ssegateway.sse;
+package org.jenkinsci.plugins.ssegateway;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.Serializable;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import javax.servlet.ServletInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 /**
- * Synchronous event dispatcher.
- * <p>
- * To support pre servlet 3.0.
- *     
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-class SynchEventDispatcher extends EventDispatcher {
-
-    private static final long serialVersionUID = -1L;
-
-    private static final Logger LOGGER = Logger.getLogger(SynchEventDispatcher.class.getName());
-
-    private transient HttpServletResponse response;
-
-    @Override
-    public void start(HttpServletRequest request, HttpServletResponse response) {
-        this.response = response;
-        LOGGER.log(Level.WARNING, "This servlet container does not support asynchronous requests. Servicing of Server Sent Events (SSE) may result in servlet request thread starvation. DO NOT use this in production!!!");
+public class MockServletInputStream extends ServletInputStream {
+    private final InputStream inputStream;
+    public MockServletInputStream(String dataFile) {
+        this.inputStream = MockServletInputStream.class.getResourceAsStream(dataFile);
     }
-
     @Override
-    public HttpServletResponse getResponse() {
-        return response;
+    public int read() throws IOException {
+        return inputStream.read();
     }
 }

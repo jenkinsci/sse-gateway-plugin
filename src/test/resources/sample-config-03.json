@@ -1,0 +1,8 @@
+{
+  "unsubscribe": [
+    {
+      "jenkins_channel": "job",
+      "job_name": "my-job"
+    }
+  ]
+}

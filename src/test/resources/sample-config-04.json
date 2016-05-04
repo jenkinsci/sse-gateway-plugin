@@ -1,0 +1,11 @@
+{
+  "subscribe": [
+    {
+      "jenkins_channel": "job",
+      "job_name": "my-job"
+    },
+    {
+      "jenkins_channel": "security"
+    }
+  ]
+}

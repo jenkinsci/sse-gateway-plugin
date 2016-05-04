@@ -41,7 +41,7 @@ class AsynchEventDispatcher extends EventDispatcher {
     private transient AsyncContext asyncContext;
 
     @Override
-    void start(HttpServletRequest request, HttpServletResponse response) {
+    public void start(HttpServletRequest request, HttpServletResponse response) {
         asyncContext = request.startAsync();
         asyncContext.setTimeout(-1); // No timeout
         asyncContext.addListener(new AsyncListener() {
@@ -63,7 +63,7 @@ class AsynchEventDispatcher extends EventDispatcher {
     }
 
     @Override
-    HttpServletResponse getResponse() {
+    public HttpServletResponse getResponse() {
         if (asyncContext == null) {
             return null;
         }

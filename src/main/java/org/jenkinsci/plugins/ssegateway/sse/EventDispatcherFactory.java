@@ -23,6 +23,9 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -31,7 +34,10 @@ import javax.servlet.http.HttpSession;
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
+@Restricted(NoExternalUse.class)
 public class EventDispatcherFactory {
+
+    public static final String DISPATCHER_SESSION_KEY = EventDispatcher.class.getName();
     
     private static Class<? extends EventDispatcher> runtimeClass;
     
@@ -69,11 +75,11 @@ public class EventDispatcherFactory {
      * @return The session {@link EventDispatcher}.
      */
     public synchronized static EventDispatcher getDispatcher(@Nonnull HttpSession session) {
-        EventDispatcher dispatcher = (EventDispatcher) session.getAttribute(EventDispatcher.class.getName());
+        EventDispatcher dispatcher = (EventDispatcher) session.getAttribute(DISPATCHER_SESSION_KEY);
         if (dispatcher == null) {
             try {
                 dispatcher = runtimeClass.newInstance();
-                session.setAttribute(EventDispatcher.class.getName(), dispatcher);
+                session.setAttribute(DISPATCHER_SESSION_KEY, dispatcher);
             } catch (Exception e) {
                 throw new IllegalStateException("Unexpected Exception.", e);
             }
