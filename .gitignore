@@ -7,7 +7,11 @@
 *~
 work
 app.properties
+
+node/
+node_modules/
 npm-debug.log
+
 **/.settings/
 **/.project
 **/.classpath
