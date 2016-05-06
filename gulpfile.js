@@ -1,0 +1,1 @@
+require('@jenkins-cd/js-builder');

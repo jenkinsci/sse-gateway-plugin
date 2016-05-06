@@ -62,7 +62,7 @@ import java.util.logging.Logger;
 @Extension
 public class Endpoint implements RootAction {
 
-    private static final String SSE_GATEWAY_URL = "/sse-gateway";
+    protected static final String SSE_GATEWAY_URL = "/sse-gateway";
     private static final Logger LOGGER = Logger.getLogger(Endpoint.class.getName());
 
     public Endpoint() throws ServletException {

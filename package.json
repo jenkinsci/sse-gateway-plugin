@@ -1,0 +1,33 @@
+{
+  "name": "@jenkins-cd/sse-gateway",
+  "version": "0.0.1",
+  "description": "Client API for the Jenkins SSE Gateway plugin. Browser UI push events from Jenkins.",
+  "main": "src/main/js/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tfennelly/sse-gateway-plugin.git"
+  },
+  "keywords": [
+    "Jenkins",
+    "SSE"
+  ],
+  "author": "Tom Fennelly <tom.fennelly@gmail.com> (https://github.com/tfennelly)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tfennelly/sse-gateway-plugin/issues"
+  },
+  "homepage": "https://github.com/tfennelly/sse-gateway-plugin#readme",
+  "devDependencies": {
+    "@jenkins-cd/js-builder": "0.0.32",
+    "@jenkins-cd/js-test": "^1.1.2",
+    "eventsource": "^0.2.1",
+    "gulp": "^3.9.1",
+    "xmlhttprequest": "^1.8.0"
+  },
+  "dependencies": {
+    "@jenkins-cd/js-modules": "0.0.5"
+  }
+}

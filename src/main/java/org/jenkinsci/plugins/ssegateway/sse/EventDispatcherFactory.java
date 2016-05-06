@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -55,10 +57,23 @@ public class EventDispatcherFactory {
     
     public static EventDispatcher start(HttpServletRequest request, HttpServletResponse response) {
         try {
-            EventDispatcher instance = getDispatcher(request.getSession());
+            HttpSession session = request.getSession();
+            EventDispatcher instance = getDispatcher(session);
+            Jenkins jenkins = Jenkins.getInstance();
+
             instance.start(request, response);
             instance.setDefaultHeaders();
-            instance.dispatchEvent("open", null);
+
+            JSONObject openData = new JSONObject();
+            JSONObject crumb = new JSONObject();
+            openData.put("sessionid", session.getId());
+            openData.put("cookieName", session.getServletContext().getSessionCookieConfig().getName());
+            crumb.put("name", jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField());
+            crumb.put("value", jenkins.getCrumbIssuer().getCrumb(null));
+            openData.put("crumb", crumb);
+            
+            instance.dispatchEvent("open", openData.toString());
+            
             return instance;
         } catch (Exception e) {
             throw new IllegalStateException("Unexpected Exception.", e);

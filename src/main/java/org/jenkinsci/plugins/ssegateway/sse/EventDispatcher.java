@@ -24,6 +24,7 @@
 package org.jenkinsci.plugins.ssegateway.sse;
 
 import hudson.Extension;
+import hudson.Functions;
 import hudson.model.User;
 import hudson.util.CopyOnWriteMap;
 import jenkins.util.HttpSessionListener;
@@ -31,7 +32,9 @@ import org.jenkins.pubsub.ChannelSubscriber;
 import org.jenkins.pubsub.EventFilter;
 import org.jenkins.pubsub.EventProps;
 import org.jenkins.pubsub.Message;
+import org.jenkins.pubsub.MessageException;
 import org.jenkins.pubsub.PubsubBus;
+import org.jenkins.pubsub.SimpleMessage;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -119,17 +122,32 @@ public abstract class EventDispatcher implements Serializable {
                 @Override
                 public void onMessage(@Nonnull Message message) {
                     try {
-                        dispatchEvent(message.getEventName(), message.toJSON());
+                        dispatchEvent(message.getChannelName(), message.toJSON());
                     } catch (Exception e) {
                         LOGGER.log(Level.WARNING, "Error dispatching event to SSE channel.", e);
                     }
                 }
             };
-            bus.subscribe(channelName, subscriber, User.current(), filter);
-            subscribers.put(filter, subscriber);
+            User current = getUser();
+            
+            if (current == null && Functions.getIsUnitTest()) {
+                current = User.get("alice");
+            }
+            
+            if (current != null) {
+                bus.subscribe(channelName, subscriber, current, filter);
+                subscribers.put(filter, subscriber);
+                publishStateEvent("subscribe");
+            } else {
+                LOGGER.log(Level.WARNING, "SSE subscribe ignored. No active user.");
+            }
         } else {
             LOGGER.log(Level.SEVERE, String.format("Invalid SSE subscribe configuration. '%s' not specified.", EventProps.Jenkins.jenkins_channel));
         }
+    }
+
+    protected User getUser() {
+        return User.current();
     }
 
     public synchronized void unsubscribe(@Nonnull EventFilter filter) {
@@ -138,8 +156,9 @@ public abstract class EventDispatcher implements Serializable {
             ChannelSubscriber subscriber = subscribers.remove(filter);
             if (subscriber != null) {
                 bus.unsubscribe(channelName, subscriber);
+                publishStateEvent("unsubscribe");
             } else {
-                LOGGER.log(Level.WARNING, String.format("Invalid SSE unsubscribe configuration. No active subscription matching filter: ", filter.toJSON()));
+                LOGGER.log(Level.WARNING, "Invalid SSE unsubscribe configuration. No active subscription matching filter: ");
             }
         } else {
             LOGGER.log(Level.SEVERE, String.format("Invalid SSE unsubscribe configuration. '%s' not specified.", EventProps.Jenkins.jenkins_channel));
@@ -154,6 +173,19 @@ public abstract class EventDispatcher implements Serializable {
         subscribers.clear();
     }
 
+    private void publishStateEvent(String event) {
+        try {
+            bus.publish(
+                new SimpleMessage()
+                    .setChannelName("sse")
+                    .setEventName(event)
+                    .set("sse_numsubs", Integer.toString(subscribers.size()))
+            );
+        } catch (MessageException e) {
+            LOGGER.log(Level.WARNING, "Failed to publish SSE Dispatcher state event.", e);
+        }
+    }
+    
     /**
      * Http session listener.
      */

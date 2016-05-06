@@ -23,7 +23,9 @@
  */
 package org.jenkinsci.plugins.ssegateway;
 
+import hudson.model.User;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
+import org.mockito.Mockito;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -40,5 +42,10 @@ public class MockEventDispatcher extends EventDispatcher {
     @Override
     public HttpServletResponse getResponse() {
         return null;
+    }
+
+    @Override
+    protected User getUser() {
+        return Mockito.mock(User.class);
     }
 }
