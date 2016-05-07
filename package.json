@@ -25,6 +25,7 @@
     "@jenkins-cd/js-test": "^1.1.2",
     "eventsource": "^0.2.1",
     "gulp": "^3.9.1",
+    "wait-until-promise": "^0.1.2",
     "xmlhttprequest": "^1.8.0"
   },
   "dependencies": {

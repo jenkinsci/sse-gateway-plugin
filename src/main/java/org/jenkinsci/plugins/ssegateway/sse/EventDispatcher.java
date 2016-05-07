@@ -110,24 +110,16 @@ public abstract class EventDispatcher implements Serializable {
     }
 
     public synchronized void subscribe(@Nonnull EventFilter filter) {
-        if (subscribers.containsKey(filter)) {
+        SSEChannelSubscriber subcsriber = (SSEChannelSubscriber) subscribers.get(filter);
+        if (subcsriber != null) {
             // Already subscribed to this event.
-            // TODO: Handle subscription narrowing/widening
+            subcsriber.numSubscribers++;
+            publishStateEvent("subscribe");
             return;
         }
         
         String channelName = filter.getChannelName();
         if (channelName != null) {
-            ChannelSubscriber subscriber = new ChannelSubscriber() {
-                @Override
-                public void onMessage(@Nonnull Message message) {
-                    try {
-                        dispatchEvent(message.getChannelName(), message.toJSON());
-                    } catch (Exception e) {
-                        LOGGER.log(Level.WARNING, "Error dispatching event to SSE channel.", e);
-                    }
-                }
-            };
             User current = getUser();
             
             if (current == null && Functions.getIsUnitTest()) {
@@ -135,6 +127,8 @@ public abstract class EventDispatcher implements Serializable {
             }
             
             if (current != null) {
+                ChannelSubscriber subscriber = new SSEChannelSubscriber(this);
+    
                 bus.subscribe(channelName, subscriber, current, filter);
                 subscribers.put(filter, subscriber);
                 publishStateEvent("subscribe");
@@ -153,9 +147,12 @@ public abstract class EventDispatcher implements Serializable {
     public synchronized void unsubscribe(@Nonnull EventFilter filter) {
         String channelName = filter.getChannelName();
         if (channelName != null) {
-            ChannelSubscriber subscriber = subscribers.remove(filter);
+            SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
             if (subscriber != null) {
-                bus.unsubscribe(channelName, subscriber);
+                subscriber.numSubscribers--;
+                if (subscriber.numSubscribers == 0) {
+                    bus.unsubscribe(channelName, subscriber);
+                }
                 publishStateEvent("unsubscribe");
             } else {
                 LOGGER.log(Level.WARNING, "Invalid SSE unsubscribe configuration. No active subscription matching filter: ");
@@ -183,6 +180,25 @@ public abstract class EventDispatcher implements Serializable {
             );
         } catch (MessageException e) {
             LOGGER.log(Level.WARNING, "Failed to publish SSE Dispatcher state event.", e);
+        }
+    }
+    
+    private static final class SSEChannelSubscriber implements ChannelSubscriber {
+        
+        private EventDispatcher eventDispatcher;
+        private int numSubscribers = 0;
+
+        public SSEChannelSubscriber(EventDispatcher eventDispatcher) {
+            this.eventDispatcher = eventDispatcher;
+        }
+
+        @Override
+        public void onMessage(@Nonnull Message message) {
+            try {
+                eventDispatcher.dispatchEvent(message.getChannelName(), message.toJSON());
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error dispatching event to SSE channel.", e);
+            }
         }
     }
     
