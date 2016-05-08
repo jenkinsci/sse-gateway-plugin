@@ -73,4 +73,20 @@
 
   </dependencies>
 
+  <build>
+    <plugins>
+        <plugin>
+          <groupId>org.jenkins-ci.tools</groupId>
+          <artifactId>maven-hpi-plugin</artifactId>
+          <extensions>true</extensions>
+          <configuration>
+            <showDeprecation>true</showDeprecation>
+            <contextPath>/jenkins</contextPath>
+            <!-- TODO specify ${java.level} when JENKINS-20679 implemented -->
+            <disabledTestInjection>true</disabledTestInjection>
+          </configuration>
+        </plugin>
+    </plugins>
+  </build>
+  
 </project>

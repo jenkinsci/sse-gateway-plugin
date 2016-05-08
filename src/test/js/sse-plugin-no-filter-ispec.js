@@ -25,16 +25,20 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
 
             api.connect(function(jenkinsSession) {
                 jenkinsSessionInfo = jenkinsSession;
-                // Trigger the first build. This should trigger
-                // the SSE event listeners below.
-                runBuild();
             });
 
             // Listen for sse events and use them to determine
             // if subscribe/unsubscribe is working properly.
             var sseEvents = [];
-            api.subscribe('sse', function (data) {
-                sseEvents.push(data);
+            var subscribeCount = 0;
+            var unsubscribeCount = 0;
+            api.subscribe('sse', function (event) {
+                sseEvents.push(event);
+                if (event.jenkins_event === 'subscribe') {
+                    subscribeCount++;
+                } else if (event.jenkins_event === 'unsubscribe') {
+                    unsubscribeCount++;
+                }
             });
             
             // jobsStarted should eventually equal number of jobs started i.e. 2
@@ -59,35 +63,39 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
 
                     jobSubsCalled++;
 
-                    // wait 60s for jobsStarted to equal 2
+                    // Run the second build
+                    runBuild();
+
+                    // wait 60s for the second build and jobsStarted
+                    // to equal 2
                     waitUntil(function () {
                         return jobsStarted === 2;
                     }, 60000).then(function() {
                         // The check everything, especially that the unsubscribe worked
                         // i.e. that this callback was not called again after.
-                        try {
-                            // 2 subscribe events and 1 unsubscribe
-                            expect(sseEvents.length).toBe(3);
 
-                            // Check the last 2 events
-                            expect(sseEvents[1].jenkins_event).toBe('subscribe');
-                            expect(sseEvents[1].sse_numsubs).toBe('2');
-                            expect(sseEvents[2].jenkins_event).toBe('unsubscribe');
-                            expect(sseEvents[2].sse_numsubs).toBe('1');
+                        // 3 subscribe events and 1 unsubscribe
+                        expect(sseEvents.length).toBe(4);
+                        expect(subscribeCount).toBe(3);
+                        expect(unsubscribeCount).toBe(1);
 
-                            // jobSubsCalled should only be 1 because we unsubscribed 
-                            // jobSubs before calling runBuild the second time (see below).
-                            expect(jobsStarted).toBe(2);
-                            expect(jobSubsCalled).toBe(1);
-                        } finally {
-                            api.disconnect();
-                            done();
-                        }
+                        // jobSubsCalled should only be 1 because we unsubscribed 
+                        // jobSubs before calling runBuild the second time (see below).
+                        expect(jobsStarted).toBe(2);
+                        expect(jobSubsCalled).toBe(1);
+
+                        api.disconnect();
+                        done();
                     });
-
-                    // Run the build the second time
-                    runBuild();
                 }
+            });
+            
+            // Trigger the first build. This should trigger
+            // the SSE event listeners below.
+            waitUntil(function() {
+                return (jenkinsSessionInfo !== undefined && subscribeCount === 3);
+            }, 60000).then(function() {
+                runBuild();
             });
         });
     }, 60000);

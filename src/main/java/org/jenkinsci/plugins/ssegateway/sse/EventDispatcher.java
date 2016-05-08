@@ -110,10 +110,10 @@ public abstract class EventDispatcher implements Serializable {
     }
 
     public synchronized void subscribe(@Nonnull EventFilter filter) {
-        SSEChannelSubscriber subcsriber = (SSEChannelSubscriber) subscribers.get(filter);
-        if (subcsriber != null) {
+        SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
+        if (subscriber != null) {
             // Already subscribed to this event.
-            subcsriber.numSubscribers++;
+            subscriber.numSubscribers++;
             publishStateEvent("subscribe");
             return;
         }
@@ -127,10 +127,11 @@ public abstract class EventDispatcher implements Serializable {
             }
             
             if (current != null) {
-                ChannelSubscriber subscriber = new SSEChannelSubscriber(this);
+                subscriber = new SSEChannelSubscriber(this);
     
                 bus.subscribe(channelName, subscriber, current, filter);
                 subscribers.put(filter, subscriber);
+                subscriber.numSubscribers++;
                 publishStateEvent("subscribe");
             } else {
                 LOGGER.log(Level.WARNING, "SSE subscribe ignored. No active user.");
@@ -151,7 +152,11 @@ public abstract class EventDispatcher implements Serializable {
             if (subscriber != null) {
                 subscriber.numSubscribers--;
                 if (subscriber.numSubscribers == 0) {
-                    bus.unsubscribe(channelName, subscriber);
+                    try {
+                        bus.unsubscribe(channelName, subscriber);
+                    } finally {
+                        subscribers.remove(filter);
+                    }
                 }
                 publishStateEvent("unsubscribe");
             } else {
@@ -163,14 +168,24 @@ public abstract class EventDispatcher implements Serializable {
     }
 
     public synchronized void unsubscribeAll() {
-        Set<EventFilter> entries = subscribers.keySet();
-        for (EventFilter entry : entries) {
-            unsubscribe(entry);
+        Set<Map.Entry<EventFilter, ChannelSubscriber>> entries = subscribers.entrySet();
+        for (Map.Entry<EventFilter, ChannelSubscriber> entry : entries) {
+            SSEChannelSubscriber subscriber = (SSEChannelSubscriber) entry.getValue();
+            EventFilter filter = entry.getKey();
+            String channelName = filter.getChannelName();
+
+            bus.unsubscribe(channelName, subscriber);
         }
         subscribers.clear();
     }
 
     private void publishStateEvent(String event) {
+        // Only publish these events if we're running
+        // in a test.
+        if (!Functions.getIsUnitTest()) {
+            return;
+        }
+
         try {
             bus.publish(
                 new SimpleMessage()

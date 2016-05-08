@@ -5,51 +5,55 @@ var eventSource = undefined;
 var jenkinsSessionInfo = undefined;
 var subscriptions = [];
 var channelListeners = {};
+var eventSourceSupported = (window && window.EventSource);
+var configurationQueue = {};
+var nextDoConfigureTimeout = undefined;
 
 if (!jenkinsUrl || jenkinsUrl.length < 1) {
-    throw 'Invalid jenkinsUrl argument ' + jenkinsUrl;
+    throw new Error('Invalid jenkinsUrl argument ' + jenkinsUrl);
 }
 if (jenkinsUrl.charAt(jenkinsUrl.length - 1) !== '/') {
     jenkinsUrl += '/';
 }
 
-var listenUrl = jenkinsUrl + 'sse-gateway/listen';
-var configureUrl = jenkinsUrl + 'sse-gateway/configure';
-
-var eventSourceSupported = (window && window.EventSource);
-
 exports.jenkinsUrl = jenkinsUrl;
+
+function clearDoConfigure() {
+    if (nextDoConfigureTimeout) {
+        clearTimeout(nextDoConfigureTimeout);
+    }
+    nextDoConfigureTimeout = undefined;
+}
+function scheduleDoConfigure() {
+    clearDoConfigure();
+    nextDoConfigureTimeout = setTimeout(doConfigure, 100);
+}
 
 exports.connect = function (onConnect) {
     if (eventSource) {
         return;
     }
-    
+
     if (!eventSourceSupported) {
         console.warn("This browser does not support EventSource. Where's the polyfill?");
         // TODO: Need to add browser poly-fills for stuff like this
         // See https://github.com/remy/polyfills/blob/master/EventSource.js
-        return;
-    }
+    } else {
+        var listenUrl = jenkinsUrl + 'sse-gateway/listen';
+        var EventSource = window.EventSource;
+        var source = new EventSource(listenUrl);
 
-    var EventSource = window.EventSource;
-    
-    var source = new EventSource(listenUrl);
-    source.addEventListener('open', function (e) {
-        if (e.data) {
-            jenkinsSessionInfo = JSON.parse(e.data);
-            if (onConnect) {
-                onConnect(jenkinsSessionInfo);
+        source.addEventListener('open', function (e) {
+            if (e.data) {
+                jenkinsSessionInfo = JSON.parse(e.data);
+                if (onConnect) {
+                    onConnect(jenkinsSessionInfo);
+                }
             }
-        }
-    }, false);
-    source.addEventListener('error', function (e) {
-        if (e.readyState == EventSource.CLOSED) {
-            // Connection was closed.
-        }
-    }, false);
-    
-    eventSource = source;
+        }, false);
+
+        eventSource = source;
+    }
 };
 
 exports.disconnect = function () {
@@ -59,11 +63,13 @@ exports.disconnect = function () {
     }
 };
 
-exports.subscribe = function() {
+exports.subscribe = function () {
     clearDoConfigure();
-    
-    var channelName, filter, callback;
-    
+
+    var channelName;
+    var filter;
+    var callback;
+
     // sort out the args.
     for (var i = 0; i < arguments.length; i++) {
         var arg = arguments[i];
@@ -75,25 +81,25 @@ exports.subscribe = function() {
             filter = arg;
         }
     }
-    
+
     if (channelName === undefined) {
-        throw 'No channelName arg provided.';
+        throw new Error('No channelName arg provided.');
     }
     if (callback === undefined) {
-        throw 'No callback arg provided.';
+        throw new Error('No callback arg provided.');
     }
-    
+
     var config;
-    
+
     if (filter) {
         // Clone the filter as the config.
         config = JSON.parse(JSON.stringify(filter));
     } else {
         config = {};
     }
-    
+
     config.jenkins_channel = channelName;
-    
+
     subscriptions.push({
         config: config,
         callback: callback
@@ -102,24 +108,24 @@ exports.subscribe = function() {
         configurationQueue.subscribe = [];
     }
     configurationQueue.subscribe.push(config);
-    
+
     if (!channelListeners[channelName]) {
         addChannelListener(channelName);
     }
-    
+
     scheduleDoConfigure();
-    
+
     return callback;
 };
 
-exports.unsubscribe = function(callback) {
+exports.unsubscribe = function (callback) {
     clearDoConfigure();
-    
+
     // callback is the only mandatory param
     if (callback === undefined) {
-        throw 'No callback provided';
+        throw new Error('No callback provided');
     }
-    
+
     var newSubscriptionList = [];
     for (var i = 0; i < subscriptions.length; i++) {
         var subscription = subscriptions[i];
@@ -138,7 +144,7 @@ exports.unsubscribe = function(callback) {
 };
 
 function addChannelListener(channelName) {
-    var listener = function(e) {
+    var listener = function (event) {
         // Iterate through all of the subscription, looking for
         // subscriptions on the channel that match the filter/config.
         for (var i = 0; i < subscriptions.length; i++) {
@@ -147,10 +153,10 @@ function addChannelListener(channelName) {
             if (subscription.config.jenkins_channel === channelName) {
                 // Parse the data every time, in case the
                 // callback modifies it.
-                var parsedData = JSON.parse(e.data);
+                var parsedData = JSON.parse(event.data);
                 // Make sure the data matches the config, which is the filter
                 // plus the channel name (and the message should have the
-                // channel name in it).  
+                // channel name in it).
                 if (containsAll(parsedData, subscription.config)) {
                     try {
                         subscription.callback(parsedData);
@@ -182,30 +188,19 @@ function containsAll(object, filter) {
     return true;
 }
 
-var configurationQueue = {};
-var nextDoConfigureTimeout = undefined;
-function scheduleDoConfigure() {
-    clearDoConfigure();
-    nextDoConfigureTimeout = setTimeout(doConfigure, 100);
-}
-function clearDoConfigure() {
-    if (nextDoConfigureTimeout) {
-        clearTimeout(nextDoConfigureTimeout);
-    }
-    nextDoConfigureTimeout = undefined;
-}
 function doConfigure() {
     nextDoConfigureTimeout = undefined;
-    
+
     if (!jenkinsSessionInfo && eventSourceSupported) {
-        // Can't do it yet. Need to way for the SSE Gateway to
+        // Can't do it yet. Need to wait for the SSE Gateway to
         // open the SSE channel + send the jenkins session info.
         scheduleDoConfigure();
-        return;
-    } 
-    
-    ajax.post(configurationQueue, configureUrl, jenkinsSessionInfo);
-    
-    // reset the queue
-    configurationQueue = {};
+    } else {
+        var configureUrl = jenkinsUrl + 'sse-gateway/configure';
+
+        ajax.post(configurationQueue, configureUrl, jenkinsSessionInfo);
+
+        // reset the queue
+        configurationQueue = {};
+    }
 }

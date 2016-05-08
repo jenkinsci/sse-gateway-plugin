@@ -49,9 +49,9 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -145,8 +145,8 @@ public class Endpoint implements RootAction {
     }
 
     private static class SubscriptionConfig {
-        private Set<EventFilter> subscribeSet = Collections.emptySet();
-        private Set<EventFilter> unsubscribeSet = Collections.emptySet();
+        private List<EventFilter> subscribeSet = Collections.emptyList();
+        private List<EventFilter> unsubscribeSet = Collections.emptyList();
         private boolean unsubscribeAll = false;
         
         private static SubscriptionConfig fromRequest(StaplerRequest request) throws IOException {
@@ -165,11 +165,11 @@ public class Endpoint implements RootAction {
             return config;
         }
 
-        private static Set<EventFilter> extractFilterSet(JSONObject payload, String key) {
+        private static List<EventFilter> extractFilterSet(JSONObject payload, String key) {
             JSONArray jsonObjs = payload.optJSONArray(key);
             
             if (jsonObjs != null && !jsonObjs.isEmpty()) {
-                Set<EventFilter> filterSet = new LinkedHashSet<>();
+                List<EventFilter> filterSet = new ArrayList<>();
                 for (int i = 0; i < jsonObjs.size(); i++) {
                     try {
                         JSONObject jsonObj = jsonObjs.getJSONObject(i);
@@ -182,7 +182,7 @@ public class Endpoint implements RootAction {
                 return filterSet;
             }
 
-            return Collections.emptySet();
+            return Collections.emptyList();
         }
 
         public boolean hasConfigs() {
