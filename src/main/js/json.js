@@ -1,8 +1,10 @@
 // kzantow's workaround for prototypejs's screwup of JSON functions.
 
 //
-// awful hack to get around JSONifying things with Prototype taking over wrong. ugh. Prototype is the worst.
+// awful hack to get around JSONifying things with Prototype taking
+// over wrong. ugh. Prototype is the worst.
 //
+/*eslint-disable */
 exports.stringify = function (o) {
     if (Array.prototype.toJSON) { // Prototype f's this up something bad
         var protoJSON = {
@@ -18,8 +20,7 @@ exports.stringify = function (o) {
             delete String.prototype.toJSON;
 
             return JSON.stringify(o);
-        }
-        finally {
+        } finally {
             if (protoJSON.a) {
                 Array.prototype.toJSON = protoJSON.a;
             }
@@ -38,3 +39,4 @@ exports.stringify = function (o) {
         return JSON.stringify(o);
     }
 };
+/*eslint-enable */
