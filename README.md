@@ -38,7 +38,9 @@ sse.unsubscribe(jobSubs);
 The above example subscribes to all events on the "job" channel i.e. all events for all jobs in the 
 Jenkins instance. This may be what you want in some cases, but in many cases you are just interested in
  receiving specific events. To do this, you simply need to specify a "filter" when subscribing
- to the channel. For example, to only receive events for the "order-management-webapp-deploy" job:
+ to the channel.
+ 
+ For example, to only receive "FAILURE" events for the "order-management-webapp-deploy" job:
  
 ```javascript
 var sse = require('@jenkins-cd/sse-gateway');
@@ -47,7 +49,8 @@ var sse = require('@jenkins-cd/sse-gateway');
 var jobSubs = sse.subscribe('job', function (event) {
     // this event is only relating to 'order-management-webapp-deploy' ...
 }, {
-    job_name: 'order-management-webapp-deploy'
+    job_name: 'order-management-webapp-deploy',
+    job_run_status: 'FAILURE'
 });
 
 // And some time later, unsubscribe using the return from the subscribe...
