@@ -2,7 +2,13 @@
 
 Uses the [jenkins-pubsub-light-module] jenkins-module to receive light-weight events and forward them into browser-land via SSE.
 
-# JavaScript API
+# Install
+
+```sh
+npm install --save @jenkins-cd/sse-gateway
+```
+
+# Usage
 
 The API is quite simple, allowing you to `subscribe` to (and `unsubscribe` from) Jenkins event
 notification "channels".
