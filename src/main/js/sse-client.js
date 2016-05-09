@@ -1,5 +1,6 @@
 var jsModules = require('@jenkins-cd/js-modules');
 var ajax = require('./ajax');
+var json = require('./json');
 var jenkinsUrl = jsModules.getRootURL();
 var eventSource = undefined;
 var jenkinsSessionInfo = undefined;
@@ -93,7 +94,7 @@ exports.subscribe = function () {
 
     if (filter) {
         // Clone the filter as the config.
-        config = JSON.parse(JSON.stringify(filter));
+        config = JSON.parse(json.stringify(filter));
     } else {
         config = {};
     }

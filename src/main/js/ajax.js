@@ -1,10 +1,13 @@
+var json = require('./json');
 
 exports.post = function (data, toUrl, jenkinsSessionInfo) {
     var http = new XMLHttpRequest();
     http.open('POST', toUrl, true);
 
     http.setRequestHeader('Content-type', 'application/json');
-    if (http.setDisableHeaderCheck) {
+    if (http.setDisableHeaderCheck
+        && jenkinsSessionInfo.cookieName
+        && jenkinsSessionInfo.sessionid) {
         // This is a test !!
         // XMLHttpRequest is coming from the xmlhttprequest npm package.
         // It allows us to turn off the W3C spec header checks, allowing us to set
@@ -21,15 +24,17 @@ exports.post = function (data, toUrl, jenkinsSessionInfo) {
         && jenkinsSessionInfo.crumb.name
         && jenkinsSessionInfo.crumb.value) {
         http.setRequestHeader(jenkinsSessionInfo.crumb.name, jenkinsSessionInfo.crumb.value);
-    }
 
-    if (data) {
-        if (typeof data === 'object') {
-            http.send(JSON.stringify(data));
+        if (data) {
+            if (typeof data === 'object') {
+                http.send(json.stringify(data));
+            } else {
+                http.send(data);
+            }
         } else {
-            http.send(data);
+            http.send();
         }
     } else {
-        http.send();
+        console.warn('Cannot connect to Jenkins SSE Gateway. No Crumb.');
     }
 };

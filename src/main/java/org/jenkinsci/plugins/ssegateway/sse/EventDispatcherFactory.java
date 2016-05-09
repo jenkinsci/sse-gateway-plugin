@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import hudson.Functions;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
@@ -66,8 +67,10 @@ public class EventDispatcherFactory {
 
             JSONObject openData = new JSONObject();
             JSONObject crumb = new JSONObject();
-            openData.put("sessionid", session.getId());
-            openData.put("cookieName", session.getServletContext().getSessionCookieConfig().getName());
+            if (Functions.getIsUnitTest()) {
+                openData.put("sessionid", session.getId());
+                openData.put("cookieName", session.getServletContext().getSessionCookieConfig().getName());
+            }
             crumb.put("name", jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField());
             crumb.put("value", jenkins.getCrumbIssuer().getCrumb(request));
             openData.put("crumb", crumb);
