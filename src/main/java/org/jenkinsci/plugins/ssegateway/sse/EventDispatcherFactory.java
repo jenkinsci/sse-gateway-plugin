@@ -69,7 +69,7 @@ public class EventDispatcherFactory {
             openData.put("sessionid", session.getId());
             openData.put("cookieName", session.getServletContext().getSessionCookieConfig().getName());
             crumb.put("name", jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField());
-            crumb.put("value", jenkins.getCrumbIssuer().getCrumb(null));
+            crumb.put("value", jenkins.getCrumbIssuer().getCrumb(request));
             openData.put("crumb", crumb);
             
             instance.dispatchEvent("open", openData.toString());
