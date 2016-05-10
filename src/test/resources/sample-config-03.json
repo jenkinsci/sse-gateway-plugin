@@ -1,4 +1,5 @@
 {
+  "dispatcher": "1111111111",
   "unsubscribe": [
     {
       "jenkins_channel": "job",

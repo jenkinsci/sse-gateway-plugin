@@ -94,9 +94,12 @@ public class EndpointUnitTest {
     private StaplerRequest newRequest(String config) throws IOException {
         StaplerRequest request = Mockito.mock(StaplerRequest.class);
         HttpSession session = Mockito.mock(HttpSession.class);
+        Map dispatchers = Mockito.mock(Map.class);
         
+        Mockito.when(dispatchers.get("1111111111")).thenReturn(eventDispatcher);
         Mockito.when(request.getSession()).thenReturn(session);
-        Mockito.when(session.getAttribute(EventDispatcherFactory.DISPATCHER_SESSION_KEY)).thenReturn(eventDispatcher);
+        Mockito.when(session.getAttribute(EventDispatcher.SESSION_SYNC_OBJ)).thenReturn("blah");
+        Mockito.when(session.getAttribute(EventDispatcherFactory.DISPATCHER_SESSION_KEY)).thenReturn(dispatchers);
         Mockito.when(request.getInputStream()).thenReturn(new MockServletInputStream(config));
         
         return request;

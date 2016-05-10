@@ -48,6 +48,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -91,18 +92,29 @@ public class Endpoint implements RootAction {
     @RequirePOST
     @Restricted(DoNotUse.class) // Web only
     public HttpResponse doConfigure(StaplerRequest request) throws IOException {
-        SubscriptionConfig subscriptionConfig = SubscriptionConfig.fromRequest(request);
+        HttpSession session = request.getSession();
+        
+        // We want to ensure that, at one time, only one set of configurations are being applied,
+        // for a given user session. 
+        synchronized (EventDispatcher.SSEHttpSessionListener.getSessionSyncObj(session)) {
+            SubscriptionConfig subscriptionConfig = SubscriptionConfig.fromRequest(request);
 
-        if (subscriptionConfig.hasConfigs()) {
-            EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(request.getSession());
-            if (subscriptionConfig.unsubscribeAll) {
-                dispatcher.unsubscribeAll();
-            }
-            for (EventFilter filter : subscriptionConfig.unsubscribeSet) {
-                dispatcher.unsubscribe(filter);
-            }
-            for (EventFilter filter : subscriptionConfig.subscribeSet) {
-                dispatcher.subscribe(filter);
+            if (subscriptionConfig.dispatcherId != null && subscriptionConfig.hasConfigs()) {
+                EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(subscriptionConfig.dispatcherId, request.getSession());
+
+                if (dispatcher == null) {
+                    throw new IOException("Failed Jenkins SSE Gateway configuration request. Unknown SSE event dispatcher " + subscriptionConfig.dispatcherId);
+                }
+
+                if (subscriptionConfig.unsubscribeAll) {
+                    dispatcher.unsubscribeAll();
+                }
+                for (EventFilter filter : subscriptionConfig.unsubscribeSet) {
+                    dispatcher.unsubscribe(filter);
+                }
+                for (EventFilter filter : subscriptionConfig.subscribeSet) {
+                    dispatcher.subscribe(filter);
+                }
             }
         }
 
@@ -145,6 +157,7 @@ public class Endpoint implements RootAction {
     }
 
     private static class SubscriptionConfig {
+        private String dispatcherId;
         private List<EventFilter> subscribeSet = Collections.emptyList();
         private List<EventFilter> unsubscribeSet = Collections.emptyList();
         private boolean unsubscribeAll = false;
@@ -153,13 +166,18 @@ public class Endpoint implements RootAction {
             JSONObject payload = Util.readJSONPayload(request);
             SubscriptionConfig config = new SubscriptionConfig();
             
-            config.subscribeSet = extractFilterSet(payload, "subscribe");
-            config.unsubscribeSet = extractFilterSet(payload, "unsubscribe");
-            if (config.unsubscribeSet.isEmpty()) {
-                String unsubscribe = payload.optString("unsubscribe", null);
-                if ("*".equals(unsubscribe) || "all".equalsIgnoreCase(unsubscribe)) {
-                    config.unsubscribeAll = true;
+            config.dispatcherId = payload.optString("dispatcher", null);
+            if (config.dispatcherId != null) {
+                config.subscribeSet = extractFilterSet(payload, "subscribe");
+                config.unsubscribeSet = extractFilterSet(payload, "unsubscribe");
+                if (config.unsubscribeSet.isEmpty()) {
+                    String unsubscribe = payload.optString("unsubscribe", null);
+                    if ("*".equals(unsubscribe) || "all".equalsIgnoreCase(unsubscribe)) {
+                        config.unsubscribeAll = true;
+                    }
                 }
+            } else {
+                LOGGER.log(Level.SEVERE, "Received an SSE Gateway configuration request that did not contain a 'dispatcher' ID. Ignoring request.");
             }
             
             return config;

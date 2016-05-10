@@ -42,6 +42,7 @@ import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpSessionEvent;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -49,6 +50,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -58,8 +60,10 @@ import java.util.logging.Logger;
 @Restricted(NoExternalUse.class)
 public abstract class EventDispatcher implements Serializable {
 
+    public static final String SESSION_SYNC_OBJ = "org.jenkinsci.plugins.ssegateway.sse.session.sync";
     private static final Logger LOGGER = Logger.getLogger(EventDispatcher.class.getName());
 
+    private final String id = UUID.randomUUID().toString();
     private final PubsubBus bus;
     private Map<EventFilter, ChannelSubscriber> subscribers = new CopyOnWriteMap.Hash<>();
 
@@ -72,6 +76,10 @@ public abstract class EventDispatcher implements Serializable {
 
     public Map<EventFilter, ChannelSubscriber> getSubscribers() {
         return Collections.unmodifiableMap(subscribers);
+    }
+
+    public final String getId() {
+        return id;
     }
 
     public boolean dispatchEvent(String name, String data) throws IOException, ServletException {
@@ -109,7 +117,7 @@ public abstract class EventDispatcher implements Serializable {
         response.setHeader("Connection","keep-alive");
     }
 
-    public synchronized void subscribe(@Nonnull EventFilter filter) {
+    public void subscribe(@Nonnull EventFilter filter) {
         SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
         if (subscriber != null) {
             // Already subscribed to this event.
@@ -145,7 +153,7 @@ public abstract class EventDispatcher implements Serializable {
         return User.current();
     }
 
-    public synchronized void unsubscribe(@Nonnull EventFilter filter) {
+    public void unsubscribe(@Nonnull EventFilter filter) {
         String channelName = filter.getChannelName();
         if (channelName != null) {
             SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
@@ -167,7 +175,7 @@ public abstract class EventDispatcher implements Serializable {
         }
     }
 
-    public synchronized void unsubscribeAll() {
+    public void unsubscribeAll() {
         Set<Map.Entry<EventFilter, ChannelSubscriber>> entries = subscribers.entrySet();
         for (Map.Entry<EventFilter, ChannelSubscriber> entry : entries) {
             SSEChannelSubscriber subscriber = (SSEChannelSubscriber) entry.getValue();
@@ -222,9 +230,44 @@ public abstract class EventDispatcher implements Serializable {
      */
     @Extension
     public static final class SSEHttpSessionListener extends HttpSessionListener {
+        
+        public static String getSessionSyncObj(HttpSession session) {
+            String syncObj = (String) session.getAttribute(SESSION_SYNC_OBJ);
+            if (syncObj == null) {
+                if (Functions.getIsUnitTest()) {
+                    // Fudge things for unit/integration tests as HttpSessionListeners do
+                    // not get called on session create.
+                    syncObj = setSessionSyncObj(session);
+                } else {
+                    // This should never happen as the sessionCreated function adds this at the
+                    // very start of the session.
+                    throw new IllegalStateException("Unexpected/illegal state. The session should have a " + SESSION_SYNC_OBJ);
+                }
+            }
+            return syncObj;
+        }
+        
+        @Override
+        public void sessionCreated(HttpSessionEvent httpSessionEvent) {
+            setSessionSyncObj(httpSessionEvent.getSession());
+        }
+
         @Override
         public void sessionDestroyed(HttpSessionEvent httpSessionEvent) {
-            EventDispatcherFactory.getDispatcher(httpSessionEvent.getSession()).unsubscribeAll();
+            Map<String, EventDispatcher> dispatchers = EventDispatcherFactory.getDispatchers(httpSessionEvent.getSession());
+            try {
+                for (EventDispatcher dispatcher : dispatchers.values()) {
+                    dispatcher.unsubscribeAll();
+                }
+            } finally {
+                dispatchers.clear();
+            }
+        }
+
+        private static String setSessionSyncObj(HttpSession session) {
+            String syncObj = new String(session.getId());
+            session.setAttribute(SESSION_SYNC_OBJ, syncObj);
+            return syncObj;
         }
     }
 }

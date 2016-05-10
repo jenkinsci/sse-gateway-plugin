@@ -29,10 +29,13 @@ import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -59,7 +62,7 @@ public class EventDispatcherFactory {
     public static EventDispatcher start(HttpServletRequest request, HttpServletResponse response) {
         try {
             HttpSession session = request.getSession();
-            EventDispatcher instance = getDispatcher(session);
+            EventDispatcher instance = newDispatcher(session);
             Jenkins jenkins = Jenkins.getInstance();
 
             instance.start(request, response);
@@ -67,10 +70,14 @@ public class EventDispatcherFactory {
 
             JSONObject openData = new JSONObject();
             JSONObject crumb = new JSONObject();
+
+            openData.put("dispatcher", instance.getId());
+            
             if (Functions.getIsUnitTest()) {
                 openData.put("sessionid", session.getId());
                 openData.put("cookieName", session.getServletContext().getSessionCookieConfig().getName());
             }
+
             crumb.put("name", jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField());
             crumb.put("value", jenkins.getCrumbIssuer().getCrumb(request));
             openData.put("crumb", crumb);
@@ -84,25 +91,46 @@ public class EventDispatcherFactory {
     }
 
     /**
-     * Get the session {@link EventDispatcher} from the {@link HttpSession}.
-     * <p>
-     * Creates a new {@link EventDispatcher} (and binds it to the {@link HttpSession}) if
-     * non exists.
+     * Get the session {@link EventDispatcher}s from the {@link HttpSession}.
      *     
      * @param session The {@link HttpSession}.
-     * @return The session {@link EventDispatcher}.
+     * @return The session {@link EventDispatcher}s.
      */
-    public synchronized static EventDispatcher getDispatcher(@Nonnull HttpSession session) {
-        EventDispatcher dispatcher = (EventDispatcher) session.getAttribute(DISPATCHER_SESSION_KEY);
-        if (dispatcher == null) {
-            try {
-                dispatcher = runtimeClass.newInstance();
-                session.setAttribute(DISPATCHER_SESSION_KEY, dispatcher);
-            } catch (Exception e) {
-                throw new IllegalStateException("Unexpected Exception.", e);
-            }
+    public synchronized static Map<String, EventDispatcher> getDispatchers(@Nonnull HttpSession session) {
+        Map<String, EventDispatcher> dispatchers = (Map<String, EventDispatcher>) session.getAttribute(DISPATCHER_SESSION_KEY);
+        if (dispatchers == null) {
+            dispatchers = new HashMap<>();
+            session.setAttribute(DISPATCHER_SESSION_KEY, dispatchers);
         }
-        return dispatcher;
+        return dispatchers;
+    }
+
+    /**
+     * Create a new {@link EventDispatcher} instance and attach it to the user session. 
+     *     
+     * @param session The {@link HttpSession}.
+     * @return The new {@link EventDispatcher} instance.
+     */
+    public synchronized static EventDispatcher newDispatcher(@Nonnull HttpSession session) {
+        Map<String, EventDispatcher> dispatchers = getDispatchers(session);
+        try {
+            EventDispatcher dispatcher = runtimeClass.newInstance();
+            dispatchers.put(dispatcher.getId(), dispatcher);
+            return dispatcher;
+        } catch (Exception e) {
+            throw new IllegalStateException("Unexpected Exception.", e);
+        }
+    }
+
+    /**
+     * Get the specified {@link EventDispatcher} instance from the {@link HttpSession}.
+     * @param dispatcherId The dispatcher ID.
+     * @param session The {@link HttpSession}.
+     * @return The {@link EventDispatcher}, or {@code null} if no such dispatcher is known. 
+     */
+    public static @CheckForNull EventDispatcher getDispatcher(@Nonnull String dispatcherId, @Nonnull HttpSession session) {
+        Map<String, EventDispatcher> dispatchers = getDispatchers(session);
+        return dispatchers.get(dispatcherId);
     }
 
     private static boolean isAsyncSupported() {

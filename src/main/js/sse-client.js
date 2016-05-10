@@ -199,6 +199,7 @@ function doConfigure() {
     } else {
         var configureUrl = jenkinsUrl + 'sse-gateway/configure';
 
+        configurationQueue.dispatcher = jenkinsSessionInfo.dispatcher;
         ajax.post(configurationQueue, configureUrl, jenkinsSessionInfo);
 
         // reset the queue
