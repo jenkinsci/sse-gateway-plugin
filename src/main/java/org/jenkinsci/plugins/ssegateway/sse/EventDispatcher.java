@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.model.User;
@@ -264,6 +265,8 @@ public abstract class EventDispatcher implements Serializable {
             }
         }
 
+        @SuppressFBWarnings(value = "DM_STRING_CTOR", 
+                justification = "purposely doing new String() here so as to guarantee a new object instance.")
         private static String setSessionSyncObj(HttpSession session) {
             String syncObj = new String(session.getId());
             session.setAttribute(SESSION_SYNC_OBJ, syncObj);
