@@ -64,3 +64,19 @@ sse.unsubscribe(jobSubs);
 ```
 
 [jenkins-pubsub-light-module]: https://github.com/tfennelly/jenkins-pubsub-light-module
+
+# Internet Explorer Support
+
+As always with Internet Explorer, there are issues. It doesn't support the SSE `EventSource` so in order to
+use it on Internet Explorer, please make sure that a polyfill is added to the page before your app. We have
+used [this one](https://github.com/remy/polyfills/blob/master/EventSource.js) and found it to work fine.
+
+To add this polyfill to your `.jelly` file, simply include the following adjunct as early as possible.
+
+```html
+<st:adjunct includes="org.jenkinsci.plugins.ssegateway.sse.EventSource" />
+```
+
+# Sample Plugin
+
+See the [sse-gateway-sample-plugin](https://github.com/tfennelly/sse-gateway-sample-plugin).
