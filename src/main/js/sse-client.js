@@ -6,7 +6,7 @@ var eventSource = undefined;
 var jenkinsSessionInfo = undefined;
 var subscriptions = [];
 var channelListeners = {};
-var eventSourceSupported = (window && window.EventSource);
+var eventSourceSupported = (window !== undefined && window.EventSource !== undefined);
 var configurationQueue = {};
 var nextDoConfigureTimeout = undefined;
 
@@ -65,6 +65,10 @@ exports.disconnect = function () {
 };
 
 exports.subscribe = function () {
+    if (!eventSource) {
+        return undefined;
+    }
+
     clearDoConfigure();
 
     var channelName;
@@ -120,6 +124,10 @@ exports.subscribe = function () {
 };
 
 exports.unsubscribe = function (callback) {
+    if (!eventSource) {
+        return;
+    }
+
     clearDoConfigure();
 
     // callback is the only mandatory param
