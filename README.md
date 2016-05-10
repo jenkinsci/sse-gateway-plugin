@@ -8,6 +8,12 @@ Uses the [jenkins-pubsub-light-module] jenkins-module to receive light-weight ev
 npm install --save @jenkins-cd/sse-gateway
 ```
 
+# Requirements
+
+This plugin requires Jenkins version 2.2 or later.
+
+2.2+ is needed because it supports Servlet 3 asynchronous requests, which are needed for Server Sent Events. 
+
 # Usage
 
 The API is quite simple, allowing you to `subscribe` to (and `unsubscribe` from) Jenkins event
