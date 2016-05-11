@@ -24,6 +24,7 @@
 package org.jenkinsci.plugins.ssegateway.sse;
 
 import hudson.Functions;
+import hudson.security.csrf.CrumbIssuer;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.accmod.Restricted;
@@ -36,12 +37,16 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 @Restricted(NoExternalUse.class)
 public class EventDispatcherFactory {
+
+    private static final Logger LOGGER = Logger.getLogger(EventDispatcherFactory.class.getName());
 
     public static final String DISPATCHER_SESSION_KEY = EventDispatcher.class.getName();
     
@@ -78,9 +83,14 @@ public class EventDispatcherFactory {
                 openData.put("cookieName", session.getServletContext().getSessionCookieConfig().getName());
             }
 
-            crumb.put("name", jenkins.getCrumbIssuer().getDescriptor().getCrumbRequestField());
-            crumb.put("value", jenkins.getCrumbIssuer().getCrumb(request));
-            openData.put("crumb", crumb);
+            CrumbIssuer crumbIssuer = jenkins.getCrumbIssuer();
+            if (crumbIssuer != null) {
+                crumb.put("name", crumbIssuer.getDescriptor().getCrumbRequestField());
+                crumb.put("value", crumbIssuer.getCrumb(request));
+                openData.put("crumb", crumb);
+            } else {
+                LOGGER.log(Level.WARNING, "Cannot support SSE Gateway client. No CrumbIssuer on Jenkins instance.");
+            }
             
             instance.dispatchEvent("open", openData.toString());
             
