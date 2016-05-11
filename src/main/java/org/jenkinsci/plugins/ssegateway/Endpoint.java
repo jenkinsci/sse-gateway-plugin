@@ -180,8 +180,6 @@ public class Endpoint implements RootAction {
                         config.unsubscribeAll = true;
                     }
                 }
-            } else {
-                LOGGER.log(Level.SEVERE, "Received an SSE Gateway configuration request that did not contain a 'dispatcher' ID. Ignoring request.");
             }
             
             return config;
