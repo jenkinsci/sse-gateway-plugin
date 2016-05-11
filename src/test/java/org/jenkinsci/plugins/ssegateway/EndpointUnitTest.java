@@ -11,6 +11,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 import org.mockito.Mockito;
 
 import javax.servlet.ServletException;
@@ -24,10 +25,12 @@ import java.util.Map;
 public class EndpointUnitTest {
     
     private EventDispatcher eventDispatcher;
+    private StaplerResponse response;
     
     @Before
     public void setup() {
         eventDispatcher = new MockEventDispatcher();
+        response = Mockito.mock(StaplerResponse.class);
     }
     @After
     public void tearDown() {
@@ -45,7 +48,7 @@ public class EndpointUnitTest {
         };
         StaplerRequest request = newRequest("/sample-config-01.json");
         
-        endpoint.doConfigure(request);
+        endpoint.doConfigure(request, response);
 
         Map<EventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();
         Assert.assertEquals(0, subscribers.size());
@@ -61,12 +64,12 @@ public class EndpointUnitTest {
         Assert.assertEquals(0, subscribers.size());
 
         // Subscribe ...
-        endpoint.doConfigure(newRequest("/sample-config-02.json"));
+        endpoint.doConfigure(newRequest("/sample-config-02.json"), response);
         subscribers = eventDispatcher.getSubscribers();
         Assert.assertEquals(1, subscribers.size());
         
         // Unsubscribe ...
-        endpoint.doConfigure(newRequest("/sample-config-03.json"));
+        endpoint.doConfigure(newRequest("/sample-config-03.json"), response);
         subscribers = eventDispatcher.getSubscribers();
         Assert.assertEquals(0, subscribers.size());
     }
@@ -81,12 +84,12 @@ public class EndpointUnitTest {
         Assert.assertEquals(0, subscribers.size());
 
         // Subscribe ...
-        endpoint.doConfigure(newRequest("/sample-config-04.json"));
+        endpoint.doConfigure(newRequest("/sample-config-04.json"), response);
         subscribers = eventDispatcher.getSubscribers();
         Assert.assertEquals(2, subscribers.size());
         
         // Unsubscribe ...
-        endpoint.doConfigure(newRequest("/sample-config-05.json")); // "unsubscribe": "*"
+        endpoint.doConfigure(newRequest("/sample-config-05.json"), response); // "unsubscribe": "*"
         subscribers = eventDispatcher.getSubscribers();
         Assert.assertEquals(0, subscribers.size());
     }

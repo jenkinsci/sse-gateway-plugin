@@ -74,22 +74,25 @@ public class EventDispatcherFactory {
             instance.setDefaultHeaders();
 
             JSONObject openData = new JSONObject();
-            JSONObject crumb = new JSONObject();
 
             openData.put("dispatcher", instance.getId());
             
             if (Functions.getIsUnitTest()) {
                 openData.put("sessionid", session.getId());
                 openData.put("cookieName", session.getServletContext().getSessionCookieConfig().getName());
-            }
 
-            CrumbIssuer crumbIssuer = jenkins.getCrumbIssuer();
-            if (crumbIssuer != null) {
-                crumb.put("name", crumbIssuer.getDescriptor().getCrumbRequestField());
-                crumb.put("value", crumbIssuer.getCrumb(request));
-                openData.put("crumb", crumb);
-            } else {
-                LOGGER.log(Level.WARNING, "Cannot support SSE Gateway client. No CrumbIssuer on Jenkins instance.");
+                // Crumb needed for testing because we use it to fire off some 
+                // test builds via the POST API.
+                CrumbIssuer crumbIssuer = jenkins.getCrumbIssuer();
+                if (crumbIssuer != null) {
+                    JSONObject crumb = new JSONObject();
+                    crumb.put("name", crumbIssuer.getDescriptor().getCrumbRequestField());
+                    crumb.put("value", crumbIssuer.getCrumb(request));
+                    openData.put("crumb", crumb);
+                } else {
+                    // 
+                    LOGGER.log(Level.WARNING, "Cannot support SSE Gateway client. No CrumbIssuer on Jenkins instance.");
+                }
             }
             
             instance.dispatchEvent("open", openData.toString());

@@ -25,6 +25,7 @@ package org.jenkinsci.plugins.ssegateway;
 
 import hudson.Extension;
 import hudson.model.RootAction;
+import hudson.security.csrf.CrumbExclusion;
 import hudson.util.HttpResponses;
 import hudson.util.PluginServletFilter;
 import net.sf.json.JSONArray;
@@ -38,6 +39,7 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import javax.servlet.Filter;
@@ -61,13 +63,29 @@ import java.util.logging.Logger;
  */
 @Restricted(NoExternalUse.class)
 @Extension
-public class Endpoint implements RootAction {
+public class Endpoint extends CrumbExclusion implements RootAction {
 
     protected static final String SSE_GATEWAY_URL = "/sse-gateway";
     private static final Logger LOGGER = Logger.getLogger(Endpoint.class.getName());
 
     public Endpoint() throws ServletException {
         init();
+    }
+
+    @Override
+    public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+        String contentType = request.getHeader("Content-Type");
+        
+        if(contentType != null && contentType.contains("application/json")) {
+            String requestedResource = getRequestedResourcePath(request);
+
+            if (requestedResource.equals(SSE_GATEWAY_URL + "/configure")) {
+                chain.doFilter(request, response);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected void init() throws ServletException {
@@ -91,7 +109,7 @@ public class Endpoint implements RootAction {
     
     @RequirePOST
     @Restricted(DoNotUse.class) // Web only
-    public HttpResponse doConfigure(StaplerRequest request) throws IOException {
+    public HttpResponse doConfigure(StaplerRequest request, StaplerResponse response) throws IOException {
         HttpSession session = request.getSession();
         
         // We want to ensure that, at one time, only one set of configurations are being applied,
@@ -100,8 +118,10 @@ public class Endpoint implements RootAction {
             SubscriptionConfig subscriptionConfig = SubscriptionConfig.fromRequest(request);
 
             if (subscriptionConfig.dispatcherId == null) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 return HttpResponses.errorJSON("'dispatcher' ID not specified.");
             } else if (!subscriptionConfig.hasConfigs()) {
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 return HttpResponses.errorJSON("No 'subscribe' or 'unsubscribe' configurations provided in configuration request.");
             } else {
                 EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(subscriptionConfig.dispatcherId, request.getSession());
@@ -122,6 +142,7 @@ public class Endpoint implements RootAction {
             }
         }
 
+        response.setStatus(HttpServletResponse.SC_OK);
         return HttpResponses.okJSON();
     }
 
