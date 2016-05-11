@@ -118,36 +118,36 @@ public abstract class EventDispatcher implements Serializable {
         response.setHeader("Connection","keep-alive");
     }
 
-    public void subscribe(@Nonnull EventFilter filter) {
+    public boolean subscribe(@Nonnull EventFilter filter) {
         SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
         if (subscriber != null) {
             // Already subscribed to this event.
             subscriber.numSubscribers++;
             publishStateEvent("subscribe");
-            return;
+            return true;
         }
         
         String channelName = filter.getChannelName();
         if (channelName != null) {
             User current = getUser();
             
-            if (current == null && Functions.getIsUnitTest()) {
-                current = User.get("alice");
+            if (current == null) {
+                current = User.get("anonymous");
             }
-            
-            if (current != null) {
-                subscriber = new SSEChannelSubscriber(this);
-    
-                bus.subscribe(channelName, subscriber, current, filter);
-                subscribers.put(filter, subscriber);
-                subscriber.numSubscribers++;
-                publishStateEvent("subscribe");
-            } else {
-                LOGGER.log(Level.WARNING, "SSE subscribe ignored. No active user.");
-            }
+
+            subscriber = new SSEChannelSubscriber(this);
+
+            bus.subscribe(channelName, subscriber, current, filter);
+            subscribers.put(filter, subscriber);
+            subscriber.numSubscribers++;
+            publishStateEvent("subscribe");
+
+            return true;
         } else {
             LOGGER.log(Level.SEVERE, String.format("Invalid SSE subscribe configuration. '%s' not specified.", EventProps.Jenkins.jenkins_channel));
         }
+        
+        return false;
     }
 
     protected User getUser() {

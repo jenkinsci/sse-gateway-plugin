@@ -111,6 +111,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     @Restricted(DoNotUse.class) // Web only
     public HttpResponse doConfigure(StaplerRequest request, StaplerResponse response) throws IOException {
         HttpSession session = request.getSession();
+        int failedSubscribes = 0;
         
         // We want to ensure that, at one time, only one set of configurations are being applied,
         // for a given user session. 
@@ -137,13 +138,19 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                     dispatcher.unsubscribe(filter);
                 }
                 for (EventFilter filter : subscriptionConfig.subscribeSet) {
-                    dispatcher.subscribe(filter);
+                    if (!dispatcher.subscribe(filter)) {
+                        failedSubscribes++;
+                    }
                 }
             }
         }
 
         response.setStatus(HttpServletResponse.SC_OK);
-        return HttpResponses.okJSON();
+        if (failedSubscribes == 0) {
+            return HttpResponses.okJSON();
+        } else {
+            return HttpResponses.errorJSON("One or more event channel subscriptions were not successful. Check the server logs.");
+        }
     }
 
     // Using a Servlet Filter for the async channel. We're doing this because we

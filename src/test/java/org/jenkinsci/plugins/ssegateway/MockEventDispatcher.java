@@ -46,6 +46,8 @@ public class MockEventDispatcher extends EventDispatcher {
 
     @Override
     protected User getUser() {
-        return Mockito.mock(User.class);
+        User user = Mockito.mock(User.class);
+        Mockito.when(user.getId()).thenReturn("alice");
+        return user;
     }
 }
