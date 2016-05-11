@@ -99,11 +99,15 @@ public class Endpoint implements RootAction {
         synchronized (EventDispatcher.SSEHttpSessionListener.getSessionSyncObj(session)) {
             SubscriptionConfig subscriptionConfig = SubscriptionConfig.fromRequest(request);
 
-            if (subscriptionConfig.dispatcherId != null && subscriptionConfig.hasConfigs()) {
+            if (subscriptionConfig.dispatcherId == null) {
+                return HttpResponses.errorJSON("'dispatcher' ID not specified.");
+            } else if (!subscriptionConfig.hasConfigs()) {
+                return HttpResponses.errorJSON("No 'subscribe' or 'unsubscribe' configurations provided in configuration request.");
+            } else {
                 EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(subscriptionConfig.dispatcherId, request.getSession());
 
                 if (dispatcher == null) {
-                    throw new IOException("Failed Jenkins SSE Gateway configuration request. Unknown SSE event dispatcher " + subscriptionConfig.dispatcherId);
+                    return HttpResponses.errorJSON("Failed Jenkins SSE Gateway configuration request. Unknown SSE event dispatcher " + subscriptionConfig.dispatcherId);
                 }
 
                 if (subscriptionConfig.unsubscribeAll) {
