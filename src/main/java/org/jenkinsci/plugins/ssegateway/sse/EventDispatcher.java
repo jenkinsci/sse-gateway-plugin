@@ -235,15 +235,7 @@ public abstract class EventDispatcher implements Serializable {
         public static String getSessionSyncObj(HttpSession session) {
             String syncObj = (String) session.getAttribute(SESSION_SYNC_OBJ);
             if (syncObj == null) {
-                if (Functions.getIsUnitTest()) {
-                    // Fudge things for unit/integration tests as HttpSessionListeners do
-                    // not get called on session create.
-                    syncObj = setSessionSyncObj(session);
-                } else {
-                    // This should never happen as the sessionCreated function adds this at the
-                    // very start of the session.
-                    throw new IllegalStateException("Unexpected/illegal state. The session should have a " + SESSION_SYNC_OBJ);
-                }
+                syncObj = setSessionSyncObj(session);
             }
             return syncObj;
         }
@@ -267,9 +259,12 @@ public abstract class EventDispatcher implements Serializable {
 
         @SuppressFBWarnings(value = "DM_STRING_CTOR", 
                 justification = "purposely doing new String() here so as to guarantee a new object instance.")
-        private static String setSessionSyncObj(HttpSession session) {
-            String syncObj = new String(session.getId());
-            session.setAttribute(SESSION_SYNC_OBJ, syncObj);
+        private synchronized static String setSessionSyncObj(HttpSession session) {
+            String syncObj = (String) session.getAttribute(SESSION_SYNC_OBJ);
+            if (syncObj == null) {
+                syncObj = new String(session.getId());
+                session.setAttribute(SESSION_SYNC_OBJ, syncObj);
+            }
             return syncObj;
         }
     }
