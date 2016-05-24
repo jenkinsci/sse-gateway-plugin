@@ -1,6 +1,6 @@
 [Server Sent Events (SSE)](https://html.spec.whatwg.org/multipage/comms.html#server-sent-events) Gateway plugin for Jenkins.
 
-Uses the [jenkins-pubsub-light-module] jenkins-module to receive light-weight events and forward them into browser-land via SSE.
+Uses the [pubsub-light-module] jenkins-module to receive light-weight events and forward them into browser-land via SSE.
 
 # Install
 
@@ -22,7 +22,7 @@ notification "channels".
 ## Subscribing to "job" channel events (basic)
 
 The "job" channel is where you listen for events relating to Jenkins Jobs, all of which are enumerated in
- [the Events.JobChannel Javadoc](http://tfennelly.github.io/jenkins-pubsub-light-module/org/jenkins/pubsub/Events.JobChannel.html).
+ [the Events.JobChannel Javadoc](http://jenkinsci.github.io/pubsub-light-module/org/jenkins/pubsub/Events.JobChannel.html).
 
 ```javascript
 var sse = require('@jenkins-cd/sse-gateway');
@@ -69,8 +69,6 @@ var jobSubs = sse.subscribe('job', function (event) {
 sse.unsubscribe(jobSubs);
 ```
 
-[jenkins-pubsub-light-module]: https://github.com/tfennelly/jenkins-pubsub-light-module
-
 # Internet Explorer Support
 
 As always with Internet Explorer, there are issues. It doesn't support the SSE `EventSource` so in order to
@@ -86,3 +84,5 @@ To add this polyfill to your `.jelly` file, simply include the following adjunct
 # Sample Plugin
 
 See the [sse-gateway-sample-plugin](https://github.com/tfennelly/sse-gateway-sample-plugin).
+
+[pubsub-light-module]: https://github.com/jenkinsci/pubsub-light-module

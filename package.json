@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tfennelly/sse-gateway-plugin.git"
+    "url": "git+https://github.com/jenkinsci/sse-gateway-plugin.git"
   },
   "keywords": [
     "Jenkins",
@@ -21,9 +21,9 @@
   "author": "Tom Fennelly <tom.fennelly@gmail.com> (https://github.com/tfennelly)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tfennelly/sse-gateway-plugin/issues"
+    "url": "https://github.com/jenkinsci/sse-gateway-plugin/issues"
   },
-  "homepage": "https://github.com/tfennelly/sse-gateway-plugin#readme",
+  "homepage": "https://github.com/jenkinsci/sse-gateway-plugin",
   "devDependencies": {
     "@jenkins-cd/js-builder": "0.0.32",
     "@jenkins-cd/js-test": "^1.1.2",
