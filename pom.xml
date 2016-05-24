@@ -61,7 +61,7 @@
     <dependency>
       <groupId>org.jenkins-ci.modules</groupId>
       <artifactId>pubsub-light</artifactId>
-      <version>1.0-SNAPSHOT</version>
+      <version>1.0</version>
     </dependency>
     
     <!-- Test deps -->
