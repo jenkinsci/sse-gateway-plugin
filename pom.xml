@@ -10,7 +10,7 @@
   </parent>
   <groupId>org.jenkins-ci.plugins</groupId>
   <artifactId>sse-gateway</artifactId>
-  <version>1.0</version>
+  <version>1.1-SNAPSHOT</version>
   <packaging>hpi</packaging>
 
   <properties>
@@ -27,7 +27,7 @@
     <connection>scm:git:git://github.com/jenkinsci/sse-gateway-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/sse-gateway-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/sse-gateway-plugin</url>
-    <tag>sse-gateway-1.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <licenses>
