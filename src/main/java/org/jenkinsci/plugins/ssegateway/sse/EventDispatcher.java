@@ -64,7 +64,7 @@ public abstract class EventDispatcher implements Serializable {
     public static final String SESSION_SYNC_OBJ = "org.jenkinsci.plugins.ssegateway.sse.session.sync";
     private static final Logger LOGGER = Logger.getLogger(EventDispatcher.class.getName());
 
-    private final String id = UUID.randomUUID().toString();
+    private String id = null;
     private final PubsubBus bus;
     private Map<EventFilter, ChannelSubscriber> subscribers = new CopyOnWriteMap.Hash<>();
 
@@ -80,7 +80,14 @@ public abstract class EventDispatcher implements Serializable {
     }
 
     public final String getId() {
+        if (id == null) {
+            throw new IllegalStateException("Call to getId before the ID ewas set.");
+        }
         return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public boolean dispatchEvent(String name, String data) throws IOException, ServletException {

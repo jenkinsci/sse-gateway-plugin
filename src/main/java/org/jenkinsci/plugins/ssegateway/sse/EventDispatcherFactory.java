@@ -64,18 +64,22 @@ public class EventDispatcherFactory {
         }
     }
     
-    public static EventDispatcher start(HttpServletRequest request, HttpServletResponse response) {
+    public static EventDispatcher start(@Nonnull String clientId, @Nonnull HttpServletRequest request, @Nonnull HttpServletResponse response) {
         try {
             HttpSession session = request.getSession();
-            EventDispatcher instance = newDispatcher(session);
-            Jenkins jenkins = Jenkins.getInstance();
-
-            instance.start(request, response);
-            instance.setDefaultHeaders();
+            EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(clientId, session);
+            
+            if (dispatcher == null) {
+                LOGGER.log(Level.WARNING, String.format("Unknown dispatcher client Id '%s'. Creating a new one. Make sure you are calling 'connect' before 'listen'.", clientId));
+                dispatcher = EventDispatcherFactory.newDispatcher(clientId, session);
+            }
+            
+            dispatcher.start(request, response);
+            dispatcher.setDefaultHeaders();
 
             JSONObject openData = new JSONObject();
 
-            openData.put("dispatcher", instance.getId());
+            openData.put("dispatcher", dispatcher.getId());
             
             if (Functions.getIsUnitTest()) {
                 openData.put("sessionid", session.getId());
@@ -83,6 +87,7 @@ public class EventDispatcherFactory {
 
                 // Crumb needed for testing because we use it to fire off some 
                 // test builds via the POST API.
+                Jenkins jenkins = Jenkins.getInstance();
                 CrumbIssuer crumbIssuer = jenkins.getCrumbIssuer();
                 if (crumbIssuer != null) {
                     JSONObject crumb = new JSONObject();
@@ -95,9 +100,9 @@ public class EventDispatcherFactory {
                 }
             }
             
-            instance.dispatchEvent("open", openData.toString());
+            dispatcher.dispatchEvent("open", openData.toString());
             
-            return instance;
+            return dispatcher;
         } catch (Exception e) {
             throw new IllegalStateException("Unexpected Exception.", e);
         }
@@ -121,14 +126,16 @@ public class EventDispatcherFactory {
     /**
      * Create a new {@link EventDispatcher} instance and attach it to the user session. 
      *     
+     * @param clientId The dispatcher client Id.
      * @param session The {@link HttpSession}.
      * @return The new {@link EventDispatcher} instance.
      */
-    public synchronized static EventDispatcher newDispatcher(@Nonnull HttpSession session) {
+    public synchronized static EventDispatcher newDispatcher(@Nonnull String clientId, @Nonnull HttpSession session) {
         Map<String, EventDispatcher> dispatchers = getDispatchers(session);
         try {
             EventDispatcher dispatcher = runtimeClass.newInstance();
-            dispatchers.put(dispatcher.getId(), dispatcher);
+            dispatcher.setId(clientId);
+            dispatchers.put(clientId, dispatcher);
             return dispatcher;
         } catch (Exception e) {
             throw new IllegalStateException("Unexpected Exception.", e);

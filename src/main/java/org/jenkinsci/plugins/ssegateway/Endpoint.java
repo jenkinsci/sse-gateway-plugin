@@ -52,6 +52,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -65,7 +66,9 @@ import java.util.logging.Logger;
 @Extension
 public class Endpoint extends CrumbExclusion implements RootAction {
 
-    protected static final String SSE_GATEWAY_URL = "/sse-gateway";
+    public static final String SSE_GATEWAY_URL = "/sse-gateway";
+    public static final String SSE_LISTEN_URL_PREFIX = SSE_GATEWAY_URL + "/listen/";
+    
     private static final Logger LOGGER = Logger.getLogger(Endpoint.class.getName());
 
     public Endpoint() throws ServletException {
@@ -105,6 +108,30 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     @Override
     public String getUrlName() {
         return SSE_GATEWAY_URL;
+    }
+    
+    @Restricted(DoNotUse.class) // Web only
+    public HttpResponse doConnect(StaplerRequest request, StaplerResponse response) throws IOException {
+        String clientId = request.getParameter("clientId");
+        
+        if (clientId == null) {
+            throw new IOException("No 'clientId' parameter specified in connect request.");
+        }
+        
+        HttpSession session = request.getSession();
+        EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(clientId, session);
+        
+        // If there was already a dispatcher with this ID, then remove
+        // all subscriptions from it and reuse the instance.
+        if (dispatcher != null) {
+            dispatcher.unsubscribeAll();
+        } else {
+            // Else create a new instance with this id.
+            EventDispatcherFactory.newDispatcher(clientId, session);
+        }
+        
+        response.setStatus(HttpServletResponse.SC_OK);
+        return HttpResponses.okJSON(); 
     }
     
     @RequirePOST
@@ -170,9 +197,12 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                 HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
                 String requestedResource = getRequestedResourcePath(httpServletRequest);
                 
-                if (requestedResource.equals(SSE_GATEWAY_URL + "/listen")) {
+                if (requestedResource.startsWith(SSE_LISTEN_URL_PREFIX)) {
                     HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
-                    EventDispatcherFactory.start(httpServletRequest, httpServletResponse);
+                    String clientId = requestedResource.substring(SSE_LISTEN_URL_PREFIX.length());
+                    
+                    clientId = URLDecoder.decode(clientId, "UTF-8");
+                    EventDispatcherFactory.start(clientId, httpServletRequest, httpServletResponse);
                     return; // Do not allow this request on to Stapler
                 }
             }
