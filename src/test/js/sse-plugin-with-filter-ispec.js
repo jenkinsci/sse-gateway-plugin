@@ -16,28 +16,28 @@ describe("sse plugin integration tests - with filters", function () {
 
             var api = jsTest.requireSrcModule('sse-client');
 
-            api.connect(function(jenkinsSessionInfo) {
+            api.connect('sse-client-123', function(jenkinsSessionInfo) {
                 var ajax = jsTest.requireSrcModule('ajax');
                 
                 // Once connected to the SSE Gateway, fire off a build of the sample job
                 ajax.post(undefined, api.jenkinsUrl + 'job/sse-gateway-test-job/build', jenkinsSessionInfo);
-            });
 
-            api.subscribe('job', function () {
-                expect('Should not have received this event').toBe();
-            }, {
-                job_name: 'xxxxx'
-            });
-
-            api.subscribe('job', function () {
-                // Wait a sec to give time for the unexpected event to arrive.
-                // It shouldn't arrive, but if it does, we throw an error. 
-                setTimeout(function() {
-                    api.disconnect();
-                    done();
-                }, 500);
-            }, {
-                job_name: 'sse-gateway-test-job'
+                api.subscribe('job', function () {
+                    expect('Should not have received this event').toBe();
+                }, {
+                    job_name: 'xxxxx'
+                });
+    
+                api.subscribe('job', function () {
+                    // Wait a sec to give time for the unexpected event to arrive.
+                    // It shouldn't arrive, but if it does, we throw an error. 
+                    setTimeout(function() {
+                        api.disconnect();
+                        done();
+                    }, 500);
+                }, {
+                    job_name: 'sse-gateway-test-job'
+                });
             });
         });
     }, 300000);

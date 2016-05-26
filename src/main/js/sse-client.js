@@ -3,6 +3,7 @@ var ajax = require('./ajax');
 var json = require('./json');
 var jenkinsUrl = jsModules.getRootURL();
 var eventSource = undefined;
+var eventSourceListenerQueue = [];
 var jenkinsSessionInfo = undefined;
 var subscriptions = [];
 var channelListeners = {};
@@ -30,8 +31,13 @@ function scheduleDoConfigure() {
     nextDoConfigureTimeout = setTimeout(doConfigure, 100);
 }
 
-exports.connect = function (onConnect) {
+exports.connect = function (clientId, onConnect) {
     if (eventSource) {
+        return;
+    }
+
+    if (typeof clientId !== 'string') {
+        console.error("SSE clientId not specified in 'connect' request.");
         return;
     }
 
@@ -40,20 +46,31 @@ exports.connect = function (onConnect) {
         // TODO: Need to add browser poly-fills for stuff like this
         // See https://github.com/remy/polyfills/blob/master/EventSource.js
     } else {
-        var listenUrl = jenkinsUrl + 'sse-gateway/listen';
-        var EventSource = window.EventSource;
-        var source = new EventSource(listenUrl);
+        var connectUrl = jenkinsUrl + 'sse-gateway/connect?clientId='
+                                    + encodeURIComponent(clientId);
 
-        source.addEventListener('open', function (e) {
-            if (e.data) {
-                jenkinsSessionInfo = JSON.parse(e.data);
-                if (onConnect) {
-                    onConnect(jenkinsSessionInfo);
+        ajax.get(connectUrl, function () {
+            var listenUrl = jenkinsUrl + 'sse-gateway/listen/' + encodeURIComponent(clientId);
+            var EventSource = window.EventSource;
+            var source = new EventSource(listenUrl);
+
+            source.addEventListener('open', function (e) {
+                if (e.data) {
+                    jenkinsSessionInfo = JSON.parse(e.data);
+                    if (onConnect) {
+                        onConnect(jenkinsSessionInfo);
+                    }
                 }
-            }
-        }, false);
+            }, false);
 
-        eventSource = source;
+            // Add any listeners that have been requested to be added.
+            for (var i = 0; i < eventSourceListenerQueue.length; i++) {
+                var config = eventSourceListenerQueue[i];
+                source.addEventListener(config.channelName, config.listener, false);
+            }
+
+            eventSource = source;
+        });
     }
 };
 
@@ -65,10 +82,6 @@ exports.disconnect = function () {
 };
 
 exports.subscribe = function () {
-    if (!eventSource) {
-        return undefined;
-    }
-
     clearDoConfigure();
 
     var channelName;
@@ -124,10 +137,6 @@ exports.subscribe = function () {
 };
 
 exports.unsubscribe = function (callback) {
-    if (!eventSource) {
-        return;
-    }
-
     clearDoConfigure();
 
     // callback is the only mandatory param
@@ -177,7 +186,14 @@ function addChannelListener(channelName) {
         }
     };
     channelListeners[channelName] = listener;
-    eventSource.addEventListener(channelName, listener, false);
+    if (eventSource) {
+        eventSource.addEventListener(channelName, listener, false);
+    } else {
+        eventSourceListenerQueue.push({
+            channelName: channelName,
+            listener: listener
+        });
+    }
 }
 
 function containsAll(object, filter) {
