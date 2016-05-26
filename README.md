@@ -27,6 +27,10 @@ The "job" channel is where you listen for events relating to Jenkins Jobs, all o
 ```javascript
 var sse = require('@jenkins-cd/sse-gateway');
 
+// Connect to the SSE Gateway, providing a unique clientId. Use alphanums and
+// make sure it is something that will not clash with an ID used by others.
+sse.connect('myplugin');
+
 // subscribe to all events on the "job" channel...
 var jobSubs = sse.subscribe('job', function (event) {
     var event = event.jenkins_event;
@@ -56,6 +60,10 @@ Jenkins instance. This may be what you want in some cases, but in many cases you
  
 ```javascript
 var sse = require('@jenkins-cd/sse-gateway');
+
+// Connect to the SSE Gateway, providing a unique clientId. Use alphanums and
+// make sure it is something that will not clash with an ID used by others.
+sse.connect('myplugin');
 
 // Add a filter as the last parameter ...
 var jobSubs = sse.subscribe('job', function (event) {
