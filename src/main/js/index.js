@@ -17,12 +17,17 @@ if (eventSourceSupported) {
     var internal = require('./sse-client');
 
     /**
-     * Connect the SSE client to the server..
+     * Connect the SSE client to the server.
      * @param clientId The SSE client ID. This is a scrint but should be unique i.e. something
      * not likely to clash with another SSE instance in the same session.
      * @param onConnect Optionsal onConnect function.
      */
     exports.connect = internal.connect;
+
+    /**
+     * Disconnect the SSE client from the server.
+     */
+    exports.disconnect = internal.disconnect;
 
     /**
      * Subscribe to a channel.
@@ -38,6 +43,12 @@ if (eventSourceSupported) {
      */
     exports.unsubscribe = internal.unsubscribe;
 } else {
+    exports.connect = function () {
+        noEventSource();
+    };
+    exports.disconnect = function () {
+        noEventSource();
+    };
     exports.subscribe = function () {
         noEventSource();
     };

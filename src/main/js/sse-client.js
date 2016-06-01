@@ -1,7 +1,7 @@
 var jsModules = require('@jenkins-cd/js-modules');
 var ajax = require('./ajax');
 var json = require('./json');
-var jenkinsUrl = jsModules.getRootURL();
+var jenkinsUrl = undefined;
 var eventSource = undefined;
 var eventSourceListenerQueue = [];
 var jenkinsSessionInfo = undefined;
@@ -11,14 +11,7 @@ var eventSourceSupported = (window !== undefined && window.EventSource !== undef
 var configurationQueue = {};
 var nextDoConfigureTimeout = undefined;
 
-if (!jenkinsUrl || jenkinsUrl.length < 1) {
-    throw new Error('Invalid jenkinsUrl argument ' + jenkinsUrl);
-}
-if (jenkinsUrl.charAt(jenkinsUrl.length - 1) !== '/') {
-    jenkinsUrl += '/';
-}
-
-exports.jenkinsUrl = jenkinsUrl;
+exports.DEFAULT_BATCH_CONFIG_DELAY = 100;
 
 function clearDoConfigure() {
     if (nextDoConfigureTimeout) {
@@ -26,15 +19,44 @@ function clearDoConfigure() {
     }
     nextDoConfigureTimeout = undefined;
 }
-function scheduleDoConfigure() {
+function scheduleDoConfigure(delay) {
     clearDoConfigure();
-    nextDoConfigureTimeout = setTimeout(doConfigure, 100);
+    var timeoutDelay = delay;
+    if (timeoutDelay === undefined) {
+        timeoutDelay = exports.DEFAULT_BATCH_CONFIG_DELAY;
+    }
+    nextDoConfigureTimeout = setTimeout(doConfigure, timeoutDelay);
+}
+function discoverJenkinsUrl() {
+    jenkinsUrl = jsModules.getRootURL();
+
+    if (!jenkinsUrl || jenkinsUrl.length < 1) {
+        throw new Error('Invalid jenkinsUrl argument ' + jenkinsUrl);
+    }
+    if (jenkinsUrl.charAt(jenkinsUrl.length - 1) !== '/') {
+        jenkinsUrl += '/';
+    }
 }
 
 exports.connect = function (clientId, onConnect) {
     if (eventSource) {
         return;
     }
+
+    jenkinsUrl = undefined;
+    if (arguments.length === 1 && typeof arguments[0] === 'object') {
+        var configObj = arguments[0];
+        /* eslint-disable */
+        clientId = configObj.clientId;
+        onConnect = configObj.onConnect;
+        jenkinsUrl = configObj.jenkinsUrl;
+        /* eslint-enable */
+    }
+
+    if (!jenkinsUrl) {
+        discoverJenkinsUrl();
+    }
+    exports.jenkinsUrl = jenkinsUrl;
 
     if (typeof clientId !== 'string') {
         console.error("SSE clientId not specified in 'connect' request.");
@@ -219,7 +241,7 @@ function doConfigure() {
     if (!jenkinsSessionInfo && eventSourceSupported) {
         // Can't do it yet. Need to wait for the SSE Gateway to
         // open the SSE channel + send the jenkins session info.
-        scheduleDoConfigure();
+        scheduleDoConfigure(100);
     } else {
         var configureUrl = jenkinsUrl + 'sse-gateway/configure';
 

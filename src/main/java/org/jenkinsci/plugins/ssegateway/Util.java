@@ -23,15 +23,20 @@
  */
 package org.jenkinsci.plugins.ssegateway;
 
+import hudson.Functions;
 import net.sf.json.JSONObject;
 import org.apache.commons.io.IOUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerRequest;
 
+import javax.servlet.http.HttpSession;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Internal utility methods.
@@ -57,5 +62,27 @@ public class Util {
         } finally {
             IOUtils.closeQuietly(streamReader);
         }
+    }
+
+    private static Boolean isTestEnv = null;
+    public static boolean isTestEnv() {
+        if (isTestEnv != null) {
+            return isTestEnv;
+        }
+        
+        if (Functions.getIsUnitTest()) {
+            isTestEnv = true;
+        } else {
+            isTestEnv = new File("./target/.jenkins_test").exists();
+        }
+        
+        return isTestEnv;
+    }
+
+    public static Map<String, String> getSessionInfo(HttpSession session) {
+        Map<String, String> info = new HashMap<>();
+        info.put("sessionid", session.getId());
+        info.put("cookieName", session.getServletContext().getSessionCookieConfig().getName());
+        return info;
     }
 }

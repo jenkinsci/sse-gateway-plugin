@@ -89,6 +89,17 @@ To add this polyfill to your `.jelly` file, simply include the following adjunct
 <st:adjunct includes="org.jenkinsci.plugins.ssegateway.sse.EventSource" />
 ```
 
+# SSE Events in headless JavaScript environments
+
+To use this API in a headless/non-browser JavaScript environment (e.g. server-side JavaScript, or a test environment), just
+`require` the `headless-client` e.g.:
+
+```javascript
+var sse = require('@jenkins-cd/sse-gateway/headless-client');
+
+// etc....
+```
+
 # Sample Plugin
 
 See the [sse-gateway-sample-plugin](https://github.com/tfennelly/sse-gateway-sample-plugin).
