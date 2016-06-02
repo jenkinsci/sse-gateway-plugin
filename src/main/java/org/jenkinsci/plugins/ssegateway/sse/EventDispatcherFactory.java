@@ -23,10 +23,10 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
-import hudson.Functions;
 import hudson.security.csrf.CrumbIssuer;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
+import org.jenkinsci.plugins.ssegateway.Util;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -70,7 +70,9 @@ public class EventDispatcherFactory {
             EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(clientId, session);
             
             if (dispatcher == null) {
-                LOGGER.log(Level.WARNING, String.format("Unknown dispatcher client Id '%s'. Creating a new one. Make sure you are calling 'connect' before 'listen'.", clientId));
+                LOGGER.log(Level.WARNING, String.format("Unknown dispatcher client Id '%s' on HTTP session '%s'. Creating a new one. " +
+                        "Make sure you are calling 'connect' before 'listen' and that HTTP sessions are being maintained between 'connect' and 'configure' calls. " +
+                        "SSE client reconnects will not work - probably fine if running in non-browser/test mode.", clientId, session.getId()));
                 dispatcher = EventDispatcherFactory.newDispatcher(clientId, session);
             }
             
@@ -81,9 +83,8 @@ public class EventDispatcherFactory {
 
             openData.put("dispatcher", dispatcher.getId());
             
-            if (Functions.getIsUnitTest()) {
-                openData.put("sessionid", session.getId());
-                openData.put("cookieName", session.getServletContext().getSessionCookieConfig().getName());
+            if (Util.isTestEnv()) {
+                openData.putAll(Util.getSessionInfo(session));
 
                 // Crumb needed for testing because we use it to fire off some 
                 // test builds via the POST API.
@@ -95,8 +96,7 @@ public class EventDispatcherFactory {
                     crumb.put("value", crumbIssuer.getCrumb(request));
                     openData.put("crumb", crumb);
                 } else {
-                    // 
-                    LOGGER.log(Level.WARNING, "Cannot support SSE Gateway client. No CrumbIssuer on Jenkins instance.");
+                    LOGGER.log(Level.WARNING, "No CrumbIssuer on Jenkins instance. Some POSTs might not work.");
                 }
             }
             
@@ -136,6 +136,9 @@ public class EventDispatcherFactory {
             EventDispatcher dispatcher = runtimeClass.newInstance();
             dispatcher.setId(clientId);
             dispatchers.put(clientId, dispatcher);
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, String.format("New dispatcher client Id '%s' attached to HTTP session '%s'.", clientId, session.getId()));
+            }
             return dispatcher;
         } catch (Exception e) {
             throw new IllegalStateException("Unexpected Exception.", e);

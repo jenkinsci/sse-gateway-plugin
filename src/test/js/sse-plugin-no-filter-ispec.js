@@ -7,23 +7,19 @@
 var jsTest = require('@jenkins-cd/js-test');
 var waitUntil = require('wait-until-promise').default;
 
-global.XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-
 describe("sse plugin integration tests - subscribe and unsubscribe - no filters", function () {
 
     it("- test build receives events", function (done) {
         jsTest.onPage(function() {
-            window.EventSource = require('eventsource');
-
-            var api = jsTest.requireSrcModule('sse-client');
+            var sseClient = require('../../../headless-client');
             var jenkinsSessionInfo;
 
             function runBuild() {
                 var ajax = jsTest.requireSrcModule('ajax');
-                ajax.post(undefined, api.jenkinsUrl + 'job/sse-gateway-test-job/build', jenkinsSessionInfo);
+                ajax.post(undefined, sseClient.jenkinsUrl + 'job/sse-gateway-test-job/build', jenkinsSessionInfo);
             }
 
-            api.connect('sse-client-123', function(jenkinsSession) {
+            sseClient.connect('sse-client-123', function(jenkinsSession) {
                 jenkinsSessionInfo = jenkinsSession;
 
                 // Listen for sse events and use them to determine
@@ -31,7 +27,7 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                 var sseEvents = [];
                 var subscribeCount = 0;
                 var unsubscribeCount = 0;
-                api.subscribe('sse', function (event) {
+                sseClient.subscribe('sse', function (event) {
                     sseEvents.push(event);
                     if (event.jenkins_event === 'subscribe') {
                         subscribeCount++;
@@ -42,7 +38,7 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                 
                 // jobsStarted should eventually equal number of jobs started i.e. 2
                 var jobsStarted = 0;
-                api.subscribe('job', function (event) {
+                sseClient.subscribe('job', function (event) {
                     // We actually wait for the end event before counting it.
                     // The jobSubs listener (below) uses the start event to count.
                     // This combo makes sure we are seeing thing in the right order.
@@ -54,11 +50,11 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                 // jobSubsCalled should only hit 1 because we unsubscribe jobSubs 
                 // before starting the second job.
                 var jobSubsCalled = 0; 
-                var jobSubs = api.subscribe('job', function (event) {
+                var jobSubs = sseClient.subscribe('job', function (event) {
                     if (event.jenkins_event === 'job_run_started') {
                         // Test unsubscribe now by unsubscribing jobSubs.
                         // See the waitUntil below.
-                        api.unsubscribe(jobSubs);
+                        sseClient.unsubscribe(jobSubs);
     
                         jobSubsCalled++;
     
@@ -83,7 +79,7 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                             expect(jobsStarted).toBe(2);
                             expect(jobSubsCalled).toBe(1);
     
-                            api.disconnect();
+                            sseClient.disconnect();
                             done();
                         });
                     }

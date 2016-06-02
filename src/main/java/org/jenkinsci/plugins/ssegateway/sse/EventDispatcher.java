@@ -36,6 +36,7 @@ import org.jenkins.pubsub.Message;
 import org.jenkins.pubsub.MessageException;
 import org.jenkins.pubsub.PubsubBus;
 import org.jenkins.pubsub.SimpleMessage;
+import org.jenkinsci.plugins.ssegateway.Util;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -51,7 +52,6 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -126,15 +126,8 @@ public abstract class EventDispatcher implements Serializable {
     }
 
     public boolean subscribe(@Nonnull EventFilter filter) {
-        SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
-        if (subscriber != null) {
-            // Already subscribed to this event.
-            subscriber.numSubscribers++;
-            publishStateEvent("subscribe");
-            return true;
-        }
-        
         String channelName = filter.getChannelName();
+
         if (channelName != null) {
             User current = getUser();
             
@@ -142,12 +135,22 @@ public abstract class EventDispatcher implements Serializable {
                 current = User.get("anonymous");
             }
 
-            subscriber = new SSEChannelSubscriber(this);
+            SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
+            if (subscriber == null) {
+                subscriber = new SSEChannelSubscriber(this);
 
-            bus.subscribe(channelName, subscriber, current, filter);
-            subscribers.put(filter, subscriber);
+                bus.subscribe(channelName, subscriber, current, filter);
+                subscribers.put(filter, subscriber);
+            } else {
+                // Already subscribed to this event.
+            }
+
             subscriber.numSubscribers++;
-            publishStateEvent("subscribe");
+            publishStateEvent(SSEChannel.Event.subscribe,  new SimpleMessage()
+                    .set(SSEChannel.EventProps.sse_subs_dispatcher, id)
+                    .set(SSEChannel.EventProps.sse_subs_channel_name, channelName)
+                    .set(SSEChannel.EventProps.sse_subs_filter, filter.toJSON())
+            );
 
             return true;
         } else {
@@ -174,7 +177,11 @@ public abstract class EventDispatcher implements Serializable {
                         subscribers.remove(filter);
                     }
                 }
-                publishStateEvent("unsubscribe");
+                publishStateEvent(SSEChannel.Event.unsubscribe,  new SimpleMessage()
+                        .set(SSEChannel.EventProps.sse_subs_dispatcher, id)
+                        .set(SSEChannel.EventProps.sse_subs_channel_name, channelName)
+                        .set(SSEChannel.EventProps.sse_subs_filter, filter.toJSON())
+                );
             } else {
                 LOGGER.log(Level.WARNING, "Invalid SSE unsubscribe configuration. No active subscription matching filter: ");
             }
@@ -195,20 +202,22 @@ public abstract class EventDispatcher implements Serializable {
         subscribers.clear();
     }
 
-    private void publishStateEvent(String event) {
+    private void publishStateEvent(SSEChannel.Event event, Message additional) {
         // Only publish these events if we're running
         // in a test.
-        if (!Functions.getIsUnitTest()) {
+        if (!Util.isTestEnv()) {
             return;
         }
 
         try {
-            bus.publish(
-                new SimpleMessage()
+            SimpleMessage message = new SimpleMessage()
                     .setChannelName("sse")
                     .setEventName(event)
-                    .set("sse_numsubs", Integer.toString(subscribers.size()))
-            );
+                    .set("sse_numsubs", Integer.toString(subscribers.size()));
+            if (additional != null) {
+                message.putAll(additional);
+            }
+            bus.publish(message);
         } catch (MessageException e) {
             LOGGER.log(Level.WARNING, "Failed to publish SSE Dispatcher state event.", e);
         }

@@ -72,8 +72,6 @@ exports.post = function (data, toUrl, jenkinsSessionInfo) {
         // XMLHttpRequest is coming from the xmlhttprequest npm package.
         // It allows us to turn off the W3C spec header checks, allowing us to set
         // the cookie and so maintain the session for the test (not running in a browser).
-        // TODO: Make sure the browsers XMLHttpRequest does maintain the session.
-        // I'm not convinced it does !!
         http.setDisableHeaderCheck(true);
         http.setRequestHeader('Cookie', jenkinsSessionInfo.cookieName
             + '=' + jenkinsSessionInfo.sessionid);

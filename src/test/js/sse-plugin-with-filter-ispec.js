@@ -6,33 +6,29 @@
 
 var jsTest = require('@jenkins-cd/js-test');
 
-global.XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-
 describe("sse plugin integration tests - with filters", function () {
 
     it("- test build receives events", function (done) {
         jsTest.onPage(function() {
-            window.EventSource = require('eventsource');
+            var sseClient = require('../../../headless-client');
 
-            var api = jsTest.requireSrcModule('sse-client');
-
-            api.connect('sse-client-123', function(jenkinsSessionInfo) {
+            sseClient.connect('sse-client-123', function(jenkinsSessionInfo) {
                 var ajax = jsTest.requireSrcModule('ajax');
                 
                 // Once connected to the SSE Gateway, fire off a build of the sample job
-                ajax.post(undefined, api.jenkinsUrl + 'job/sse-gateway-test-job/build', jenkinsSessionInfo);
+                ajax.post(undefined, sseClient.jenkinsUrl + 'job/sse-gateway-test-job/build', jenkinsSessionInfo);
 
-                api.subscribe('job', function () {
+                sseClient.subscribe('job', function () {
                     expect('Should not have received this event').toBe();
                 }, {
                     job_name: 'xxxxx'
                 });
     
-                api.subscribe('job', function () {
+                sseClient.subscribe('job', function () {
                     // Wait a sec to give time for the unexpected event to arrive.
                     // It shouldn't arrive, but if it does, we throw an error. 
                     setTimeout(function() {
-                        api.disconnect();
+                        sseClient.disconnect();
                         done();
                     }, 500);
                 }, {
