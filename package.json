@@ -1,6 +1,6 @@
 {
   "name": "@jenkins-cd/sse-gateway",
-  "version": "0.0.5-beta1",
+  "version": "0.0.5",
   "description": "Client API for the Jenkins SSE Gateway plugin. Browser UI push events from Jenkins.",
   "main": "src/main/js/index.js",
   "files" : [
@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@jenkins-cd/js-modules": "0.0.5",
-    "eventsource": "^0.2.1",
-    "xmlhttprequest": "^1.8.0"
+    "eventsource": "0.2.1",
+    "xmlhttprequest": "1.8.0"
   }
 }
