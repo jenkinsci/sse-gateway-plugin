@@ -52,7 +52,6 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -147,10 +146,10 @@ public abstract class EventDispatcher implements Serializable {
             }
 
             subscriber.numSubscribers++;
-            publishStateEvent("subscribe",  new SimpleMessage()
-                    .set("sse_subs_dispatcher", id)
-                    .set("sse_subs_channel_name", channelName)
-                    .set("sse_subs_filter", filter.toJSON())
+            publishStateEvent(SSEChannel.Event.subscribe,  new SimpleMessage()
+                    .set(SSEChannel.EventProps.sse_subs_dispatcher, id)
+                    .set(SSEChannel.EventProps.sse_subs_channel_name, channelName)
+                    .set(SSEChannel.EventProps.sse_subs_filter, filter.toJSON())
             );
 
             return true;
@@ -178,10 +177,10 @@ public abstract class EventDispatcher implements Serializable {
                         subscribers.remove(filter);
                     }
                 }
-                publishStateEvent("unsubscribe",  new SimpleMessage()
-                        .set("sse_subs_dispatcher", id)
-                        .set("sse_subs_channel_name", channelName)
-                        .set("sse_subs_filter", filter.toJSON())
+                publishStateEvent(SSEChannel.Event.unsubscribe,  new SimpleMessage()
+                        .set(SSEChannel.EventProps.sse_subs_dispatcher, id)
+                        .set(SSEChannel.EventProps.sse_subs_channel_name, channelName)
+                        .set(SSEChannel.EventProps.sse_subs_filter, filter.toJSON())
                 );
             } else {
                 LOGGER.log(Level.WARNING, "Invalid SSE unsubscribe configuration. No active subscription matching filter: ");
@@ -203,7 +202,7 @@ public abstract class EventDispatcher implements Serializable {
         subscribers.clear();
     }
 
-    private void publishStateEvent(String event, Message additional) {
+    private void publishStateEvent(SSEChannel.Event event, Message additional) {
         // Only publish these events if we're running
         // in a test.
         if (!Util.isTestEnv()) {
