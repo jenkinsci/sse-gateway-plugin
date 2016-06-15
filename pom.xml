@@ -60,7 +60,7 @@
     <dependency>
       <groupId>org.jenkins-ci.modules</groupId>
       <artifactId>pubsub-light</artifactId>
-      <version>1.1-SNAPSHOT</version> <!-- TODO: Update post release -->
+      <version>1.1</version>
     </dependency>
     
     <!-- Test deps -->
