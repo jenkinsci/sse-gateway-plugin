@@ -1,4 +1,5 @@
 var jsModules = require('@jenkins-cd/js-modules');
+var LOGGER = require('@jenkins-cd/diag').logger('sse');
 var ajax = require('./ajax');
 var json = require('./json');
 var jenkinsUrl = undefined;
@@ -59,7 +60,7 @@ exports.connect = function (clientId, onConnect) {
     exports.jenkinsUrl = jenkinsUrl;
 
     if (typeof clientId !== 'string') {
-        console.error("SSE clientId not specified in 'connect' request.");
+        LOGGER.error("SSE clientId not specified in 'connect' request.");
         return;
     }
 
@@ -77,6 +78,7 @@ exports.connect = function (clientId, onConnect) {
             var source = new EventSource(listenUrl);
 
             source.addEventListener('open', function (e) {
+                LOGGER.debug('SSE channel "open" event.', e);
                 if (e.data) {
                     jenkinsSessionInfo = JSON.parse(e.data);
                     if (onConnect) {
@@ -185,8 +187,15 @@ exports.unsubscribe = function (callback) {
 
 function addChannelListener(channelName) {
     var listener = function (event) {
-        // Iterate through all of the subscription, looking for
+        if (LOGGER.isDebugEnabled()) {
+            var channelEvent = JSON.parse(event.data);
+            LOGGER.debug('Received event "' +
+                channelEvent.jenkins_channel + '/' + channelEvent.jenkins_event + ':', channelEvent);
+        }
+
+        // Iterate through all of the subscriptions, looking for
         // subscriptions on the channel that match the filter/config.
+        var processCount = 0;
         for (var i = 0; i < subscriptions.length; i++) {
             var subscription = subscriptions[i];
 
@@ -199,12 +208,18 @@ function addChannelListener(channelName) {
                 // channel name in it).
                 if (containsAll(parsedData, subscription.config)) {
                     try {
+                        processCount++;
                         subscription.callback(parsedData);
                     } catch (e) {
                         console.trace(e);
                     }
                 }
             }
+        }
+        if (processCount === 0) {
+            LOGGER.debug('Event not processed by any active listeners ('
+                + subscriptions.length + ' of). Check event payload against subscription ' +
+                'filters - see earlier notification configuration request(s).');
         }
     };
     channelListeners[channelName] = listener;
@@ -244,6 +259,8 @@ function doConfigure() {
         scheduleDoConfigure(100);
     } else {
         var configureUrl = jenkinsUrl + 'sse-gateway/configure';
+
+        LOGGER.debug('Sending notification configuration request.', configurationQueue);
 
         configurationQueue.dispatcher = jenkinsSessionInfo.dispatcher;
         ajax.post(configurationQueue, configureUrl, jenkinsSessionInfo);
