@@ -9,10 +9,47 @@ var jenkinsSessionInfo = undefined;
 var subscriptions = [];
 var channelListeners = {};
 var eventSourceSupported = (window !== undefined && window.EventSource !== undefined);
+var configurationBatchId = 0;
 var configurationQueue = {};
+var configurationListeners = {};
 var nextDoConfigureTimeout = undefined;
 
 exports.DEFAULT_BATCH_CONFIG_DELAY = 100;
+
+function resetConfigQueue() {
+    configurationBatchId++;
+    configurationQueue = {};
+    configurationListeners[configurationBatchId.toString()] = [];
+}
+resetConfigQueue();
+
+function addConfigQueueListener(listener) {
+    // Config queue listeners are always added against the current batchId.
+    // When that config batch is sent, these listeners will be notified on
+    // receipt of the "configure" SSE event, which will contain that batchId.
+    // See the notifyConfigQueueListeners function below.
+    var batchListeners = configurationListeners[configurationBatchId.toString()];
+    if (batchListeners) {
+        batchListeners.push(listener);
+    } else {
+        LOGGER.error(new Error('Unexpected call to addConfigQueueListener for an ' +
+            'obsolete/unknown batchId ' + configurationBatchId + '. This should never happen!!'));
+    }
+}
+
+function notifyConfigQueueListeners(batchId) {
+    var batchListeners = configurationListeners[batchId.toString()];
+    if (batchListeners) {
+        delete configurationListeners[batchId.toString()];
+        for (var i = 0; i < batchListeners.length; i++) {
+            try {
+                batchListeners[i]();
+            } catch (e) {
+                LOGGER.error('Unexpected error calling config queue listener.', e);
+            }
+        }
+    }
+}
 
 function clearDoConfigure() {
     if (nextDoConfigureTimeout) {
@@ -86,6 +123,13 @@ exports.connect = function (clientId, onConnect) {
                     }
                 }
             }, false);
+            source.addEventListener('configure', function (e) {
+                LOGGER.debug('SSE channel "configure" event.', e);
+                if (e.data) {
+                    var configureInfo = JSON.parse(e.data);
+                    notifyConfigQueueListeners(configureInfo.batchId);
+                }
+            }, false);
 
             // Add any listeners that have been requested to be added.
             for (var i = 0; i < eventSourceListenerQueue.length; i++) {
@@ -111,16 +155,25 @@ exports.subscribe = function () {
     var channelName;
     var filter;
     var callback;
+    var onSubscribed;
 
     // sort out the args.
-    for (var i = 0; i < arguments.length; i++) {
-        var arg = arguments[i];
-        if (typeof arg === 'string') {
-            channelName = arg;
-        } else if (typeof arg === 'function') {
-            callback = arg;
-        } else if (typeof arg === 'object') {
-            filter = arg;
+    if (arguments.length === 1 && typeof arguments[0] === 'object') {
+        var configObj = arguments[0];
+        channelName = configObj.channelName;
+        callback = configObj.onEvent;
+        filter = configObj.filter;
+        onSubscribed = configObj.onSubscribed;
+    } else {
+        for (var i = 0; i < arguments.length; i++) {
+            var arg = arguments[i];
+            if (typeof arg === 'string') {
+                channelName = arg;
+            } else if (typeof arg === 'function') {
+                callback = arg;
+            } else if (typeof arg === 'object') {
+                filter = arg;
+            }
         }
     }
 
@@ -157,10 +210,14 @@ exports.subscribe = function () {
 
     scheduleDoConfigure();
 
+    if (onSubscribed) {
+        addConfigQueueListener(onSubscribed);
+    }
+
     return callback;
 };
 
-exports.unsubscribe = function (callback) {
+exports.unsubscribe = function (callback, onUnsubscribed) {
     clearDoConfigure();
 
     // callback is the only mandatory param
@@ -183,14 +240,18 @@ exports.unsubscribe = function (callback) {
     subscriptions = newSubscriptionList;
 
     scheduleDoConfigure();
+
+    if (onUnsubscribed) {
+        addConfigQueueListener(onUnsubscribed);
+    }
 };
 
 function addChannelListener(channelName) {
     var listener = function (event) {
         if (LOGGER.isDebugEnabled()) {
             var channelEvent = JSON.parse(event.data);
-            LOGGER.debug('Received event "' +
-                channelEvent.jenkins_channel + '/' + channelEvent.jenkins_event + ':', channelEvent);
+            LOGGER.debug('Received event "' + channelEvent.jenkins_channel
+                + '/' + channelEvent.jenkins_event + ':', channelEvent);
         }
 
         // Iterate through all of the subscriptions, looking for
@@ -219,7 +280,7 @@ function addChannelListener(channelName) {
         if (processCount === 0) {
             LOGGER.debug('Event not processed by any active listeners ('
                 + subscriptions.length + ' of). Check event payload against subscription ' +
-                'filters - see earlier notification configuration request(s).');
+                'filters - see earlier "notification configuration" request(s).');
         }
     };
     channelListeners[channelName] = listener;
@@ -258,14 +319,14 @@ function doConfigure() {
         // open the SSE channel + send the jenkins session info.
         scheduleDoConfigure(100);
     } else {
-        var configureUrl = jenkinsUrl + 'sse-gateway/configure';
+        var configureUrl = jenkinsUrl + 'sse-gateway/configure?batchId=' + configurationBatchId;
 
-        LOGGER.debug('Sending notification configuration request.', configurationQueue);
+        LOGGER.debug('Sending notification configuration request for configuration batch '
+            + configurationBatchId + '.', configurationQueue);
 
         configurationQueue.dispatcher = jenkinsSessionInfo.dispatcher;
         ajax.post(configurationQueue, configureUrl, jenkinsSessionInfo);
 
-        // reset the queue
-        configurationQueue = {};
+        resetConfigQueue();
     }
 }

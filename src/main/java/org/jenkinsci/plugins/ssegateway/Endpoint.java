@@ -139,6 +139,9 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     public HttpResponse doConfigure(StaplerRequest request, StaplerResponse response) throws IOException {
         HttpSession session = request.getSession();
         int failedSubscribes = 0;
+        String batchId = request.getParameter("batchId");
+        
+        LOGGER.log(Level.FINE, "Processing configuration request. batchId=" + batchId);
         
         // We want to ensure that, at one time, only one set of configurations are being applied,
         // for a given user session. 
@@ -167,6 +170,16 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                 for (EventFilter filter : subscriptionConfig.subscribeSet) {
                     if (!dispatcher.subscribe(filter)) {
                         failedSubscribes++;
+                    }
+                }
+                
+                if (batchId != null) {
+                    try {
+                        JSONObject data = new JSONObject();
+                        data.put("batchId", batchId);
+                        dispatcher.dispatchEvent("configure", data.toString());
+                    } catch (ServletException e) {
+                        LOGGER.log(Level.SEVERE, "Processing configuration request. batchId=" + batchId, e);
                     }
                 }
             }

@@ -82,7 +82,9 @@ public class GulpRunner {
 
         System.out.println("------------- GulpRunner <<Start>> -------------");
         System.out.println(" command: [" + command + "]");
-        System.out.println(" env: " + env);
+        System.out.println(" env: ");
+        System.out.println("     export JENKINS_URL=" + env.get("JENKINS_URL"));
+        System.out.println("     export JENKINS_HOME=" + env.get("JENKINS_HOME"));
         System.out.println();
         frontendPluginFactory.getGulpRunner().execute(command, env);
         System.out.println("-------------- GulpRunner <<End>> --------------");
