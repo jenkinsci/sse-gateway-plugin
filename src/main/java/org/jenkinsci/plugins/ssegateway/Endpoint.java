@@ -177,6 +177,8 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                     try {
                         JSONObject data = new JSONObject();
                         data.put("batchId", batchId);
+                        data.put("dispatcherId", dispatcher.getId());
+                        data.put("dispatcherInst", System.identityHashCode(dispatcher));
                         dispatcher.dispatchEvent("configure", data.toString());
                     } catch (ServletException e) {
                         LOGGER.log(Level.SEVERE, "Processing configuration request. batchId=" + batchId, e);
@@ -241,7 +243,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
             JSONObject payload = Util.readJSONPayload(request);
             SubscriptionConfig config = new SubscriptionConfig();
             
-            config.dispatcherId = payload.optString("dispatcher", null);
+            config.dispatcherId = payload.optString("dispatcherId", null);
             if (config.dispatcherId != null) {
                 config.subscribeSet = extractFilterSet(payload, "subscribe");
                 config.unsubscribeSet = extractFilterSet(payload, "unsubscribe");

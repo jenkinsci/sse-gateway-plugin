@@ -90,6 +90,11 @@ public abstract class EventDispatcher implements Serializable {
         this.id = id;
     }
 
+    @Override
+    public String toString() {
+        return String.format("%s (%s)", id, System.identityHashCode(this));
+    }
+
     public boolean dispatchEvent(String name, String data) throws IOException, ServletException {
         HttpServletResponse response = getResponse();
         
@@ -97,6 +102,10 @@ public abstract class EventDispatcher implements Serializable {
             // The SSE listen channel is probably not connected.
             // Events fall on the floor !!
             return false;
+        }
+        
+        if (LOGGER.isLoggable(Level.FINE)) {
+            LOGGER.log(Level.FINE, String.format("SSE dispatcher %s sending event: %s", this, data));
         }
         
         PrintWriter writer = response.getWriter();
@@ -235,6 +244,8 @@ public abstract class EventDispatcher implements Serializable {
         @Override
         public void onMessage(@Nonnull Message message) {
             try {
+                message.set("dispatcherId", eventDispatcher.id);
+                message.set("dispatcherInst", Integer.toString(System.identityHashCode(eventDispatcher)));
                 eventDispatcher.dispatchEvent(message.getChannelName(), message.toJSON());
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Error dispatching event to SSE channel.", e);

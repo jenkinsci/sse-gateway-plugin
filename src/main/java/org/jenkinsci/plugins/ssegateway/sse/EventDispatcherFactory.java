@@ -81,7 +81,8 @@ public class EventDispatcherFactory {
 
             JSONObject openData = new JSONObject();
 
-            openData.put("dispatcher", dispatcher.getId());
+            openData.put("dispatcherId", dispatcher.getId());
+            openData.put("dispatcherInst", System.identityHashCode(dispatcher));
             
             if (Util.isTestEnv()) {
                 openData.putAll(Util.getSessionInfo(session));

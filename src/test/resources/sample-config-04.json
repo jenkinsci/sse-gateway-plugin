@@ -1,5 +1,5 @@
 {
-  "dispatcher": "1111111111",
+  "dispatcherId": "1111111111",
   "subscribe": [
     {
       "jenkins_channel": "job",

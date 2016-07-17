@@ -324,7 +324,7 @@ function doConfigure() {
         LOGGER.debug('Sending notification configuration request for configuration batch '
             + configurationBatchId + '.', configurationQueue);
 
-        configurationQueue.dispatcher = jenkinsSessionInfo.dispatcher;
+        configurationQueue.dispatcherId = jenkinsSessionInfo.dispatcherId;
         ajax.post(configurationQueue, configureUrl, jenkinsSessionInfo);
 
         resetConfigQueue();
