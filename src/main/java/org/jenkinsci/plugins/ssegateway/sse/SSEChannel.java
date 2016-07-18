@@ -49,6 +49,7 @@ public interface SSEChannel {
      */
     enum EventProps {
         sse_subs_dispatcher,
+        sse_subs_dispatcher_inst,
         sse_subs_channel_name,
         sse_subs_filter,
     }

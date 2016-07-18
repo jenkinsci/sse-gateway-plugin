@@ -124,6 +124,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         // If there was already a dispatcher with this ID, then remove
         // all subscriptions from it and reuse the instance.
         if (dispatcher != null) {
+            LOGGER.log(Level.INFO, "We already have a Dispatcher for clientId {0}. Removing all subscriptions on the existing Dispatcher instance and reusing it.", dispatcher.toString());
             dispatcher.unsubscribeAll();
         } else {
             // Else create a new instance with this id.
@@ -141,7 +142,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         int failedSubscribes = 0;
         String batchId = request.getParameter("batchId");
         
-        LOGGER.log(Level.FINE, "Processing configuration request. batchId=" + batchId);
+        LOGGER.log(Level.FINE, "Processing configuration request. batchId={0}", batchId);
         
         // We want to ensure that, at one time, only one set of configurations are being applied,
         // for a given user session. 
@@ -150,7 +151,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
 
             if (subscriptionConfig.dispatcherId == null) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                return HttpResponses.errorJSON("'dispatcher' ID not specified.");
+                return HttpResponses.errorJSON("'dispatcherId' not specified.");
             } else if (!subscriptionConfig.hasConfigs()) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 return HttpResponses.errorJSON("No 'subscribe' or 'unsubscribe' configurations provided in configuration request.");
@@ -181,7 +182,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                         data.put("dispatcherInst", System.identityHashCode(dispatcher));
                         dispatcher.dispatchEvent("configure", data.toString());
                     } catch (ServletException e) {
-                        LOGGER.log(Level.SEVERE, "Processing configuration request. batchId=" + batchId, e);
+                        LOGGER.log(Level.SEVERE, "Error sending configuration ACK for batchId=" + batchId, e);
                     }
                 }
             }

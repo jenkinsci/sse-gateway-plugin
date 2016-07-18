@@ -138,7 +138,7 @@ public class EventDispatcherFactory {
             dispatcher.setId(clientId);
             dispatchers.put(clientId, dispatcher);
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, String.format("New dispatcher client Id '%s' attached to HTTP session '%s'.", clientId, session.getId()));
+                LOGGER.log(Level.FINE, String.format("New dispatcher '%s' attached to HTTP session '%s'.", dispatcher, session.getId()));
             }
             return dispatcher;
         } catch (Exception e) {
