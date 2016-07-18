@@ -124,7 +124,7 @@ exports.connect = function (clientId, onConnect) {
                 }
             }, false);
             source.addEventListener('configure', function (e) {
-                LOGGER.debug('SSE channel "configure" event.', e);
+                LOGGER.debug('SSE channel "configure" ACK event (see batchId on event).', e);
                 if (e.data) {
                     var configureInfo = JSON.parse(e.data);
                     notifyConfigQueueListeners(configureInfo.batchId);
@@ -144,8 +144,27 @@ exports.connect = function (clientId, onConnect) {
 
 exports.disconnect = function () {
     if (eventSource) {
-        eventSource.close();
-        eventSource = undefined;
+        try {
+            if (typeof eventSource.removeEventListener === 'function') {
+                for (var channelName in channelListeners) {
+                    if (channelListeners.hasOwnProperty(channelName)) {
+                        try {
+                            eventSource.removeEventListener(channelName,
+                                channelListeners[channelName]);
+                        } catch (e) {
+                            LOGGER.error('Unexpected error removing listners', e);
+                        }
+                    }
+                }
+            }
+        } finally {
+            try {
+                eventSource.close();
+            } finally {
+                eventSource = undefined;
+                channelListeners = {};
+            }
+        }
     }
 };
 
