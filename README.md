@@ -100,6 +100,22 @@ var sse = require('@jenkins-cd/sse-gateway/headless-client');
 // etc....
 ```
 
+# Browser Diagnostics
+
+Sometimes it's useful to be able to turn on Browser diagnostics for SSE activity. To turn on SSE logging
+(events etc), simply open the Browser Developer console, type the following JavaScript snippet, press
+the Enter key and then reload the page ( __you must reload the page__ ).
+
+```javascript
+window.localStorage.env = 'debug=sse'
+```
+
+Note that this diagnostic setting will be permanently on until changed/removed (it's stored). To remove:
+
+```javascript
+window.localStorage.removeItem("env")
+```
+
 # Sample Plugin
 
 See the [sse-gateway-sample-plugin](https://github.com/tfennelly/sse-gateway-sample-plugin).

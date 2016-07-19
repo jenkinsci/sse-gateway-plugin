@@ -5,11 +5,15 @@
 
 // Need to provide some things that are available in browser envs but not
 // in a non-browser env.
-global.XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+if (!global.XMLHttpRequest) {
+    global.XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+}
 if (global.window === undefined) {
     global.window = {};
 }
-global.window.EventSource = require('eventsource');
+if (!global.window.EventSource) {
+    global.window.EventSource = require('eventsource');
+}
 
 var client = require('./src/main/js/sse-client');
 

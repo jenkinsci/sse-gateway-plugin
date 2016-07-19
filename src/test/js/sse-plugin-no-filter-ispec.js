@@ -27,12 +27,20 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                 var sseEvents = [];
                 var subscribeCount = 0;
                 var unsubscribeCount = 0;
-                sseClient.subscribe('sse', function (event) {
-                    sseEvents.push(event);
-                    if (event.jenkins_event === 'subscribe') {
-                        subscribeCount++;
-                    } else if (event.jenkins_event === 'unsubscribe') {
-                        unsubscribeCount++;
+                var onSubscibedCalled = false;
+                var onUnsubscibedCalled = false;
+                sseClient.subscribe({
+                    channelName: 'sse',
+                    onEvent: function (event) {
+                        sseEvents.push(event);
+                        if (event.jenkins_event === 'subscribe') {
+                            subscribeCount++;
+                        } else if (event.jenkins_event === 'unsubscribe') {
+                            unsubscribeCount++;
+                        }
+                    },
+                    onSubscribed: function() {
+                        onSubscibedCalled = true;
                     }
                 });
                 
@@ -54,7 +62,9 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                     if (event.jenkins_event === 'job_run_started') {
                         // Test unsubscribe now by unsubscribing jobSubs.
                         // See the waitUntil below.
-                        sseClient.unsubscribe(jobSubs);
+                        sseClient.unsubscribe(jobSubs, function() {
+                            onUnsubscibedCalled = true;
+                        });
     
                         jobSubsCalled++;
     
@@ -72,7 +82,9 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                             // 3 subscribe events and 1 unsubscribe
                             expect(sseEvents.length).toBe(4);
                             expect(subscribeCount).toBe(3);
+                            expect(onSubscibedCalled).toBe(true);
                             expect(unsubscribeCount).toBe(1);
+                            expect(onUnsubscibedCalled).toBe(true);
     
                             // jobSubsCalled should only be 1 because we unsubscribed 
                             // jobSubs before calling runBuild the second time (see below).

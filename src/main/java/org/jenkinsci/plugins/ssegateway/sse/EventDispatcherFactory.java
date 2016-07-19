@@ -81,7 +81,8 @@ public class EventDispatcherFactory {
 
             JSONObject openData = new JSONObject();
 
-            openData.put("dispatcher", dispatcher.getId());
+            openData.put("dispatcherId", dispatcher.getId());
+            openData.put("dispatcherInst", System.identityHashCode(dispatcher));
             
             if (Util.isTestEnv()) {
                 openData.putAll(Util.getSessionInfo(session));
@@ -137,7 +138,7 @@ public class EventDispatcherFactory {
             dispatcher.setId(clientId);
             dispatchers.put(clientId, dispatcher);
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, String.format("New dispatcher client Id '%s' attached to HTTP session '%s'.", clientId, session.getId()));
+                LOGGER.log(Level.FINE, String.format("New dispatcher '%s' attached to HTTP session '%s'.", dispatcher, session.getId()));
             }
             return dispatcher;
         } catch (Exception e) {

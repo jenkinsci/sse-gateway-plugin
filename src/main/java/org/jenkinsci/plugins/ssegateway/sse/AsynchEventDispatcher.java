@@ -29,7 +29,8 @@ import javax.servlet.AsyncListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.Serializable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -37,26 +38,34 @@ import java.io.Serializable;
 class AsynchEventDispatcher extends EventDispatcher {
 
     private static final long serialVersionUID = -1L;
+
+    private static final Logger LOGGER = Logger.getLogger(AsynchEventDispatcher.class.getName());
     
     private transient AsyncContext asyncContext;
 
     @Override
     public void start(HttpServletRequest request, HttpServletResponse response) {
+        final AsynchEventDispatcher _this = this;
+        
         asyncContext = request.startAsync();
         asyncContext.setTimeout(-1); // No timeout
         asyncContext.addListener(new AsyncListener() {
             @Override
             public void onTimeout(AsyncEvent event) throws IOException {
+                LOGGER.log(Level.WARNING, "Async dispatcher 'onTimeout' event: {0}", _this.toString());
                 event.getAsyncContext().complete();
             }
             @Override
             public void onStartAsync(AsyncEvent event) throws IOException {
+                LOGGER.log(Level.FINE, "Async dispatcher 'onStartAsync' event: {0}", _this.toString());
             }
             @Override
             public void onError(AsyncEvent event) throws IOException {
+                LOGGER.log(Level.WARNING, "Async dispatcher 'onError' event: {0}", _this.toString());
             }
             @Override
             public void onComplete(AsyncEvent event) throws IOException {
+                LOGGER.log(Level.FINE, "Async dispatcher 'onComplete' event: {0}", _this.toString());
                 asyncContext = null;
             }
         });
