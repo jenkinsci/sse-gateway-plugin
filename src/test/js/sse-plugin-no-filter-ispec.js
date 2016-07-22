@@ -16,7 +16,7 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
 
             function runBuild() {
                 var ajax = jsTest.requireSrcModule('ajax');
-                ajax.post(undefined, sseClient.jenkinsUrl + 'job/sse-gateway-test-job/build', jenkinsSessionInfo);
+                ajax.post(undefined, sseClient.jenkinsUrl + '/job/sse-gateway-test-job/build', jenkinsSessionInfo);
             }
 
             sseClient.connect('sse-client-123', function(jenkinsSession) {
