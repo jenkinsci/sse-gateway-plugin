@@ -50,7 +50,7 @@ public class EventHistoryStoreTest {
         // Store 6 events, each 1 second apart.
         storeMessages(6, 1000);
         
-        // sleep for split, just to move the window a little more.
+        // sleep for bit, just to move the window a little more.
         Thread.sleep(200);
         
         // The "History Window" was set to 3 seconds in the @Before,
@@ -79,6 +79,68 @@ public class EventHistoryStoreTest {
         Assert.assertNotNull(eventAsString);
         JSONObject eventAsJSON = JSONObject.fromObject(eventAsString);
         Assert.assertEquals(message.getEventUUID(), eventAsJSON.getString(EventProps.Jenkins.jenkins_event_uuid.name()));
+    }
+    
+    @Test
+    public void test_autoDeleteOnExpire() throws Exception {
+        EventHistoryStore.enableAutoDeleteOnExpire();
+        
+        // In this test, we go through a few "phases" of adding messages to the
+        // store, punctuated by gaps, which we control using a WaitTimer (see below).
+        // What we're trying to test is that after 3 second (or so) stale messages
+        // start being automatically deleted.
+        
+        try {
+            EventHistoryStore.deleteAllHistory();
+            Assert.assertEquals(0, EventHistoryStore.getChannelEventCount("job"));
+            
+            // We use this guy to control the pauses in the test.
+            WaitTimer waitTimer = new WaitTimer();
+
+            // BATCH 1: Store some messages
+            // These should expire a little after the 3 second mark (0 + 3).
+            storeMessages(50);
+            Assert.assertEquals(50, EventHistoryStore.getChannelEventCount("job"));
+            
+            // sleep 'til 2 seconds on the clock
+            waitTimer.waitUntil(2000);
+            
+            // BATCH 2: Store some messages
+            storeMessages(50);
+            // These should expire a little after the 5 second mark (2 + 3).
+            Assert.assertEquals(100, EventHistoryStore.getChannelEventCount("job"));
+            
+            // sleep 'til 4.5 seconds on the clock
+            waitTimer.waitUntil(4500);
+            // we are about 4 seconds in now and there are 100 messages
+            // in the store.
+            
+            // BATCH 3: Store some messages
+            // These should expire a little after the 7.5 second mark (4.5 + 3).
+            storeMessages(50);
+            
+            // NOW ... how many should be in the store?
+            // We have added 3 batches of 50 (total 150), but BATCH 1 would have 
+            // expired after ~ 3 seconds, so we should just have BATCHes 2 and 3
+            // in the store i.e. 100. Doing an exact match against 100 might be a
+            // be a bit flaky though, so lets just make sure some of the messages
+            // have expired, but not all.
+            Assert.assertTrue(EventHistoryStore.getChannelEventCount("job") > 0);
+            Assert.assertTrue(EventHistoryStore.getChannelEventCount("job") < 150);
+            
+            // Now lets wait until after all of the messages would be expired
+            // The should all expire after about 7.5 seconds (see above), but lets
+            // wait for a bit after that just to make sure that the test is not flaky.
+            waitTimer.waitUntil(10000); // 10 seconds
+            Assert.assertEquals(0, EventHistoryStore.getChannelEventCount("job"));
+            
+        } finally {
+            EventHistoryStore.disableAutoDeleteOnExpire();
+        }
+    }
+    
+    private void storeMessages(int numMessages) throws Exception {
+        storeMessages(numMessages, 0);
     }
     
     private void storeMessages(int numMessages, long timeGap) throws Exception {

@@ -31,6 +31,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,6 +55,7 @@ public class EventHistoryStore {
     private static File historyRoot;
     private static long expiresAfter = (1000 * 60 * 3); // default of 3 minutes
     private static Map<String, File> channelDirs = new ConcurrentHashMap<>();
+    private static Timer autoExpireTimer;
 
     static void setHistoryRoot(@Nonnull File historyRoot) throws IOException {
         if (!historyRoot.exists()) {
@@ -159,6 +162,45 @@ public class EventHistoryStore {
     private static void assertHistoryRootSet() {
         if (historyRoot == null) {
             throw new IllegalStateException("'historyRoot' not set. Check for earlier initialization errors.");
+        }
+    }
+    
+    public synchronized static void enableAutoDeleteOnExpire() {
+        if (autoExpireTimer != null) {
+            return;
+        }
+        
+        // Set up a timer that runs the DeleteStaleHistoryTask 3 times over
+        // duration of the event expiration timeout. By default this will be
+        // every minute i.e. in that case, events are never left lying around
+        // for more than 1 minute past their expiration.
+        long taskSchedule = expiresAfter / 3;
+        autoExpireTimer = new Timer();
+        autoExpireTimer.schedule(new DeleteStaleHistoryTask(), taskSchedule, taskSchedule);
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                disableAutoDeleteOnExpire();
+            }
+        });
+    }
+    
+    public synchronized static void disableAutoDeleteOnExpire() {
+        if (autoExpireTimer == null) {
+            return;
+        }
+        autoExpireTimer.cancel();
+        autoExpireTimer = null;
+    }
+    
+    private static class DeleteStaleHistoryTask extends TimerTask {
+        @Override
+        public void run() {
+            try {
+                deleteStaleHistory();
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error deleting stale/expired events from EventHistoryStore.", e);
+            }
         }
     }
 }
