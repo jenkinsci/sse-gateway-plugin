@@ -39,6 +39,8 @@ import java.util.logging.Logger;
 
 import org.apache.commons.io.FileUtils;
 import org.jenkins.pubsub.Message;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Channel event message history store.
@@ -48,6 +50,7 @@ import org.jenkins.pubsub.Message;
  * 
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
+@Restricted(NoExternalUse.class)
 public final class EventHistoryStore {
 
     private static final Logger LOGGER = Logger.getLogger(EventHistoryStore.class.getName());
