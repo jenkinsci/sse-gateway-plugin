@@ -48,7 +48,7 @@ import org.jenkins.pubsub.Message;
  * 
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-public class EventHistoryStore {
+public final class EventHistoryStore {
 
     private static final Logger LOGGER = Logger.getLogger(EventHistoryStore.class.getName());
     
