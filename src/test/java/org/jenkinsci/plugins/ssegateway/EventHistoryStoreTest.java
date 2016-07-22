@@ -46,25 +46,33 @@ public class EventHistoryStoreTest {
     public void test_delete_stale_events() throws Exception {
         EventHistoryStore.deleteAllHistory();
         Assert.assertEquals(0, EventHistoryStore.getChannelEventCount("job"));
+
+        // We use this guy to control the pauses in the test.
+        // Note that the expiry was set to 3 seconds in the @Before,
+        WaitTimer waitTimer = new WaitTimer();
         
         // Store 6 events, each 1 second apart.
+        // Should complete after about 6 seconds.
+        // The last of these messages should expire 
+        // at about 9 seconds on the clock.
         storeMessages(6, 1000);
         
-        // sleep for bit, just to move the window a little more.
-        Thread.sleep(200);
+        // We're at about 6 seconds now, let's wait 'til about
+        // 7 seconds on the clock before proceeding
+        waitTimer.waitUntil(7000);
         
-        // The "History Window" was set to 3 seconds in the @Before,
-        // so if we delete stale events now, we should delete at least
+        // The expiry was set to 3 seconds in the @Before,
+        // so if we delete stale events now, we should delete
         // some of those files, but not them all.
         Assert.assertEquals(6, EventHistoryStore.getChannelEventCount("job"));
         EventHistoryStore.deleteStaleHistory();
         Assert.assertTrue(EventHistoryStore.getChannelEventCount("job") > 0);
         Assert.assertTrue(EventHistoryStore.getChannelEventCount("job") < 6);
         
-        // sleep for 6 seconds now, run the delete again and make sure
-        // the rest of the files are deleted because they should all be stale
-        // by then.
-        Thread.sleep(6000);
+        // All of those mesages should be stale after about 9 seconds, so
+        // lets wait 'till 10 seconds on the clock and run the delete again
+        // and make sure they are all gone.
+        waitTimer.waitUntil(10000);
         EventHistoryStore.deleteStaleHistory();
         Assert.assertEquals(0, EventHistoryStore.getChannelEventCount("job"));
     }
@@ -87,8 +95,8 @@ public class EventHistoryStoreTest {
         
         // In this test, we go through a few "phases" of adding messages to the
         // store, punctuated by gaps, which we control using a WaitTimer (see below).
-        // What we're trying to test is that after 3 second (or so) stale messages
-        // start being automatically deleted.
+        // What we're trying to test is that after 3 second (or so - see @Before)
+        // stale messages start being automatically deleted.
         
         try {
             EventHistoryStore.deleteAllHistory();
@@ -145,7 +153,7 @@ public class EventHistoryStoreTest {
     
     private void storeMessages(int numMessages, long timeGap) throws Exception {
         for (int i = 0; i < numMessages; i++) {
-            if (timeGap > 0) {
+            if (i > 0 && timeGap > 0) {
                 Thread.sleep(timeGap);
             }
             EventHistoryStore.store(createMessage());
