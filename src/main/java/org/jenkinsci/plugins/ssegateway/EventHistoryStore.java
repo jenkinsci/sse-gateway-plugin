@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.ssegateway;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
@@ -34,11 +35,15 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import hudson.security.ACL;
 import org.apache.commons.io.FileUtils;
+import org.jenkins.pubsub.ChannelSubscriber;
 import org.jenkins.pubsub.Message;
+import org.jenkins.pubsub.PubsubBus;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -56,9 +61,12 @@ public final class EventHistoryStore {
     private static final Logger LOGGER = Logger.getLogger(EventHistoryStore.class.getName());
     
     private static File historyRoot;
-    private static long expiresAfter = (1000 * 60 * 3); // default of 3 minutes
+    private static long expiresAfter = (1000 * 60); // default of 1 minutes
     private static Map<String, File> channelDirs = new ConcurrentHashMap<>();
     private static Timer autoExpireTimer;
+    
+    private static final Map<String, AtomicInteger> channelSubsCounters = new ConcurrentHashMap<>();
+    private static final Map<String, EventHistoryLogger> channelLoggers = new ConcurrentHashMap<>();
 
     static void setHistoryRoot(@Nonnull File historyRoot) throws IOException {
         if (!historyRoot.exists()) {
@@ -86,7 +94,7 @@ public final class EventHistoryStore {
         }
     }
     
-    public static String getChannelEvent(@Nonnull String channelName, @Nonnull String eventUUID) throws IOException {
+    public static @CheckForNull String getChannelEvent(@Nonnull String channelName, @Nonnull String eventUUID) throws IOException {
         File channelDir = getChannelDir(channelName);
         File eventFile = new File(channelDir, eventUUID + ".json");
         
@@ -95,6 +103,31 @@ public final class EventHistoryStore {
         } else {
             return null;
         }
+    }
+    
+    public static synchronized void onChannelSubscribe(@Nonnull String channelName) {
+        if (historyRoot == null) {
+            return;
+        }
+        
+        AtomicInteger counter = getChannelSubsCounter(channelName);
+        counter.incrementAndGet();
+
+        EventHistoryLogger logger = channelLoggers.get(channelName);
+        if (logger == null) {
+            logger = new EventHistoryLogger(counter);
+            PubsubBus.getBus().subscribe(channelName, logger, ACL.SYSTEM, null);
+            channelLoggers.put(channelName, logger);
+        }
+    }
+    
+    public static synchronized void onChannelUnsubscribe(@Nonnull String channelName) {
+        if (historyRoot == null) {
+            return;
+        }
+        
+        AtomicInteger counter = getChannelSubsCounter(channelName);
+        counter.decrementAndGet();
     }
     
     static int getChannelEventCount(@Nonnull String channelName) throws IOException {
@@ -144,7 +177,7 @@ public final class EventHistoryStore {
         return channelDir;
     }
     
-    private static void deleteAllFilesInDir(File dir, Long olderThan) throws IOException {
+    private synchronized static void deleteAllFilesInDir(File dir, Long olderThan) throws IOException {
         Path dirPath = Paths.get(dir.toURI());
         
         try (final DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
@@ -175,8 +208,8 @@ public final class EventHistoryStore {
         
         // Set up a timer that runs the DeleteStaleHistoryTask 3 times over
         // duration of the event expiration timeout. By default this will be
-        // every minute i.e. in that case, events are never left lying around
-        // for more than 1 minute past their expiration.
+        // every 20 seconds i.e. in that case, events are never left lying around
+        // for more than 20 seconds minute past their expiration.
         long taskSchedule = expiresAfter / 3;
         autoExpireTimer = new Timer();
         autoExpireTimer.schedule(new DeleteStaleHistoryTask(), taskSchedule, taskSchedule);
@@ -203,6 +236,31 @@ public final class EventHistoryStore {
                 deleteStaleHistory();
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error deleting stale/expired events from EventHistoryStore.", e);
+            }
+        }
+    }
+    
+    private static synchronized AtomicInteger getChannelSubsCounter(@Nonnull String channelName) {
+        AtomicInteger counter = channelSubsCounters.get(channelName);
+        if (counter == null) {
+            counter = new AtomicInteger(0);
+            channelSubsCounters.put(channelName, counter);
+        }
+        return counter;
+    }
+    
+    private static class EventHistoryLogger implements ChannelSubscriber {
+
+        private final AtomicInteger channelSubsCounter;
+
+        private EventHistoryLogger(AtomicInteger channelSubsCounter) {
+            this.channelSubsCounter = channelSubsCounter;
+        }
+
+        @Override
+        public void onMessage(@Nonnull Message message) {
+            if (channelSubsCounter.get() > 0) {
+                store(message);
             }
         }
     }

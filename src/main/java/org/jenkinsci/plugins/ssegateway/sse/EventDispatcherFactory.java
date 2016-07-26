@@ -103,6 +103,9 @@ public class EventDispatcherFactory {
             
             dispatcher.dispatchEvent("open", openData.toString());
             
+            // Run the retry process in case this is a reconnect.
+            dispatcher.processRetries();
+            
             return dispatcher;
         } catch (Exception e) {
             throw new IllegalStateException("Unexpected Exception.", e);

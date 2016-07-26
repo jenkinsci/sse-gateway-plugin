@@ -130,6 +130,10 @@ exports.connect = function (clientId, onConnect) {
                     notifyConfigQueueListeners(configureInfo.batchId);
                 }
             }, false);
+            source.addEventListener('reload', function (e) {
+                LOGGER.debug('SSE channel "reload" event received. Reloading page now.', e);
+                window.location.reload(true);
+            }, false);
 
             // Add any listeners that have been requested to be added.
             for (var i = 0; i < eventSourceListenerQueue.length; i++) {

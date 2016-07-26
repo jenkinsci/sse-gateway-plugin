@@ -41,32 +41,36 @@ class AsynchEventDispatcher extends EventDispatcher {
 
     private static final Logger LOGGER = Logger.getLogger(AsynchEventDispatcher.class.getName());
     
+    // Set the timeout low so as to accommodate proxies like Nginx, which
+    // kill the connection after e.g. 90 seconds. 30 seconds is the default
+    // according to AsyncContext docs, so lets use that (explicitly).
+    private static final long TIMEOUT = (1000 * 30);
+    
     private transient AsyncContext asyncContext;
 
     @Override
     public void start(HttpServletRequest request, HttpServletResponse response) {
-        final AsynchEventDispatcher _this = this;
+        final AsynchEventDispatcher dispatcher = this;
         
-        asyncContext = request.startAsync();
-        asyncContext.setTimeout(-1); // No timeout
+        asyncContext = request.startAsync(request, response);
+        asyncContext.setTimeout(TIMEOUT);
         asyncContext.addListener(new AsyncListener() {
             @Override
             public void onTimeout(AsyncEvent event) throws IOException {
-                LOGGER.log(Level.WARNING, "Async dispatcher 'onTimeout' event: {0}", _this.toString());
+                LOGGER.log(Level.FINE, "Async dispatcher 'onTimeout' event: {0}", dispatcher);
                 event.getAsyncContext().complete();
             }
             @Override
             public void onStartAsync(AsyncEvent event) throws IOException {
-                LOGGER.log(Level.FINE, "Async dispatcher 'onStartAsync' event: {0}", _this.toString());
+                LOGGER.log(Level.FINE, "Async dispatcher 'onStartAsync' event: {0}", dispatcher);
             }
             @Override
             public void onError(AsyncEvent event) throws IOException {
-                LOGGER.log(Level.WARNING, "Async dispatcher 'onError' event: {0}", _this.toString());
+                LOGGER.log(Level.WARNING, "Async dispatcher 'onError' event: {0}", dispatcher);
             }
             @Override
             public void onComplete(AsyncEvent event) throws IOException {
-                LOGGER.log(Level.FINE, "Async dispatcher 'onComplete' event: {0}", _this.toString());
-                asyncContext = null;
+                LOGGER.log(Level.FINE, "Async dispatcher 'onComplete' event: {0}", dispatcher);
             }
         });
     }
