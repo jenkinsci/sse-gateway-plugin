@@ -107,6 +107,25 @@ exports.connect = function (clientId, onConnect) {
         /* eslint-enable */
     }
 
+    // If the browser supports HTML5 sessionStorage, then lets append a tab specific
+    // random ID to the client ID. This allows us to cleanly connect to a backend session,
+    // but to do it on a per tab basis i.e. reloading from the same tab reconnects that tab
+    // to the same backend dispatcher but allows each tab to have their own dispatcher,
+    // avoiding wierdness when multiple tabs are open to the same "clientId".
+    if (window.sessionStorage) {
+        var storeKey = 'jenkins-sse-gateway-client-' + clientId;
+        var tabClientId = window.sessionStorage.getItem(storeKey);
+
+        /* eslint-disable */
+        if (tabClientId) {
+            clientId = tabClientId;
+        } else {
+            clientId += '-' + generateTabId();
+            window.sessionStorage.setItem(storeKey, clientId);
+        }
+        /* eslint-enable */
+    }
+
     if (!jenkinsUrl) {
         discoverJenkinsUrl();
     }
@@ -376,4 +395,13 @@ function doConfigure() {
 
         resetConfigQueue();
     }
+}
+
+/**
+ * Generate a random "enough" string from the current time in
+ * millis + a random generated number string.
+ * @returns {string}
+ */
+function generateTabId() {
+    return (new Date().getTime()) + '-' + (Math.random() + 1).toString(36).substring(7);
 }
