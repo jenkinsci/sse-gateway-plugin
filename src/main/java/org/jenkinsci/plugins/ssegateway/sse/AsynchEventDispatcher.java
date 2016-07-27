@@ -29,6 +29,8 @@ import javax.servlet.AsyncListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,32 +49,48 @@ class AsynchEventDispatcher extends EventDispatcher {
     private static final long TIMEOUT = (1000 * 30);
     
     private transient AsyncContext asyncContext;
+    private final Lock asyncContextLock = new ReentrantLock();
 
     @Override
     public void start(HttpServletRequest request, HttpServletResponse response) {
         final AsynchEventDispatcher dispatcher = this;
         
-        asyncContext = request.startAsync(request, response);
-        asyncContext.setTimeout(TIMEOUT);
-        asyncContext.addListener(new AsyncListener() {
-            @Override
-            public void onTimeout(AsyncEvent event) throws IOException {
-                LOGGER.log(Level.FINE, "Async dispatcher 'onTimeout' event: {0}", dispatcher);
-                event.getAsyncContext().complete();
-            }
-            @Override
-            public void onStartAsync(AsyncEvent event) throws IOException {
-                LOGGER.log(Level.FINE, "Async dispatcher 'onStartAsync' event: {0}", dispatcher);
-            }
-            @Override
-            public void onError(AsyncEvent event) throws IOException {
-                LOGGER.log(Level.WARNING, "Async dispatcher 'onError' event: {0}", dispatcher);
-            }
-            @Override
-            public void onComplete(AsyncEvent event) throws IOException {
-                LOGGER.log(Level.FINE, "Async dispatcher 'onComplete' event: {0}", dispatcher);
-            }
-        });
+        asyncContextLock.lock();
+        try {
+            asyncContext = request.startAsync(request, response);
+            asyncContext.setTimeout(TIMEOUT);
+            asyncContext.addListener(new AsyncListener() {
+                @Override
+                public void onTimeout(AsyncEvent event) throws IOException {
+                    asyncContextLock.lock();
+                    try {
+                        LOGGER.log(Level.FINE, "Async dispatcher 'onTimeout' event: {0}", dispatcher);
+                        if (event.getAsyncContext() == asyncContext) {
+                            // nulling asyncContext will force messages to the retry
+                            // queue until we restart the connection.
+                            asyncContext = null;
+                        }
+                        event.getAsyncContext().complete();
+                    } finally {
+                        asyncContextLock.unlock();
+                    }
+                }
+                @Override
+                public void onStartAsync(AsyncEvent event) throws IOException {
+                    LOGGER.log(Level.FINE, "Async dispatcher 'onStartAsync' event: {0}", dispatcher);
+                }
+                @Override
+                public void onError(AsyncEvent event) throws IOException {
+                    LOGGER.log(Level.WARNING, "Async dispatcher 'onError' event: {0}", dispatcher);
+                }
+                @Override
+                public void onComplete(AsyncEvent event) throws IOException {
+                    LOGGER.log(Level.FINE, "Async dispatcher 'onComplete' event: {0}", dispatcher);
+                }
+            });
+        } finally {
+            asyncContextLock.unlock();
+        }
     }
 
     @Override

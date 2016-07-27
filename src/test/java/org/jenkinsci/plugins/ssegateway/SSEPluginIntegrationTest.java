@@ -69,4 +69,16 @@ public class SSEPluginIntegrationTest {
 
         gulpRunner.runIntegrationSpec("sse-plugin-with-filter");
     }
+    
+    @Test
+    public void test_store_and_forward() throws TaskRunnerException, IOException {
+        // Create a job. We will trigger a build of the job inside
+        // sse-plugin-store-and-forward.js (the integration test). That build execution
+        // should trigger events to the event subscribers in the test.
+        jenkins.createFreeStyleProject("sse-gateway-test-job");
+        
+        GulpRunner gulpRunner = new GulpRunner(jenkins);
+
+        gulpRunner.runIntegrationSpec("sse-plugin-store-and-forward");
+    }
 }

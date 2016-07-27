@@ -29,6 +29,7 @@ import hudson.model.User;
 import hudson.util.CopyOnWriteMap;
 import jenkins.model.Jenkins;
 import jenkins.util.HttpSessionListener;
+import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
 import org.jenkins.pubsub.ChannelSubscriber;
 import org.jenkins.pubsub.EventFilter;
@@ -108,9 +109,8 @@ public abstract class EventDispatcher implements Serializable {
         HttpServletResponse response = getResponse();
         
         if (response == null) {
-            // The SSE listen channel is probably not connected.
-            // Events fall on the floor !!
-            LOGGER.log(Level.SEVERE, String.format("Unexpected SSE dispatcher state for %s. No HTTP response instance.", this));
+            // The SSE channel is not connected or is reconnecting after timeout.
+            // Event will go to retry queue.
             return false;
         }
         
@@ -131,7 +131,6 @@ public abstract class EventDispatcher implements Serializable {
             writer.write("data: " + data + "\n");
         }
         writer.write("\n");
-        writer.flush();
         
         return (!writer.checkError());
     }
@@ -274,7 +273,7 @@ public abstract class EventDispatcher implements Serializable {
         }
     }
     
-    private void addToRetryList(@Nonnull Message message) {
+    private void addToRetryQueue(@Nonnull Message message) {
         if (!retryQueue.add(new Retry(message))) {
             // Unable to add to the queue. Lets just tell the client
             // that it needs to reload the page.
@@ -310,6 +309,12 @@ public abstract class EventDispatcher implements Serializable {
                             return;
                         }
                     }
+                    
+                    if (Util.isTestEnv()) {
+                        JSONObject eventJSONObj = JSONObject.fromObject(eventJSON);
+                        eventJSONObj.put(SSEChannel.EventProps.sse_dispatch_retry.name(), "true");
+                        eventJSON = eventJSONObj.toString();
+                    }
 
                     if (!dispatchEvent(retry.channelName, eventJSON)) {
                         LOGGER.log(Level.FINE, String.format("Error dispatching retry event to SSE channel. Write failed. Dispatcher %s.", this));
@@ -341,7 +346,7 @@ public abstract class EventDispatcher implements Serializable {
             // We do not attempt to dispatch events directly
             // while there are events sitting in the retryQueue.
             // The retryQueue must be empty.
-            addToRetryList(message);
+            addToRetryQueue(message);
         } else {
             try {
                 message.set(SSEChannel.EventProps.sse_subs_dispatcher, this.id);
@@ -349,11 +354,11 @@ public abstract class EventDispatcher implements Serializable {
 
                 if (!dispatchEvent(message.getChannelName(), message.toJSON())) {
                     LOGGER.log(Level.FINE, "Error dispatching event to SSE channel. Write failed.");
-                    addToRetryList(message);
+                    addToRetryQueue(message);
                 }
             } catch (Exception e) {
                 LOGGER.log(Level.FINE, "Error dispatching event to SSE channel.", e);
-                addToRetryList(message);
+                addToRetryQueue(message);
             }
         }
     }
@@ -422,6 +427,12 @@ public abstract class EventDispatcher implements Serializable {
         private final String eventUUID;
 
         private Retry(@Nonnull Message message) {
+            // We want to keep the memory footprint of the retryQueue
+            // to a minimum. That is why we are interning these strings
+            // (multiple dispatchers will likely be retrying the same messages)
+            // as well as saving the actual message bodies to file and reading those
+            // back when it comes time to process the retry i.e. keep as little
+            // in memory as possible + share references where we can.
             this.channelName = message.getChannelName().intern();
             this.eventUUID = message.getEventUUID().intern();
         }

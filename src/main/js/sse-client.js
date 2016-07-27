@@ -2,6 +2,14 @@ var jsModules = require('@jenkins-cd/js-modules');
 var LOGGER = require('@jenkins-cd/diag').logger('sse');
 var ajax = require('./ajax');
 var json = require('./json');
+
+// General configuration settings. Can be updated
+// via the exported configure function.
+var configuration = {
+    batchConfigDelay: 100,
+    sendSessionId: false
+};
+
 var jenkinsUrl = undefined;
 var eventSource = undefined;
 var eventSourceListenerQueue = [];
@@ -13,8 +21,6 @@ var configurationBatchId = 0;
 var configurationQueue = {};
 var configurationListeners = {};
 var nextDoConfigureTimeout = undefined;
-
-exports.DEFAULT_BATCH_CONFIG_DELAY = 100;
 
 function resetConfigQueue() {
     configurationBatchId++;
@@ -61,7 +67,7 @@ function scheduleDoConfigure(delay) {
     clearDoConfigure();
     var timeoutDelay = delay;
     if (timeoutDelay === undefined) {
-        timeoutDelay = exports.DEFAULT_BATCH_CONFIG_DELAY;
+        timeoutDelay = configuration.batchConfigDelay;
     }
     nextDoConfigureTimeout = setTimeout(doConfigure, timeoutDelay);
 }
@@ -75,6 +81,16 @@ function discoverJenkinsUrl() {
         jenkinsUrl += '/';
     }
 }
+
+exports.configure = function (config) {
+    if (config) {
+        for (var prop in config) {
+            if (config.hasOwnProperty(prop)) {
+                configuration[prop] = config[prop];
+            }
+        }
+    }
+};
 
 exports.connect = function (clientId, onConnect) {
     if (eventSource) {
@@ -109,8 +125,16 @@ exports.connect = function (clientId, onConnect) {
         var connectUrl = jenkinsUrl + 'sse-gateway/connect?clientId='
                                     + encodeURIComponent(clientId);
 
-        ajax.get(connectUrl, function () {
+        ajax.get(connectUrl, function (response) {
             var listenUrl = jenkinsUrl + 'sse-gateway/listen/' + encodeURIComponent(clientId);
+
+            if (configuration.sendSessionId) {
+                // Sending the jsessionid helps headless clients to maintain
+                // the session with the backend.
+                var jsessionid = response.data.jsessionid;
+                listenUrl += ';jsessionid=' + jsessionid;
+            }
+
             var EventSource = window.EventSource;
             var source = new EventSource(listenUrl);
 

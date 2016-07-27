@@ -143,7 +143,11 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         }
         
         response.setStatus(HttpServletResponse.SC_OK);
-        return HttpResponses.okJSON(); 
+        
+        JSONObject responseData = new JSONObject();
+        responseData.put("jsessionid", session.getId());
+        
+        return HttpResponses.okJSON(responseData); 
     }
     
     @RequirePOST
@@ -230,7 +234,12 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                 
                 if (requestedResource.startsWith(SSE_LISTEN_URL_PREFIX)) {
                     HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
-                    String clientId = requestedResource.substring(SSE_LISTEN_URL_PREFIX.length());
+                    String[] clientTokens = requestedResource.substring(SSE_LISTEN_URL_PREFIX.length()).split(";");
+                    String clientId = clientTokens[0];
+                    
+                    // If there's a second token it would be the jsessionid for 
+                    // when we're using a headless client. Not needed here though,
+                    // so just stripping out the clientId part.
                     
                     clientId = URLDecoder.decode(clientId, "UTF-8");
                     EventDispatcherFactory.start(clientId, httpServletRequest, httpServletResponse);

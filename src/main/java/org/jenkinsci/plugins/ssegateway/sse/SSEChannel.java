@@ -52,5 +52,6 @@ public interface SSEChannel {
         sse_subs_dispatcher_inst,
         sse_subs_channel_name,
         sse_subs_filter,
+        sse_dispatch_retry,
     }
 }
