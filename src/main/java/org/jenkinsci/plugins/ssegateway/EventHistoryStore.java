@@ -102,9 +102,19 @@ public final class EventHistoryStore {
             String channelName = message.getChannelName();
             String eventUUID = message.getEventUUID();
             File channelDir = getChannelDir(channelName);
-            File eventFile = new File(channelDir, eventUUID + ".json");
+            
+            // We write to an intermediate file and then do a rename. This should
+            // lower the chances of an EventDispacther (or other) attempting to
+            // read from the file before it is fully written, as the rename should be
+            // considerably "more" (depending on the platform) atomic on most platforms.
+            
+            File writeEventFile = new File(channelDir, eventUUID + "_WRITE.json");
+            File readEventFile = new File(channelDir, eventUUID + ".json");
         
-            FileUtils.writeStringToFile(eventFile, message.toJSON(), "UTF-8");
+            FileUtils.writeStringToFile(writeEventFile, message.toJSON(), "UTF-8");
+            if (!writeEventFile.renameTo(readEventFile)) {
+                LOGGER.log(Level.SEVERE, "Unexpected error renaming EventHistoryStore entry file to {0}.", readEventFile.getAbsolutePath());
+            }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Unexpected error persisting EventHistoryStore entry file.", e);
         }
