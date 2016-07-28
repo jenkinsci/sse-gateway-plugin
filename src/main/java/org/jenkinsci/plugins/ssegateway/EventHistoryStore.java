@@ -39,11 +39,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.ACL;
 import org.apache.commons.io.FileUtils;
 import org.jenkins.pubsub.ChannelSubscriber;
 import org.jenkins.pubsub.Message;
 import org.jenkins.pubsub.PubsubBus;
+import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -68,7 +70,16 @@ public final class EventHistoryStore {
     private static final Map<String, AtomicInteger> channelSubsCounters = new ConcurrentHashMap<>();
     private static final Map<String, EventHistoryLogger> channelLoggers = new ConcurrentHashMap<>();
 
+    @SuppressFBWarnings(value = "LI_LAZY_INIT_STATIC", 
+                justification = "internal class (marked @Restricted NoExternalUse + package private methods) - need it this way for testing.")
     static void setHistoryRoot(@Nonnull File historyRoot) throws IOException {
+        // In a non-test mode, we only allow setting of the historyRoot 
+        // once (during plugin init - see Endpoint class).
+        if (EventHistoryStore.historyRoot != null && !Util.isTestEnv()) {
+            LOGGER.log(Level.SEVERE, "Invalid attempt to change historyRoot after it has already been set. Ignoring.");
+            return;
+        }
+        
         if (!historyRoot.exists()) {
             if (!historyRoot.mkdirs()) {
                 throw new IOException(String.format("Unexpected error creating historyRoot dir %s. Check permissions etc.", historyRoot.getAbsolutePath()));
@@ -78,6 +89,11 @@ public final class EventHistoryStore {
     }
 
     static void setExpiryMillis(long expiresAfterMillis) {
+        // In a non-test mode, we don't allow setting of the expiresAfter at all.
+        if (!Util.isTestEnv()) {
+            LOGGER.log(Level.SEVERE, "Invalid attempt to change expiresAfterMillis. Ignoring.");
+            return;
+        }
         EventHistoryStore.expiresAfter = expiresAfterMillis;
     }
 
@@ -206,10 +222,10 @@ public final class EventHistoryStore {
             return;
         }
         
-        // Set up a timer that runs the DeleteStaleHistoryTask 3 times over
+        // Set up a timer that runs the DeleteStaleHistoryTask 3 times over the
         // duration of the event expiration timeout. By default this will be
         // every 20 seconds i.e. in that case, events are never left lying around
-        // for more than 20 seconds minute past their expiration.
+        // for more than 20 seconds past their expiration.
         long taskSchedule = expiresAfter / 3;
         autoExpireTimer = new Timer();
         autoExpireTimer.schedule(new DeleteStaleHistoryTask(), taskSchedule, taskSchedule);
@@ -248,7 +264,21 @@ public final class EventHistoryStore {
         }
         return counter;
     }
-    
+
+    /**
+     * This class is used to listen for and log/store events that are being deivered
+     * on any channels for which there are subscriptions ({@link EventDispatcher}).
+     * We do this here because we do not want every {@link EventDispatcher} taking care
+     * of the storing of events that might need to be retried. Instead, we have one
+     * listener that does that (an instance of this class) and then all the
+     * {@link EventDispatcher} listeners just hold a retryQueue that contains references
+     * to the event UUIDs and use that to access the {@link EventHistoryStore} to get
+     * the actual message when doing the retry. So, one listener storing the events for
+     * all the {@link EventDispatcher} instances.
+     * <p>
+     * Note, we never remove these listeners even if the channel in question no
+     * longer has any active subscribers. There's no real point.
+     */
     private static class EventHistoryLogger implements ChannelSubscriber {
 
         private final AtomicInteger channelSubsCounter;
