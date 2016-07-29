@@ -97,7 +97,23 @@ public final class EventHistoryStore {
         EventHistoryStore.expiresAfter = expiresAfterMillis;
     }
 
-    public static void store(@Nonnull Message message) {
+    /**
+     * Store a message.
+     * <p>
+     * <strong>Threading notes:</strong> This method is called from the {@link EventHistoryLogger}
+     * instances associated with the different event channels ("job" etc). There is max 1 
+     * {@link EventHistoryLogger} per channel, which means that this method gets called
+     * max 1 times for each message delivered on a channel. Since each message is stored in
+     * a uniquely named file (based on the message's UUID), this means that there is no risk
+     * of 2 threads ever attempting to write the same message file, which means we are ok with
+     * having no synchronization in/around this method. Note we give the files a temp name while
+     * writing and then rename to the final name once writing is complete, protecting the retry
+     * queues in the {@link EventDispatcher} instances from ever reading an event file (on retry)
+     * before that event file is fully written to disk.
+     * 
+     * @param message The message instance to store.
+     */
+    static void store(@Nonnull Message message) {
         try {
             String channelName = message.getChannelName();
             String eventUUID = message.getEventUUID();
@@ -107,6 +123,7 @@ public final class EventHistoryStore {
             // lower the chances of an EventDispacther (or other) attempting to
             // read from the file before it is fully written, as the rename should be
             // considerably "more" (depending on the platform) atomic on most platforms.
+            // See threading notes above in the method javadoc.
             
             File writeEventFile = new File(channelDir, eventUUID + "_WRITE.json");
             File readEventFile = new File(channelDir, eventUUID + ".json");

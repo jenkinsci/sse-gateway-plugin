@@ -97,7 +97,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         Jenkins jenkins = Jenkins.getInstance();
         if (jenkins != null) {
             try {
-                EventHistoryStore.setHistoryRoot(new File(jenkins.getRootDir(), "sse-event-store"));
+                EventHistoryStore.setHistoryRoot(new File(jenkins.getRootDir(), "/logs/sse-events"));
                 EventHistoryStore.enableAutoDeleteOnExpire();
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "Unexpected error setting EventHistoryStore event history root dir.", e);
