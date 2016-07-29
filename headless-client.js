@@ -17,7 +17,9 @@ if (!global.window.EventSource) {
 
 var client = require('./src/main/js/sse-client');
 
-// exec configs immediately i.e. no delay for batching up.
-client.DEFAULT_BATCH_CONFIG_DELAY = 0;
+client.configure({
+    batchConfigDelay: 0, // exec batch configs immediately i.e. no delay for batching up.
+    sendSessionId: true  // maintain sessions with the backend via jsessionid
+});
 
 module.exports = client;

@@ -63,10 +63,6 @@ public class GulpRunner {
         this.jenkinsRule = jenkinsRule;
     }
     
-    public void run() throws TaskRunnerException {
-        run("");
-    }
-    
     public void run(String command) throws TaskRunnerException {
         FrontendPluginFactory frontendPluginFactory = new FrontendPluginFactory(workDir, workDir);
         Map<String, String> env = new HashMap<>();

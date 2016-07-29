@@ -2,6 +2,14 @@ var jsModules = require('@jenkins-cd/js-modules');
 var LOGGER = require('@jenkins-cd/diag').logger('sse');
 var ajax = require('./ajax');
 var json = require('./json');
+
+// General configuration settings. Can be updated
+// via the exported configure function.
+var configuration = {
+    batchConfigDelay: 100,
+    sendSessionId: false
+};
+
 var jenkinsUrl = undefined;
 var eventSource = undefined;
 var eventSourceListenerQueue = [];
@@ -13,8 +21,6 @@ var configurationBatchId = 0;
 var configurationQueue = {};
 var configurationListeners = {};
 var nextDoConfigureTimeout = undefined;
-
-exports.DEFAULT_BATCH_CONFIG_DELAY = 100;
 
 function resetConfigQueue() {
     configurationBatchId++;
@@ -61,7 +67,7 @@ function scheduleDoConfigure(delay) {
     clearDoConfigure();
     var timeoutDelay = delay;
     if (timeoutDelay === undefined) {
-        timeoutDelay = exports.DEFAULT_BATCH_CONFIG_DELAY;
+        timeoutDelay = configuration.batchConfigDelay;
     }
     nextDoConfigureTimeout = setTimeout(doConfigure, timeoutDelay);
 }
@@ -76,6 +82,16 @@ function discoverJenkinsUrl() {
     }
 }
 
+exports.configure = function (config) {
+    if (config) {
+        for (var prop in config) {
+            if (config.hasOwnProperty(prop)) {
+                configuration[prop] = config[prop];
+            }
+        }
+    }
+};
+
 exports.connect = function (clientId, onConnect) {
     if (eventSource) {
         return;
@@ -88,6 +104,25 @@ exports.connect = function (clientId, onConnect) {
         clientId = configObj.clientId;
         onConnect = configObj.onConnect;
         jenkinsUrl = configObj.jenkinsUrl;
+        /* eslint-enable */
+    }
+
+    // If the browser supports HTML5 sessionStorage, then lets append a tab specific
+    // random ID to the client ID. This allows us to cleanly connect to a backend session,
+    // but to do it on a per tab basis i.e. reloading from the same tab reconnects that tab
+    // to the same backend dispatcher but allows each tab to have their own dispatcher,
+    // avoiding wierdness when multiple tabs are open to the same "clientId".
+    if (window.sessionStorage) {
+        var storeKey = 'jenkins-sse-gateway-client-' + clientId;
+        var tabClientId = window.sessionStorage.getItem(storeKey);
+
+        /* eslint-disable */
+        if (tabClientId) {
+            clientId = tabClientId;
+        } else {
+            clientId += '-' + generateTabId();
+            window.sessionStorage.setItem(storeKey, clientId);
+        }
         /* eslint-enable */
     }
 
@@ -109,8 +144,16 @@ exports.connect = function (clientId, onConnect) {
         var connectUrl = jenkinsUrl + 'sse-gateway/connect?clientId='
                                     + encodeURIComponent(clientId);
 
-        ajax.get(connectUrl, function () {
+        ajax.get(connectUrl, function (response) {
             var listenUrl = jenkinsUrl + 'sse-gateway/listen/' + encodeURIComponent(clientId);
+
+            if (configuration.sendSessionId) {
+                // Sending the jsessionid helps headless clients to maintain
+                // the session with the backend.
+                var jsessionid = response.data.jsessionid;
+                listenUrl += ';jsessionid=' + jsessionid;
+            }
+
             var EventSource = window.EventSource;
             var source = new EventSource(listenUrl);
 
@@ -129,6 +172,10 @@ exports.connect = function (clientId, onConnect) {
                     var configureInfo = JSON.parse(e.data);
                     notifyConfigQueueListeners(configureInfo.batchId);
                 }
+            }, false);
+            source.addEventListener('reload', function (e) {
+                LOGGER.debug('SSE channel "reload" event received. Reloading page now.', e);
+                window.location.reload(true);
             }, false);
 
             // Add any listeners that have been requested to be added.
@@ -348,4 +395,13 @@ function doConfigure() {
 
         resetConfigQueue();
     }
+}
+
+/**
+ * Generate a random "enough" string from the current time in
+ * millis + a random generated number string.
+ * @returns {string}
+ */
+function generateTabId() {
+    return (new Date().getTime()) + '-' + (Math.random() + 1).toString(36).substring(7);
 }

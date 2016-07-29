@@ -28,6 +28,7 @@ import hudson.model.RootAction;
 import hudson.security.csrf.CrumbExclusion;
 import hudson.util.HttpResponses;
 import hudson.util.PluginServletFilter;
+import jenkins.model.Jenkins;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
@@ -51,6 +52,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -92,6 +94,15 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     }
 
     protected void init() throws ServletException {
+        Jenkins jenkins = Jenkins.getInstance();
+        if (jenkins != null) {
+            try {
+                EventHistoryStore.setHistoryRoot(new File(jenkins.getRootDir(), "/logs/sse-events"));
+                EventHistoryStore.enableAutoDeleteOnExpire();
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Unexpected error setting EventHistoryStore event history root dir.", e);
+            }
+        }
         PluginServletFilter.addFilter(new SSEListenChannelFilter());
     }
 
@@ -124,7 +135,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         // If there was already a dispatcher with this ID, then remove
         // all subscriptions from it and reuse the instance.
         if (dispatcher != null) {
-            LOGGER.log(Level.INFO, "We already have a Dispatcher for clientId {0}. Removing all subscriptions on the existing Dispatcher instance and reusing it.", dispatcher.toString());
+            LOGGER.log(Level.FINE, "We already have a Dispatcher for clientId {0}. Removing all subscriptions on the existing Dispatcher instance and reusing it.", dispatcher.toString());
             dispatcher.unsubscribeAll();
         } else {
             // Else create a new instance with this id.
@@ -132,7 +143,11 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         }
         
         response.setStatus(HttpServletResponse.SC_OK);
-        return HttpResponses.okJSON(); 
+        
+        JSONObject responseData = new JSONObject();
+        responseData.put("jsessionid", session.getId());
+        
+        return HttpResponses.okJSON(responseData); 
     }
     
     @RequirePOST
@@ -166,10 +181,14 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                     dispatcher.unsubscribeAll();
                 }
                 for (EventFilter filter : subscriptionConfig.unsubscribeSet) {
-                    dispatcher.unsubscribe(filter);
+                    if (dispatcher.unsubscribe(filter)) {
+                        EventHistoryStore.onChannelUnsubscribe(filter.getChannelName());
+                    }
                 }
                 for (EventFilter filter : subscriptionConfig.subscribeSet) {
-                    if (!dispatcher.subscribe(filter)) {
+                    if (dispatcher.subscribe(filter)) {
+                        EventHistoryStore.onChannelSubscribe(filter.getChannelName());
+                    } else {
                         failedSubscribes++;
                     }
                 }
@@ -215,7 +234,12 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                 
                 if (requestedResource.startsWith(SSE_LISTEN_URL_PREFIX)) {
                     HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
-                    String clientId = requestedResource.substring(SSE_LISTEN_URL_PREFIX.length());
+                    String[] clientTokens = requestedResource.substring(SSE_LISTEN_URL_PREFIX.length()).split(";");
+                    String clientId = clientTokens[0];
+                    
+                    // If there's a second token it would be the jsessionid for 
+                    // when we're using a headless client. Not needed here though,
+                    // so just stripping out the clientId part.
                     
                     clientId = URLDecoder.decode(clientId, "UTF-8");
                     EventDispatcherFactory.start(clientId, httpServletRequest, httpServletResponse);

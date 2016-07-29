@@ -21,37 +21,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.plugins.ssegateway.sse;
-
-import org.jenkinsci.plugins.ssegateway.Util;
+package org.jenkinsci.plugins.ssegateway;
 
 /**
- * SSE channel "sse" event properties.
- * <p>
- * Note, events are currently only published on this channel when running
- * in test mode (see {@link Util#isTestEnv()}).
- * 
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-public interface SSEChannel {
+public class WaitTimer {
 
-    /**
-     * The event names.
-     * @see org.jenkins.pubsub.EventProps.Jenkins#jenkins_event
-     */
-    enum Event {
-        subscribe,
-        unsubscribe,
+    private final long startedAt;
+
+    public WaitTimer() {
+        this.startedAt = System.currentTimeMillis();
     }
     
-    /**
-     * Event property names.
-     */
-    enum EventProps {
-        sse_subs_dispatcher,
-        sse_subs_dispatcher_inst,
-        sse_subs_channel_name,
-        sse_subs_filter,
-        sse_dispatch_retry,
+    public void waitUntil(long timeMillis) {
+        long waitUntil = this.startedAt + timeMillis; 
+        
+        while (System.currentTimeMillis() < waitUntil) {
+            try {
+                Thread.sleep(0, 1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
