@@ -78,6 +78,12 @@ public class Util {
             isTestEnv = true;
         }
         
+        // If there's none of the markers, then we're not
+        // in a test env.
+        if (isTestEnv == null){
+            isTestEnv = false;
+        }
+        
         return isTestEnv;
     }
 
