@@ -25,8 +25,9 @@ describe("sse plugin integration tests - with filters", function () {
                 });
     
                 sseClient.subscribe('job', function () {
-                    // Wait a sec to give time for the unexpected event to arrive.
-                    // It shouldn't arrive, but if it does, we throw an error. 
+                    // Wait a sec to give time for the unexpected event to
+                    // arrive (see previous subscribe to job 'xxxxx'). It 
+                    // shouldn't arrive, but if it does, we throw an error. 
                     setTimeout(function() {
                         sseClient.disconnect();
                         done();
@@ -36,5 +37,5 @@ describe("sse plugin integration tests - with filters", function () {
                 });
             });
         });
-    }, 300000);
+    }, 60000);
 });

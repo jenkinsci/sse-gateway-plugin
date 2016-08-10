@@ -29,6 +29,7 @@
     "@jenkins-cd/js-builder": "0.0.35",
     "@jenkins-cd/js-test": "^1.1.2",
     "gulp": "^3.9.1",
+    "http-proxy": "^1.14.0",
     "wait-until-promise": "^1.0.0"
   },
   "dependencies": {

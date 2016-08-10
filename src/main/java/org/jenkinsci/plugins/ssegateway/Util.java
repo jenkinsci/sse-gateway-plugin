@@ -72,8 +72,16 @@ public class Util {
         
         if (Functions.getIsUnitTest()) {
             isTestEnv = true;
-        } else {
-            isTestEnv = new File("./target/.jenkins_test").exists();
+        } else if (new File("./target/.jenkins_test").exists()) {
+            isTestEnv = true;
+        } else if (new File("./target/classes/" + Util.class.getName().replace(".", "/") + ".class").exists()) {
+            isTestEnv = true;
+        }
+        
+        // If there's none of the markers, then we're not
+        // in a test env.
+        if (isTestEnv == null){
+            isTestEnv = false;
         }
         
         return isTestEnv;
