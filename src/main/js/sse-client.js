@@ -73,12 +73,13 @@ function scheduleDoConfigure(delay) {
 }
 function discoverJenkinsUrl() {
     jenkinsUrl = jsModules.getRootURL();
-
-    if (!jenkinsUrl || jenkinsUrl.length < 1) {
-        throw new Error('Invalid jenkinsUrl argument ' + jenkinsUrl);
-    }
-    if (jenkinsUrl.charAt(jenkinsUrl.length - 1) !== '/') {
-        jenkinsUrl += '/';
+    if (!jenkinsUrl) {
+        jenkinsUrl = '';
+    } else {
+        // only in tests, this is suffixed ...
+        while (jenkinsUrl.charAt(jenkinsUrl.length - 1) === '/') {
+            jenkinsUrl = jenkinsUrl.substring(0, jenkinsUrl.length - 1);
+        }
     }
 }
 
@@ -141,11 +142,10 @@ exports.connect = function (clientId, onConnect) {
         // TODO: Need to add browser poly-fills for stuff like this
         // See https://github.com/remy/polyfills/blob/master/EventSource.js
     } else {
-        var connectUrl = jenkinsUrl + 'sse-gateway/connect?clientId='
+        var connectUrl = jenkinsUrl + '/sse-gateway/connect?clientId='
                                     + encodeURIComponent(clientId);
-
         ajax.get(connectUrl, function (response) {
-            var listenUrl = jenkinsUrl + 'sse-gateway/listen/' + encodeURIComponent(clientId);
+            var listenUrl = jenkinsUrl + '/sse-gateway/listen/' + encodeURIComponent(clientId);
 
             if (configuration.sendSessionId) {
                 // Sending the jsessionid helps headless clients to maintain
@@ -385,7 +385,7 @@ function doConfigure() {
         // open the SSE channel + send the jenkins session info.
         scheduleDoConfigure(100);
     } else {
-        var configureUrl = jenkinsUrl + 'sse-gateway/configure?batchId=' + configurationBatchId;
+        var configureUrl = jenkinsUrl + '/sse-gateway/configure?batchId=' + configurationBatchId;
 
         LOGGER.debug('Sending notification configuration request for configuration batch '
             + configurationBatchId + '.', configurationQueue);

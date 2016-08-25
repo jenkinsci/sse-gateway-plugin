@@ -16,7 +16,7 @@ describe("sse plugin integration tests - with filters", function () {
                 var ajax = jsTest.requireSrcModule('ajax');
                 
                 // Once connected to the SSE Gateway, fire off a build of the sample job
-                ajax.post(undefined, sseClient.jenkinsUrl + 'job/sse-gateway-test-job/build', jenkinsSessionInfo);
+                ajax.post(undefined, sseClient.jenkinsUrl + '/job/sse-gateway-test-job/build', jenkinsSessionInfo);
 
                 sseClient.subscribe('job', function () {
                     expect('Should not have received this event').toBe();
