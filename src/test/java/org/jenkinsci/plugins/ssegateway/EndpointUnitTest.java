@@ -18,6 +18,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -101,7 +102,7 @@ public class EndpointUnitTest {
         
         Mockito.when(dispatchers.get("1111111111")).thenReturn(eventDispatcher);
         Mockito.when(request.getSession()).thenReturn(session);
-        Mockito.when(session.getAttribute(EventDispatcher.SESSION_SYNC_OBJ)).thenReturn("blah");
+        Mockito.when(session.getAttribute(EventDispatcher.SESSION_LOCK)).thenReturn(new ReentrantLock());
         Mockito.when(session.getAttribute(EventDispatcherFactory.DISPATCHER_SESSION_KEY)).thenReturn(dispatchers);
         Mockito.when(request.getInputStream()).thenReturn(new MockServletInputStream(config));
         
