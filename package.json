@@ -26,15 +26,18 @@
   },
   "homepage": "https://github.com/jenkinsci/sse-gateway-plugin",
   "devDependencies": {
-    "@jenkins-cd/js-builder": "0.0.35",
-    "@jenkins-cd/js-test": "^1.1.2",
+    "@jenkins-cd/js-builder": "0.0.39",
+    "@jenkins-cd/js-modules": "^0.0.7",
+    "@jenkins-cd/js-test": "^1.2.3",
     "gulp": "^3.9.1",
     "http-proxy": "^1.14.0",
     "wait-until-promise": "^1.0.0"
   },
+  "peerDependencies": {
+    "@jenkins-cd/js-modules": "^0.0.7"
+  },
   "dependencies": {
     "@jenkins-cd/diag": "0.0.2",
-    "@jenkins-cd/js-modules": "0.0.5",
     "eventsource": "0.2.1",
     "xmlhttprequest": "1.8.0"
   }
