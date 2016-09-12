@@ -71,16 +71,16 @@ function scheduleDoConfigure(delay) {
     }
     nextDoConfigureTimeout = setTimeout(doConfigure, timeoutDelay);
 }
-function discoverJenkinsUrl() {
-    jenkinsUrl = jsModules.getRootURL();
-    if (!jenkinsUrl) {
-        jenkinsUrl = '';
-    } else {
-        // only in tests, this is suffixed ...
-        while (jenkinsUrl.charAt(jenkinsUrl.length - 1) === '/') {
-            jenkinsUrl = jenkinsUrl.substring(0, jenkinsUrl.length - 1);
-        }
+function normalizeUrl(url) {
+    if (!url) {
+        return '';
     }
+    // remove trailing slashes
+    var newUrl = url;
+    while (newUrl.charAt(newUrl.length - 1) === '/') {
+        newUrl = newUrl.substring(0, newUrl.length - 1);
+    }
+    return newUrl;
 }
 
 exports.configure = function (config) {
@@ -128,8 +128,9 @@ exports.connect = function (clientId, onConnect) {
     }
 
     if (!jenkinsUrl) {
-        discoverJenkinsUrl();
+        jenkinsUrl = jsModules.getRootURL();
     }
+    jenkinsUrl = normalizeUrl(jenkinsUrl);
     exports.jenkinsUrl = jenkinsUrl;
 
     if (typeof clientId !== 'string') {

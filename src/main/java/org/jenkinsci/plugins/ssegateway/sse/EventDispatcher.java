@@ -156,7 +156,7 @@ public abstract class EventDispatcher implements Serializable {
 
             User current = getUser();
             if (current != null) {
-                authentication = current.impersonate();
+                authentication = Jenkins.getAuthentication();
             } else {
                 authentication = Jenkins.ANONYMOUS;
             }
