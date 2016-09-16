@@ -34,6 +34,7 @@ import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
 import org.jenkins.pubsub.EventFilter;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
+import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.SSEHttpSessionListener;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -58,6 +59,8 @@ import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -160,8 +163,12 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         LOGGER.log(Level.FINE, "Processing configuration request. batchId={0}", batchId);
         
         // We want to ensure that, at one time, only one set of configurations are being applied,
-        // for a given user session. 
-        synchronized (EventDispatcher.SSEHttpSessionListener.getSessionSyncObj(session)) {
+        // for a given user session.
+        Lock lock = SSEHttpSessionListener.getLock(session);
+        try {
+            // Lets give this ample time to acquire the lock
+            lock.tryLock(1, TimeUnit.SECONDS);
+
             SubscriptionConfig subscriptionConfig = SubscriptionConfig.fromRequest(request);
 
             if (subscriptionConfig.dispatcherId == null) {
@@ -205,6 +212,10 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                     }
                 }
             }
+        } catch (InterruptedException e) {
+            return HttpResponses.errorJSON("Could not acquire session lock");
+        } finally {
+            lock.unlock();
         }
 
         response.setStatus(HttpServletResponse.SC_OK);

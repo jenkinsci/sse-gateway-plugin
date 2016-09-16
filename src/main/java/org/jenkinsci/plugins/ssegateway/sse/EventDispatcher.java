@@ -31,6 +31,7 @@ import jenkins.model.Jenkins;
 import jenkins.util.HttpSessionListener;
 import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
+import org.apache.tools.ant.taskdefs.condition.Http;
 import org.jenkins.pubsub.ChannelSubscriber;
 import org.jenkins.pubsub.EventFilter;
 import org.jenkins.pubsub.EventProps;
@@ -59,6 +60,8 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -68,7 +71,8 @@ import java.util.logging.Logger;
 @Restricted(NoExternalUse.class)
 public abstract class EventDispatcher implements Serializable {
 
-    public static final String SESSION_SYNC_OBJ = "org.jenkinsci.plugins.ssegateway.sse.session.sync";
+    public static final String SESSION_LOCK = "org.jenkinsci.plugins.ssegateway.sse.session.sync";
+
     private static final Logger LOGGER = Logger.getLogger(EventDispatcher.class.getName());
 
     private String id = null;
@@ -383,18 +387,14 @@ public abstract class EventDispatcher implements Serializable {
      */
     @Extension
     public static final class SSEHttpSessionListener extends HttpSessionListener {
-        
-        public static String getSessionSyncObj(HttpSession session) {
-            String syncObj = (String) session.getAttribute(SESSION_SYNC_OBJ);
-            if (syncObj == null) {
-                syncObj = setSessionSyncObj(session);
-            }
-            return syncObj;
+
+        public static Lock getLock(HttpSession session) {
+            return createOrGetLock(session);
         }
-        
+
         @Override
         public void sessionCreated(HttpSessionEvent httpSessionEvent) {
-            setSessionSyncObj(httpSessionEvent.getSession());
+            createOrGetLock(httpSessionEvent.getSession());
         }
 
         @Override
@@ -409,15 +409,22 @@ public abstract class EventDispatcher implements Serializable {
             }
         }
 
-        @SuppressFBWarnings(value = "DM_STRING_CTOR", 
-                justification = "purposely doing new String() here so as to guarantee a new object instance.")
-        private synchronized static String setSessionSyncObj(HttpSession session) {
-            String syncObj = (String) session.getAttribute(SESSION_SYNC_OBJ);
-            if (syncObj == null) {
-                syncObj = new String(session.getId());
-                session.setAttribute(SESSION_SYNC_OBJ, syncObj);
+        static Lock createOrGetLock(HttpSession session) {
+            // Optimistically get the lock so that reads of the lock do not get synchronized
+            Lock lock = (Lock)session.getAttribute(SESSION_LOCK);
+            if (lock == null) {
+                // There's no lock, so we can lock on the session to make sure no one has set it up
+                synchronized (session) {
+                    // Read it again, ensuring that there's never a race...
+                    lock = (Lock)session.getAttribute(SESSION_LOCK);
+                    // If there is no lock, lets create one!
+                    if (lock == null) {
+                        lock = new ReentrantLock();
+                        session.setAttribute(SESSION_LOCK, lock);
+                    }
+                }
             }
-            return syncObj;
+            return lock;
         }
     }
     
