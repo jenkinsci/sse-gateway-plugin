@@ -34,11 +34,17 @@ import java.nio.file.Paths;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.ACL;
 import org.apache.commons.io.FileUtils;
@@ -67,8 +73,22 @@ public final class EventHistoryStore {
     private static Map<String, File> channelDirs = new ConcurrentHashMap<>();
     private static Timer autoExpireTimer;
     
-    private static final Map<String, AtomicInteger> channelSubsCounters = new ConcurrentHashMap<>();
-    private static final Map<String, EventHistoryLogger> channelLoggers = new ConcurrentHashMap<>();
+    private static final LoadingCache<String, AtomicInteger> channelSubsCounters = CacheBuilder.<String, AtomicInteger>newBuilder().build(new CacheLoader<String, AtomicInteger>() {
+        @Override
+        public AtomicInteger load(String key) throws Exception {
+            return new AtomicInteger(0);
+        }
+    });
+
+    private static final LoadingCache<String, EventHistoryLogger> channelLoggers = CacheBuilder.<String, EventHistoryLogger>newBuilder().build(new CacheLoader<String, EventHistoryLogger>() {
+        @Override
+        public EventHistoryLogger load(String channelName) throws Exception {
+            AtomicInteger counter = channelSubsCounters.getUnchecked(channelName);
+            EventHistoryLogger logger = new EventHistoryLogger(counter);
+            PubsubBus.getBus().subscribe(channelName, logger, ACL.SYSTEM, null);
+            return logger;
+        }
+    });
 
     @SuppressFBWarnings(value = "LI_LAZY_INIT_STATIC", 
                 justification = "internal class (marked @Restricted NoExternalUse + package private methods) - need it this way for testing.")
@@ -148,29 +168,23 @@ public final class EventHistoryStore {
         }
     }
     
-    public static synchronized void onChannelSubscribe(@Nonnull String channelName) {
+    public static void onChannelSubscribe(@Nonnull final String channelName) {
         if (historyRoot == null) {
             return;
         }
-        
-        AtomicInteger counter = getChannelSubsCounter(channelName);
-        counter.incrementAndGet();
 
-        EventHistoryLogger logger = channelLoggers.get(channelName);
-        if (logger == null) {
-            logger = new EventHistoryLogger(counter);
-            PubsubBus.getBus().subscribe(channelName, logger, ACL.SYSTEM, null);
-            channelLoggers.put(channelName, logger);
-        }
+        // Count new subscriber
+        channelSubsCounters.getUnchecked(channelName).incrementAndGet();
+
+        // Register a logger for new subscriber
+        channelLoggers.getUnchecked(channelName);
     }
     
-    public static synchronized void onChannelUnsubscribe(@Nonnull String channelName) {
+    public static void onChannelUnsubscribe(@Nonnull String channelName) {
         if (historyRoot == null) {
             return;
         }
-        
-        AtomicInteger counter = getChannelSubsCounter(channelName);
-        counter.decrementAndGet();
+        channelSubsCounters.getUnchecked(channelName).decrementAndGet();
     }
     
     static int getChannelEventCount(@Nonnull String channelName) throws IOException {
@@ -281,15 +295,6 @@ public final class EventHistoryStore {
                 LOGGER.log(Level.SEVERE, "Error deleting stale/expired events from EventHistoryStore.", e);
             }
         }
-    }
-    
-    private static synchronized AtomicInteger getChannelSubsCounter(@Nonnull String channelName) {
-        AtomicInteger counter = channelSubsCounters.get(channelName);
-        if (counter == null) {
-            counter = new AtomicInteger(0);
-            channelSubsCounters.put(channelName, counter);
-        }
-        return counter;
     }
 
     /**
