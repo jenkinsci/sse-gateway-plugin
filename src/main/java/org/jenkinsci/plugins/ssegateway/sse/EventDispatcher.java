@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.User;
 import hudson.util.CopyOnWriteMap;
@@ -47,7 +46,6 @@ import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpSessionEvent;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -383,20 +381,6 @@ public abstract class EventDispatcher implements Serializable {
      */
     @Extension
     public static final class SSEHttpSessionListener extends HttpSessionListener {
-        
-        public static String getSessionSyncObj(HttpSession session) {
-            String syncObj = (String) session.getAttribute(SESSION_SYNC_OBJ);
-            if (syncObj == null) {
-                syncObj = setSessionSyncObj(session);
-            }
-            return syncObj;
-        }
-        
-        @Override
-        public void sessionCreated(HttpSessionEvent httpSessionEvent) {
-            setSessionSyncObj(httpSessionEvent.getSession());
-        }
-
         @Override
         public void sessionDestroyed(HttpSessionEvent httpSessionEvent) {
             Map<String, EventDispatcher> dispatchers = EventDispatcherFactory.getDispatchers(httpSessionEvent.getSession());
@@ -407,17 +391,6 @@ public abstract class EventDispatcher implements Serializable {
             } finally {
                 dispatchers.clear();
             }
-        }
-
-        @SuppressFBWarnings(value = "DM_STRING_CTOR", 
-                justification = "purposely doing new String() here so as to guarantee a new object instance.")
-        private synchronized static String setSessionSyncObj(HttpSession session) {
-            String syncObj = (String) session.getAttribute(SESSION_SYNC_OBJ);
-            if (syncObj == null) {
-                syncObj = new String(session.getId());
-                session.setAttribute(SESSION_SYNC_OBJ, syncObj);
-            }
-            return syncObj;
         }
     }
     

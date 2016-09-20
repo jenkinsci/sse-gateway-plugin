@@ -17,6 +17,7 @@ import org.mockito.Mockito;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -29,12 +30,15 @@ public class EndpointUnitTest {
     
     @Before
     public void setup() {
+        SubscriptionConfigQueue.start();
         eventDispatcher = new MockEventDispatcher();
         response = Mockito.mock(StaplerResponse.class);
     }
     @After
     public void tearDown() {
         eventDispatcher.unsubscribeAll();
+        SubscriptionConfigQueue.stop();
+        waitForQueueStopped();
     }
     @AfterClass
     public static void shutDownBus() {
@@ -66,12 +70,12 @@ public class EndpointUnitTest {
         // Subscribe ...
         endpoint.doConfigure(newRequest("/sample-config-02.json"), response);
         subscribers = eventDispatcher.getSubscribers();
-        Assert.assertEquals(1, subscribers.size());
+        waitForCountToGrow(subscribers, 1);
         
         // Unsubscribe ...
         endpoint.doConfigure(newRequest("/sample-config-03.json"), response);
         subscribers = eventDispatcher.getSubscribers();
-        Assert.assertEquals(0, subscribers.size());
+        waitForCountToShrink(subscribers, 0);
     }
 
     @Test
@@ -86,12 +90,12 @@ public class EndpointUnitTest {
         // Subscribe ...
         endpoint.doConfigure(newRequest("/sample-config-04.json"), response);
         subscribers = eventDispatcher.getSubscribers();
-        Assert.assertEquals(2, subscribers.size());
-        
+        waitForCountToGrow(subscribers, 2);
+
         // Unsubscribe ...
         endpoint.doConfigure(newRequest("/sample-config-05.json"), response); // "unsubscribe": "*"
         subscribers = eventDispatcher.getSubscribers();
-        Assert.assertEquals(0, subscribers.size());
+        waitForCountToShrink(subscribers, 0);
     }
 
     private StaplerRequest newRequest(String config) throws IOException {
@@ -106,5 +110,59 @@ public class EndpointUnitTest {
         Mockito.when(request.getInputStream()).thenReturn(new MockServletInputStream(config));
         
         return request;
+    }
+
+    private void waitForCountToGrow(Map<EventFilter, ChannelSubscriber> subscribers, int count) {
+        long start = System.currentTimeMillis();
+        while (true) {
+            if (subscribers.size() >= count) {
+                return;
+            }
+            if (System.currentTimeMillis() > (start + 10000)) {
+                Assert.fail("Timed out waiting for subscribers count/size to reach " + count);
+                return;
+            }
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Assert.fail("Timed out waiting for subscribers count/size to reach " + count);
+            }
+        }
+    }
+
+    private void waitForCountToShrink(Map<EventFilter, ChannelSubscriber> subscribers, int count) {
+        long start = System.currentTimeMillis();
+        while (true) {
+            if (subscribers.size() <= count) {
+                return;
+            }
+            if (System.currentTimeMillis() > (start + 10000)) {
+                Assert.fail("Timed out waiting for subscribers count/size to reach " + count);
+                return;
+            }
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Assert.fail("Timed out waiting for subscribers count/size to reach " + count);
+            }
+        }
+    }
+
+    private void waitForQueueStopped() {
+        long start = System.currentTimeMillis();
+        while (true) {
+            if (!SubscriptionConfigQueue.isStarted()) {
+                return;
+            }
+            if (System.currentTimeMillis() > (start + 10000)) {
+                Assert.fail("Timed out waiting for queue to stop");
+                return;
+            }
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Assert.fail("Timed out waiting for queue to stop");
+            }
+        }
     }
 }
