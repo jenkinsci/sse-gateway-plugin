@@ -148,29 +148,18 @@ public final class EventHistoryStore {
         }
     }
     
-    public static synchronized void onChannelSubscribe(@Nonnull String channelName) {
+    public static void onChannelSubscribe(@Nonnull String channelName) {
         if (historyRoot == null) {
             return;
         }
-        
-        AtomicInteger counter = getChannelSubsCounter(channelName);
-        counter.incrementAndGet();
-
-        EventHistoryLogger logger = channelLoggers.get(channelName);
-        if (logger == null) {
-            logger = new EventHistoryLogger(counter);
-            PubsubBus.getBus().subscribe(channelName, logger, ACL.SYSTEM, null);
-            channelLoggers.put(channelName, logger);
-        }
+        getChannelSubsCounter(channelName).incrementAndGet();
     }
     
-    public static synchronized void onChannelUnsubscribe(@Nonnull String channelName) {
+    public static void onChannelUnsubscribe(@Nonnull String channelName) {
         if (historyRoot == null) {
             return;
         }
-        
-        AtomicInteger counter = getChannelSubsCounter(channelName);
-        counter.decrementAndGet();
+        getChannelSubsCounter(channelName).decrementAndGet();
     }
     
     static int getChannelEventCount(@Nonnull String channelName) throws IOException {
@@ -283,11 +272,26 @@ public final class EventHistoryStore {
         }
     }
     
-    private static synchronized AtomicInteger getChannelSubsCounter(@Nonnull String channelName) {
+    private static AtomicInteger getChannelSubsCounter(@Nonnull String channelName) {
+        AtomicInteger counter = channelSubsCounters.get(channelName);
+        if (counter == null) {
+            counter = newChannelSubsCounter(channelName);
+        }
+        return counter;
+    }
+
+    private static synchronized AtomicInteger newChannelSubsCounter(@Nonnull String channelName) {
         AtomicInteger counter = channelSubsCounters.get(channelName);
         if (counter == null) {
             counter = new AtomicInteger(0);
             channelSubsCounters.put(channelName, counter);
+
+            EventHistoryLogger logger = channelLoggers.get(channelName);
+            if (logger == null) {
+                logger = new EventHistoryLogger(counter);
+                PubsubBus.getBus().subscribe(channelName, logger, ACL.SYSTEM, null);
+                channelLoggers.put(channelName, logger);
+            }
         }
         return counter;
     }
