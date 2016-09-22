@@ -71,6 +71,7 @@ public abstract class EventDispatcher implements Serializable {
 
     private String id = null;
     private final PubsubBus bus;
+    private final Authentication authentication;
     private Map<EventFilter, ChannelSubscriber> subscribers = new CopyOnWriteMap.Hash<>();
     
     // Lists of events that need to be retried on the next reconnect.
@@ -78,6 +79,12 @@ public abstract class EventDispatcher implements Serializable {
     
     public EventDispatcher() {
         this.bus = PubsubBus.getBus();
+        User current = getUser();
+        if (current != null) {
+            this.authentication = Jenkins.getAuthentication();
+        } else {
+            this.authentication = Jenkins.ANONYMOUS;
+        }
     }
 
     public abstract void start(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException;
@@ -150,15 +157,6 @@ public abstract class EventDispatcher implements Serializable {
         String channelName = filter.getChannelName();
 
         if (channelName != null) {
-            Authentication authentication;
-
-            User current = getUser();
-            if (current != null) {
-                authentication = Jenkins.getAuthentication();
-            } else {
-                authentication = Jenkins.ANONYMOUS;
-            }
-
             SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
             if (subscriber == null) {
                 subscriber = new SSEChannelSubscriber(this);
