@@ -55,6 +55,9 @@ function SSEConnection(clientId, configuration) {
     this.configurationQueue = {};
     this.configurationListeners = {};
     this.nextDoConfigureTimeout = undefined;
+
+    // Initialize the queue config batch tracking
+    this._resetConfigQueue();
 }
 
 SSEConnection.DEFAULT_CONFIGURATION = {
@@ -130,7 +133,7 @@ SSEConnection.prototype = {
                     LOGGER.debug('SSE channel "configure" ACK event (see batchId on event).', e);
                     if (e.data) {
                         var configureInfo = JSON.parse(e.data);
-                        notifyConfigQueueListeners(configureInfo.batchId, sseConnection);
+                        sseConnection._notifyConfigQueueListeners(configureInfo.batchId);
                     }
                 }, false);
                 source.addEventListener('reload', function (e) {
@@ -177,7 +180,7 @@ SSEConnection.prototype = {
         }
     },
     subscribe: function () {
-        clearDoConfigure(this);
+        this._clearDoConfigure();
 
         var channelName;
         var filter;
@@ -232,19 +235,19 @@ SSEConnection.prototype = {
         this.configurationQueue.subscribe.push(config);
 
         if (!this.channelListeners[channelName]) {
-            addChannelListener(channelName, this);
+            this._addChannelListener(channelName);
         }
 
-        scheduleDoConfigure(this);
+        this._scheduleDoConfigure();
 
         if (onSubscribed) {
-            addConfigQueueListener(onSubscribed, this);
+            this._addConfigQueueListener(onSubscribed);
         }
 
         return callback;
     },
     unsubscribe: function (callback, onUnsubscribed) {
-        clearDoConfigure(this);
+        this._clearDoConfigure();
 
         // callback is the only mandatory param
         if (callback === undefined) {
@@ -265,118 +268,139 @@ SSEConnection.prototype = {
         }
         this.subscriptions = newSubscriptionList;
 
-        scheduleDoConfigure(undefined, this);
+        this._scheduleDoConfigure();
 
         if (onUnsubscribed) {
-            addConfigQueueListener(onUnsubscribed, this);
+            this._addConfigQueueListener(onUnsubscribed);
+        }
+    },
+    _resetConfigQueue: function () {
+        this.configurationBatchId++;
+        this.configurationQueue = {};
+        this.configurationListeners[this.configurationBatchId.toString()] = [];
+    },
+    _addConfigQueueListener: function (listener) {
+        // Config queue listeners are always added against the current batchId.
+        // When that config batch is sent, these listeners will be notified on
+        // receipt of the "configure" SSE event, which will contain that batchId.
+        // See the notifyConfigQueueListeners function below.
+        var batchListeners =
+            this.configurationListeners[this.configurationBatchId.toString()];
+
+        if (batchListeners) {
+            batchListeners.push(listener);
+        } else {
+            LOGGER.error(new Error('Unexpected call to addConfigQueueListener for an ' +
+                'obsolete/unknown batchId ' + this.configurationBatchId
+                + '. This should never happen!!'));
+        }
+    },
+    _notifyConfigQueueListeners: function (batchId) {
+        var batchListeners = this.configurationListeners[batchId.toString()];
+        if (batchListeners) {
+            delete this.configurationListeners[batchId.toString()];
+            for (var i = 0; i < batchListeners.length; i++) {
+                try {
+                    batchListeners[i]();
+                } catch (e) {
+                    LOGGER.error('Unexpected error calling config queue listener.', e);
+                }
+            }
+        }
+    },
+    _clearDoConfigure: function () {
+        if (this.nextDoConfigureTimeout) {
+            clearTimeout(this.nextDoConfigureTimeout);
+        }
+        this.nextDoConfigureTimeout = undefined;
+    },
+    _scheduleDoConfigure: function (delay) {
+        this._clearDoConfigure();
+        var timeoutDelay = delay;
+        if (timeoutDelay === undefined) {
+            timeoutDelay = this.configuration.batchConfigDelay;
+        }
+        var self = this;
+        this.nextDoConfigureTimeout = setTimeout(function () {
+            self._doConfigure();
+        }, timeoutDelay);
+    },
+    _addChannelListener: function (channelName) {
+        var sseConnection = this;
+
+        var listener = function (event) {
+            if (LOGGER.isDebugEnabled()) {
+                var channelEvent = JSON.parse(event.data);
+                LOGGER.debug('Received event "' + channelEvent.jenkins_channel
+                    + '/' + channelEvent.jenkins_event + ':', channelEvent);
+            }
+
+            // Iterate through all of the subscriptions, looking for
+            // subscriptions on the channel that match the filter/config.
+            var processCount = 0;
+            for (var i = 0; i < sseConnection.subscriptions.length; i++) {
+                var subscription = sseConnection.subscriptions[i];
+
+                if (subscription.config.jenkins_channel === channelName) {
+                    // Parse the data every time, in case the
+                    // callback modifies it.
+                    var parsedData = JSON.parse(event.data);
+                    // Make sure the data matches the config, which is the filter
+                    // plus the channel name (and the message should have the
+                    // channel name in it).
+                    if (containsAll(parsedData, subscription.config)) {
+                        try {
+                            processCount++;
+                            subscription.callback(parsedData);
+                        } catch (e) {
+                            console.trace(e);
+                        }
+                    }
+                }
+            }
+            if (processCount === 0) {
+                LOGGER.debug('Event not processed by any active listeners ('
+                    + sseConnection.subscriptions.length + ' of). Check event ' +
+                    'payload against subscription ' +
+                    'filters - see earlier "notification configuration" request(s).');
+            }
+        };
+
+        this.channelListeners[channelName] = listener;
+        if (this.eventSource) {
+            this.eventSource.addEventListener(channelName, listener, false);
+        } else {
+            this.eventSourceListenerQueue.push({
+                channelName: channelName,
+                listener: listener
+            });
+        }
+    },
+    _doConfigure: function () {
+        this.nextDoConfigureTimeout = undefined;
+
+        var sessionInfo = this.jenkinsSessionInfo;
+
+        if (!sessionInfo && eventSourceSupported) {
+            // Can't do it yet. Need to wait for the SSE Gateway to
+            // open the SSE channel + send the jenkins session info.
+            this._scheduleDoConfigure(100);
+        } else {
+            var configureUrl = this.jenkinsUrl + '/sse-gateway/configure?batchId='
+                + this.configurationBatchId;
+
+            LOGGER.debug('Sending notification configuration request for configuration batch '
+                + this.configurationBatchId + '.', this.configurationQueue);
+
+            this.configurationQueue.dispatcherId = sessionInfo.dispatcherId;
+            ajax.post(this.configurationQueue, configureUrl, sessionInfo);
+
+            this._resetConfigQueue();
         }
     }
 };
 
 /* eslint-disable no-param-reassign */
-
-function resetConfigQueue(sseConnection) {
-    sseConnection.configurationBatchId++;
-    sseConnection.configurationQueue = {};
-    sseConnection.configurationListeners[sseConnection.configurationBatchId.toString()] = [];
-}
-
-function addConfigQueueListener(listener, sseConnection) {
-    // Config queue listeners are always added against the current batchId.
-    // When that config batch is sent, these listeners will be notified on
-    // receipt of the "configure" SSE event, which will contain that batchId.
-    // See the notifyConfigQueueListeners function below.
-    var batchListeners =
-        sseConnection.configurationListeners[sseConnection.configurationBatchId.toString()];
-
-    if (batchListeners) {
-        batchListeners.push(listener);
-    } else {
-        LOGGER.error(new Error('Unexpected call to addConfigQueueListener for an ' +
-            'obsolete/unknown batchId ' + sseConnection.configurationBatchId
-            + '. This should never happen!!'));
-    }
-}
-
-function notifyConfigQueueListeners(batchId, sseConnection) {
-    var batchListeners = sseConnection.configurationListeners[batchId.toString()];
-    if (batchListeners) {
-        delete sseConnection.configurationListeners[batchId.toString()];
-        for (var i = 0; i < batchListeners.length; i++) {
-            try {
-                batchListeners[i]();
-            } catch (e) {
-                LOGGER.error('Unexpected error calling config queue listener.', e);
-            }
-        }
-    }
-}
-
-function clearDoConfigure(sseConnection) {
-    if (sseConnection.nextDoConfigureTimeout) {
-        clearTimeout(sseConnection.nextDoConfigureTimeout);
-    }
-    sseConnection.nextDoConfigureTimeout = undefined;
-}
-function scheduleDoConfigure(delay, sseConnection) {
-    clearDoConfigure(sseConnection);
-    var timeoutDelay = delay;
-    if (timeoutDelay === undefined) {
-        timeoutDelay = sseConnection.configuration.batchConfigDelay;
-    }
-    sseConnection.nextDoConfigureTimeout = setTimeout(function () {
-        doConfigure(sseConnection);
-    }, timeoutDelay);
-}
-
-function addChannelListener(channelName, sseConnection) {
-    var listener = function (event) {
-        if (LOGGER.isDebugEnabled()) {
-            var channelEvent = JSON.parse(event.data);
-            LOGGER.debug('Received event "' + channelEvent.jenkins_channel
-                + '/' + channelEvent.jenkins_event + ':', channelEvent);
-        }
-
-        // Iterate through all of the subscriptions, looking for
-        // subscriptions on the channel that match the filter/config.
-        var processCount = 0;
-        for (var i = 0; i < sseConnection.subscriptions.length; i++) {
-            var subscription = sseConnection.subscriptions[i];
-
-            if (subscription.config.jenkins_channel === channelName) {
-                // Parse the data every time, in case the
-                // callback modifies it.
-                var parsedData = JSON.parse(event.data);
-                // Make sure the data matches the config, which is the filter
-                // plus the channel name (and the message should have the
-                // channel name in it).
-                if (containsAll(parsedData, subscription.config)) {
-                    try {
-                        processCount++;
-                        subscription.callback(parsedData);
-                    } catch (e) {
-                        console.trace(e);
-                    }
-                }
-            }
-        }
-        if (processCount === 0) {
-            LOGGER.debug('Event not processed by any active listeners ('
-                + sseConnection.subscriptions.length + ' of). Check event ' +
-                'payload against subscription ' +
-                'filters - see earlier "notification configuration" request(s).');
-        }
-    };
-    sseConnection.channelListeners[channelName] = listener;
-    if (sseConnection.eventSource) {
-        sseConnection.eventSource.addEventListener(channelName, listener, false);
-    } else {
-        sseConnection.eventSourceListenerQueue.push({
-            channelName: channelName,
-            listener: listener
-        });
-    }
-}
 
 function containsAll(object, filter) {
     for (var property in filter) {
@@ -393,29 +417,6 @@ function containsAll(object, filter) {
         }
     }
     return true;
-}
-
-function doConfigure(sseConnection) {
-    sseConnection.nextDoConfigureTimeout = undefined;
-
-    var sessionInfo = sseConnection.jenkinsSessionInfo;
-
-    if (!sessionInfo && eventSourceSupported) {
-        // Can't do it yet. Need to wait for the SSE Gateway to
-        // open the SSE channel + send the jenkins session info.
-        scheduleDoConfigure(100, sseConnection);
-    } else {
-        var configureUrl = sseConnection.jenkinsUrl + '/sse-gateway/configure?batchId='
-            + sseConnection.configurationBatchId;
-
-        LOGGER.debug('Sending notification configuration request for configuration batch '
-            + sseConnection.configurationBatchId + '.', sseConnection.configurationQueue);
-
-        sseConnection.configurationQueue.dispatcherId = sessionInfo.dispatcherId;
-        ajax.post(sseConnection.configurationQueue, configureUrl, sessionInfo);
-
-        resetConfigQueue(sseConnection);
-    }
 }
 
 function normalizeUrl(url) {
