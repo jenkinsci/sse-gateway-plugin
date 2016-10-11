@@ -82,14 +82,14 @@ describe("sse plugin integration tests - ", function () {
             startProxy(function() {
                 console.log('** proxy started');
                 var sseClient = require('../../../headless-client');
-                sseClient.connect('sse-client-123', function(jenkinsSessionInfo) {
+                var sseConnection = sseClient.connect('sse-client-123', function(jenkinsSessionInfo) {
                     function build(jenkinsSessionInfo) {
                         var ajax = jsTest.requireSrcModule('ajax');
                         ajax.post(undefined, jenkinsUrl + 'job/sse-gateway-test-job/build', jenkinsSessionInfo);
                     }
                 
                     var eventRetryCount = 0;
-                    sseClient.subscribe({
+                    sseConnection.subscribe({
                         channelName: 'job',
                         onSubscribed: function() {
                             // Once subscribed to the job channel, kill the proxy.
@@ -124,7 +124,7 @@ describe("sse plugin integration tests - ", function () {
                                 expect(eventRetryCount > 1).toBe(true);
                                 
                                 // We're done !!!
-                                sseClient.disconnect();
+                                sseConnection.disconnect();
                                 stopProxy();
                                 done();
                             }
