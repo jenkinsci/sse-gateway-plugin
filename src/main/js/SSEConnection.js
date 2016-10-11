@@ -52,7 +52,10 @@ function SSEConnection(clientId, configuration) {
     this.subscriptions = [];
     this.channelListeners = {};
     this.configurationBatchId = 0;
-    this.configurationQueue = {};
+    this.configurationQueue = {
+        subscribe: [],
+        unsubscribe: []
+    };
     this.configurationListeners = {};
     this.nextDoConfigureTimeout = undefined;
 
@@ -274,9 +277,16 @@ SSEConnection.prototype = {
             this._addConfigQueueListener(onUnsubscribed);
         }
     },
-    _resetConfigQueue: function () {
+    _resetConfigQueue: function (skipPendingCheck) {
+        if (!skipPendingCheck && this._hasPendingConfigs()) {
+            throw new Error('Invalid call to reset the SSE config queue ' +
+                'while there are pending configs.', this.configurationQueue);
+        }
         this.configurationBatchId++;
-        this.configurationQueue = {};
+        this.configurationQueue = {
+            subscribe: [],
+            unsubscribe: []
+        };
         this.configurationListeners[this.configurationBatchId.toString()] = [];
     },
     _addConfigQueueListener: function (listener) {
@@ -385,7 +395,7 @@ SSEConnection.prototype = {
             // Can't do it yet. Need to wait for the SSE Gateway to
             // open the SSE channel + send the jenkins session info.
             this._scheduleDoConfigure(100);
-        } else {
+        } else if (this._hasPendingConfigs()) {
             var configureUrl = this.jenkinsUrl + '/sse-gateway/configure?batchId='
                 + this.configurationBatchId;
 
@@ -393,10 +403,17 @@ SSEConnection.prototype = {
                 + this.configurationBatchId + '.', this.configurationQueue);
 
             this.configurationQueue.dispatcherId = sessionInfo.dispatcherId;
-            ajax.post(this.configurationQueue, configureUrl, sessionInfo);
+            // clone the config, just in case of bad change later.
+            var configurationQueue = JSON.parse(JSON.stringify(this.configurationQueue));
 
-            this._resetConfigQueue();
+            ajax.post(configurationQueue, configureUrl, sessionInfo);
+
+            this._resetConfigQueue(true);
         }
+    },
+    _hasPendingConfigs: function () {
+        return (this.configurationQueue.subscribe.length > 0
+                || this.configurationQueue.unsubscribe.length > 0);
     }
 };
 

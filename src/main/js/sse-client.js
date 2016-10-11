@@ -25,7 +25,16 @@
 var SSEConnection = require('./SSEConnection');
 
 exports.connect = function (clientId, onConnect, configuration) {
-    var connection = new SSEConnection(clientId, configuration);
-    connection.connect(onConnect);
+    var connection;
+
+    if (arguments.length === 1 && typeof arguments[0] === 'object') {
+        var configObj = arguments[0];
+        connection = new SSEConnection(configObj.clientId, configObj);
+        connection.connect(configObj.onConnect);
+    } else {
+        connection = new SSEConnection(clientId, configuration);
+        connection.connect(onConnect);
+    }
+
     return connection;
 };
