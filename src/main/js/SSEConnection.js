@@ -27,22 +27,29 @@ var LOGGER = require('@jenkins-cd/diag').logger('sse');
 var ajax = require('./ajax');
 var json = require('./json');
 
+// If no clientId is specified, then we generate one with
+// an incrementing ID on the end of it. This var holds the
+// next Id.
+var nextGeneratedClientId = 1;
+
 // A map of client connection by clientId.
 var clientConnections = {};
 
 var eventSourceSupported = (window !== undefined && window.EventSource !== undefined);
 
 /* eslint-disable no-use-before-define */
+/* eslint-disable quotes */
 
 module.exports = SSEConnection;
 
 function SSEConnection(clientId, configuration) {
-    if (typeof clientId !== 'string') {
-        LOGGER.error('SSE clientId not specified.');
-        return;
+    if (typeof clientId === 'string') {
+        this.clientId = clientId;
+    } else {
+        this.clientId = 'sse-client-' + nextGeneratedClientId;
+        nextGeneratedClientId++;
     }
 
-    this.clientId = clientId;
     this.configuration = extend({}, SSEConnection.DEFAULT_CONFIGURATION, configuration);
 
     this.jenkinsUrl = this.configuration.jenkinsUrl;
@@ -90,21 +97,29 @@ SSEConnection.prototype = {
             tabClientId = window.sessionStorage.getItem(storeKey);
 
             if (!tabClientId) {
-                tabClientId = this.clientId + '-' + generateTabId();
+                tabClientId = this.clientId + '-' + generateId();
                 window.sessionStorage.setItem(storeKey, tabClientId);
             }
         }
 
         if (!this.jenkinsUrl) {
-            this.jenkinsUrl = jsModules.getRootURL();
+            try {
+                this.jenkinsUrl = jsModules.getRootURL();
+            } catch (e) {
+                console.warn("Jenkins SSE client initialization failed. Unable to connect to " +
+                    "Jenkins because we are unable to determine the Jenkins Root URL. SSE events " +
+                    "will not be received. Probable cause: no 'data-rooturl' on the page <head> " +
+                    "element e.g. running in a test, or running headless without specifying a " +
+                    "Jenkins URL.");
+            }
         }
-        this.jenkinsUrl = normalizeUrl(this.jenkinsUrl);
+        if (this.jenkinsUrl) {
+            this.jenkinsUrl = normalizeUrl(this.jenkinsUrl);
+        }
 
         if (!eventSourceSupported) {
             console.warn("This browser does not support EventSource. Where's the polyfill?");
-            // TODO: Need to add browser poly-fills for stuff like this
-            // See https://github.com/remy/polyfills/blob/master/EventSource.js
-        } else {
+        } else if (this.jenkinsUrl) {
             var connectUrl = this.jenkinsUrl + '/sse-gateway/connect?clientId='
                 + encodeURIComponent(tabClientId);
 
@@ -155,6 +170,10 @@ SSEConnection.prototype = {
         }
 
         clientConnections[this.clientId] = this;
+    },
+    isConnected: function () {
+        // We are connected if we have an EventSource object.
+        return (this.eventSource !== undefined);
     },
     disconnect: function () {
         if (this.eventSource) {
@@ -453,7 +472,7 @@ function normalizeUrl(url) {
  * millis + a random generated number string.
  * @returns {string}
  */
-function generateTabId() {
+function generateId() {
     return (new Date().getTime()) + '-' + (Math.random() + 1).toString(36).substring(7);
 }
 
