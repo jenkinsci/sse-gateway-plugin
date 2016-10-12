@@ -27,12 +27,11 @@ The "job" channel is where you listen for events relating to Jenkins Jobs, all o
 ```javascript
 var sse = require('@jenkins-cd/sse-gateway');
 
-// Connect to the SSE Gateway, providing a unique clientId. Use alphanums and
-// make sure it is something that will not clash with an ID used by others.
-sse.connect('myplugin');
+// Connect to the SSE Gateway, providing an optional client Id.
+var connection = sse.connect('myplugin');
 
 // subscribe to all events on the "job" channel...
-var jobSubs = sse.subscribe('job', function (event) {
+var jobSubs = connection.subscribe('job', function (event) {
     var event = event.jenkins_event;
     var jobName = event.job_name;
 
@@ -46,7 +45,7 @@ var jobSubs = sse.subscribe('job', function (event) {
 
 
 // And some time later, unsubscribe using the return from the subscribe...
-sse.unsubscribe(jobSubs);
+connection.unsubscribe(jobSubs);
 ```
 
 ## Subscribing to "job" channel events (with a filter)
@@ -61,12 +60,11 @@ Jenkins instance. This may be what you want in some cases, but in many cases you
 ```javascript
 var sse = require('@jenkins-cd/sse-gateway');
 
-// Connect to the SSE Gateway, providing a unique clientId. Use alphanums and
-// make sure it is something that will not clash with an ID used by others.
-sse.connect('myplugin');
+// Connect to the SSE Gateway, providing an optional client Id.
+var connection = sse.connect('myplugin');
 
 // Add a filter as the last parameter ...
-var jobSubs = sse.subscribe('job', function (event) {
+var jobSubs = connection.subscribe('job', function (event) {
     // this event is only relating to 'order-management-webapp-deploy' ...
 }, {
     job_name: 'order-management-webapp-deploy',
@@ -74,7 +72,7 @@ var jobSubs = sse.subscribe('job', function (event) {
 });
 
 // And some time later, unsubscribe using the return from the subscribe...
-sse.unsubscribe(jobSubs);
+connection.unsubscribe(jobSubs);
 ```
 
 # Internet Explorer Support

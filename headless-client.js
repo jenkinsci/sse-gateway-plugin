@@ -15,11 +15,9 @@ if (!global.window.EventSource) {
     global.window.EventSource = require('eventsource');
 }
 
-var client = require('./src/main/js/sse-client');
+// Modify the default connection config for the headless client.
+var SSEConnection = require('./src/main/js/SSEConnection');
+SSEConnection.DEFAULT_CONFIGURATION.batchConfigDelay = 0; // exec batch configs immediately i.e. no delay for batching up.
+SSEConnection.DEFAULT_CONFIGURATION.sendSessionId = true; // maintain sessions with the backend via jsessionid
 
-client.configure({
-    batchConfigDelay: 0, // exec batch configs immediately i.e. no delay for batching up.
-    sendSessionId: true  // maintain sessions with the backend via jsessionid
-});
-
-module.exports = client;
+module.exports = require('./src/main/js/sse-client');;
