@@ -102,7 +102,7 @@ SSEConnection.prototype = {
             }
         }
 
-        if (!this.jenkinsUrl) {
+        if (this.jenkinsUrl === undefined) {
             try {
                 this.jenkinsUrl = jsModules.getRootURL();
             } catch (e) {
@@ -113,13 +113,13 @@ SSEConnection.prototype = {
                     "Jenkins URL.");
             }
         }
-        if (this.jenkinsUrl) {
+        if (this.jenkinsUrl !== undefined) {
             this.jenkinsUrl = normalizeUrl(this.jenkinsUrl);
         }
 
         if (!eventSourceSupported) {
             console.warn("This browser does not support EventSource. Where's the polyfill?");
-        } else if (this.jenkinsUrl) {
+        } else if (this.jenkinsUrl !== undefined) {
             var connectUrl = this.jenkinsUrl + '/sse-gateway/connect?clientId='
                 + encodeURIComponent(tabClientId);
 
