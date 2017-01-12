@@ -23,9 +23,12 @@
  */
 
 var jsModules = require('@jenkins-cd/js-modules');
-var LOGGER = require('@jenkins-cd/diag').logger('sse');
 var ajax = require('./ajax');
 var json = require('./json');
+
+// See https://github.com/tfennelly/jenkins-js-logging - will move to jenskinsci org
+var logging = require('@jenkins-cd/logging');
+var LOGGER = logging.logger('org.jenkinsci.sse');
 
 // If no clientId is specified, then we generate one with
 // an incrementing ID on the end of it. This var holds the
@@ -358,9 +361,9 @@ SSEConnection.prototype = {
         var sseConnection = this;
 
         var listener = function (event) {
-            if (LOGGER.isDebugEnabled()) {
+            if (LOGGER.isInfoEnabled()) {
                 var channelEvent = JSON.parse(event.data);
-                LOGGER.debug('Received event "' + channelEvent.jenkins_channel
+                LOGGER.info('Received event "' + channelEvent.jenkins_channel
                     + '/' + channelEvent.jenkins_event + ':', channelEvent);
             }
 
@@ -387,8 +390,8 @@ SSEConnection.prototype = {
                     }
                 }
             }
-            if (processCount === 0) {
-                LOGGER.debug('Event not processed by any active listeners ('
+            if (processCount === 0 && LOGGER.isWarnEnabled()) {
+                LOGGER.warn('Event not processed by any active listeners ('
                     + sseConnection.subscriptions.length + ' of). Check event ' +
                     'payload against subscription ' +
                     'filters - see earlier "notification configuration" request(s).');
@@ -418,8 +421,10 @@ SSEConnection.prototype = {
             var configureUrl = this.jenkinsUrl + '/sse-gateway/configure?batchId='
                 + this.configurationBatchId;
 
-            LOGGER.debug('Sending notification configuration request for configuration batch '
-                + this.configurationBatchId + '.', this.configurationQueue);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug('Sending notification configuration request for configuration batch '
+                    + this.configurationBatchId + '.', this.configurationQueue);
+            }
 
             this.configurationQueue.dispatcherId = sessionInfo.dispatcherId;
             // clone the config, just in case of bad change later.

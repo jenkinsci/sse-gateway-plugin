@@ -40,6 +40,6 @@
     "@jenkins-cd/js-modules": "^0.0.8"
   },
   "dependencies": {
-    "@jenkins-cd/diag": "0.0.2"
+    "@jenkins-cd/logging": "0.0.2"
   }
 }

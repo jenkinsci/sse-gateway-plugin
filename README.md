@@ -105,14 +105,18 @@ Sometimes it's useful to be able to turn on Browser diagnostics for SSE activity
 the Enter key and then reload the page ( __you must reload the page__ ).
 
 ```javascript
-window.localStorage.env = 'debug=sse'
+localStorage.setItem('jenkins-instance/logging/categories:org.jenkinsci.sse', 'INFO')
 ```
 
-Note that this diagnostic setting will be permanently on until changed/removed (it's stored). To remove:
+Logging level options are defined by the [@jenkins-cd/logging `Level`](https://tfennelly.github.io/jenkins-js-logging/Level.html) enum i.e. you can define `DEBUG`, `INFO`, `WARN` and `ERROR`.
+
+This logging configuration will be permanently on until changed/removed (it's stored). To remove:
 
 ```javascript
-window.localStorage.removeItem("env")
+localStorage.removeItem('jenkins-instance/logging/categories:org.jenkinsci.sse')
 ```
+
+> We hope to create a Google Chrome Developer Extension that will allow easy discovery and configuration of these log levels.
 
 # Sample Plugin
 
