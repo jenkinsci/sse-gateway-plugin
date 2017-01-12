@@ -361,9 +361,9 @@ SSEConnection.prototype = {
         var sseConnection = this;
 
         var listener = function (event) {
-            if (LOGGER.isInfoEnabled()) {
+            if (LOGGER.isLogEnabled()) {
                 var channelEvent = JSON.parse(event.data);
-                LOGGER.info('Received event "' + channelEvent.jenkins_channel
+                LOGGER.log('Received event "' + channelEvent.jenkins_channel
                     + '/' + channelEvent.jenkins_event + ':', channelEvent);
             }
 
