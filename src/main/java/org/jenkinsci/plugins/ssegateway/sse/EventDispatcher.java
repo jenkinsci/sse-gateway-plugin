@@ -70,12 +70,12 @@ public abstract class EventDispatcher implements Serializable {
     private static final Logger LOGGER = Logger.getLogger(EventDispatcher.class.getName());
 
     private String id = null;
-    private final PubsubBus bus;
-    private final Authentication authentication;
-    private Map<EventFilter, ChannelSubscriber> subscribers = new CopyOnWriteMap.Hash<>();
+    private final transient PubsubBus bus;
+    private final transient Authentication authentication;
+    private transient Map<EventFilter, ChannelSubscriber> subscribers = new CopyOnWriteMap.Hash<>();
     
     // Lists of events that need to be retried on the next reconnect.
-    private Queue<Retry> retryQueue = new ConcurrentLinkedQueue<>();
+    private transient Queue<Retry> retryQueue = new ConcurrentLinkedQueue<>();
     
     public EventDispatcher() {
         this.bus = PubsubBus.getBus();

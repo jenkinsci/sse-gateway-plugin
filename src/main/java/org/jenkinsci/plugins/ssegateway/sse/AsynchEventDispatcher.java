@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
@@ -49,7 +51,8 @@ class AsynchEventDispatcher extends EventDispatcher {
     private static final long TIMEOUT = (1000 * 30);
     
     private transient AsyncContext asyncContext;
-    private final Lock asyncContextLock = new ReentrantLock();
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "Doesn't make sense to persist it")
+    private transient final Lock asyncContextLock = new ReentrantLock();
 
     @Override
     public void start(HttpServletRequest request, HttpServletResponse response) {
