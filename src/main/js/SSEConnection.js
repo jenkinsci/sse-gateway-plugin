@@ -150,6 +150,16 @@ SSEConnection.prototype = {
                         }
                     }
                 }, false);
+                source.addEventListener('error', function (e) {
+                    LOGGER.debug('SSE channel "error" event.', e);
+                    if (typeof sseConnection._onerror === 'function') {
+                        try {
+                            sseConnection._onerror(e);
+                        } catch(error) {
+                            LOGGER.error('SSEConnection "onError" event handler threw unexpected error.', error);
+                        }
+                    }
+                }, false);
                 source.addEventListener('configure', function (e) {
                     LOGGER.debug('SSE channel "configure" ACK event (see batchId on event).', e);
                     if (e.data) {
@@ -177,6 +187,9 @@ SSEConnection.prototype = {
     isConnected: function () {
         // We are connected if we have an EventSource object.
         return (this.eventSource !== undefined);
+    },
+    onError: function (handler) {
+        this._onerror = handler;
     },
     disconnect: function () {
         if (this.eventSource) {

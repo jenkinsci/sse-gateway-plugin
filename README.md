@@ -75,6 +75,23 @@ var jobSubs = connection.subscribe('job', function (event) {
 connection.unsubscribe(jobSubs);
 ```
 
+## Handling connection errors
+
+As is to be expected, the connection to Jenkins can be lost. To handle this situation, simply register an `onError` handler with the connection instance.
+
+```javascript
+var sse = require('@jenkins-cd/sse-gateway');
+
+// Connect to the SSE Gateway.
+var connection = sse.connect('myplugin');
+
+connection.onError(function (error) {
+    // Handle the error
+});
+```
+
+> Note that only one handler can be registered per `connection` instance.
+
 # Internet Explorer Support
 
 As always with Internet Explorer, there are issues. It doesn't support the SSE `EventSource` so in order to
