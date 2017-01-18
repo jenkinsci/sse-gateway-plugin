@@ -1,0 +1,32 @@
+#event-logs {
+  border: solid #989898 1px;
+  border-radius: 3px;
+  margin: 10px 5px;
+  padding: 5px;
+  min-height: 30px;
+
+  .run {
+    span {
+      margin: 2px;
+      padding: 2px 4px;
+      font-size: 90%;
+      border-radius: 4px;
+      opacity: 0.6;
+    }
+  }
+  .run.ended {
+    span {
+      background-color: #f9f2f4;
+      border-color: #c7254e;
+      color: #c7254e;
+      opacity: 1.0;
+    }
+  }
+  .run.ended.SUCCESS {
+    span {
+      background-color: #e1ffe4;
+      border-color: #77c75c;
+      color: #77c75c;
+    }
+  }
+}
