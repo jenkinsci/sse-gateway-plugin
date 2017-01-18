@@ -2,10 +2,16 @@ var $ = require('jquery');
 
 $(document).ready(function start() {
     var sse = require('@jenkins-cd/sse-gateway');
+    var errors = $('#errors');
     var logWindow = $('#event-logs');
 
     // See https://github.com/jenkinsci/sse-gateway-plugin
     var connection = sse.connect('sse-gateway-sample');
+
+    connection.onError(function (e) {
+        errors.text('Connection lost. Waiting to reconnect...');
+        errors.css('display', 'block');
+    });
 
     connection.subscribe('job', function (event) {
         var runId;
