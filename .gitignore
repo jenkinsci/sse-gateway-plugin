@@ -16,3 +16,5 @@ npm-debug.log
 **/.project
 **/.classpath
 etc/
+
+**/.watch_trigger
