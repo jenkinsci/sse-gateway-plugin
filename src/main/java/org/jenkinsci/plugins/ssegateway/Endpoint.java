@@ -172,7 +172,21 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     }
 
     @Restricted(DoNotUse.class) // Web only
-    public HttpResponse doPing() throws IOException {
+    public HttpResponse doPing(StaplerRequest request) throws IOException {
+        String dispatcherId = request.getParameter("dispatcherId");
+
+        if (dispatcherId != null) {
+            EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(dispatcherId, request.getSession());
+            if (dispatcher != null) {
+                try {
+                    dispatcher.dispatchEvent("pingback", "ack");
+                } catch (ServletException e) {
+                    LOGGER.log(Level.FINE, "Failed to send pingback to dispatcher " + dispatcherId + ".", e);
+                    return HttpResponses.errorJSON("Failed to send pingback to dispatcher " + dispatcherId + ".");
+                }
+            }
+        }
+
         return HttpResponses.okJSON();
     }
 

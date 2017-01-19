@@ -109,7 +109,7 @@ SSEConnection.prototype = {
             try {
                 this.jenkinsUrl = jsModules.getRootURL();
             } catch (e) {
-                console.warn("Jenkins SSE client initialization failed. Unable to connect to " +
+                LOGGER.warn("Jenkins SSE client initialization failed. Unable to connect to " +
                     "Jenkins because we are unable to determine the Jenkins Root URL. SSE events " +
                     "will not be received. Probable cause: no 'data-rooturl' on the page <head> " +
                     "element e.g. running in a test, or running headless without specifying a " +
@@ -120,8 +120,22 @@ SSEConnection.prototype = {
             this.jenkinsUrl = normalizeUrl(this.jenkinsUrl);
         }
 
+        this.pingUrl = this.jenkinsUrl + '/sse-gateway/ping';
+
+        // Used to keep track of connection errors.
+        var errorTracking = {
+            errors: [],
+            reset: function() {
+                if (errorTracking.pingbackTimeout) {
+                    clearTimeout(errorTracking.pingbackTimeout);
+                    delete errorTracking.pingbackTimeout;
+                }
+                errorTracking.errors = [];
+            }
+        };
+
         if (!eventSourceSupported) {
-            console.warn("This browser does not support EventSource. Where's the polyfill?");
+            LOGGER.warn("This browser does not support EventSource. Where's the polyfill?");
         } else if (this.jenkinsUrl !== undefined) {
             var connectUrl = this.jenkinsUrl + '/sse-gateway/connect?clientId='
                 + encodeURIComponent(tabClientId);
@@ -143,6 +157,7 @@ SSEConnection.prototype = {
 
                 source.addEventListener('open', function (e) {
                     LOGGER.debug('SSE channel "open" event.', e);
+                    errorTracking.reset();
                     if (e.data) {
                         sseConnection.jenkinsSessionInfo = JSON.parse(e.data);
                         if (onConnect) {
@@ -152,13 +167,32 @@ SSEConnection.prototype = {
                 }, false);
                 source.addEventListener('error', function (e) {
                     LOGGER.debug('SSE channel "error" event.', e);
-                    if (typeof sseConnection._onerror === 'function') {
-                        try {
-                            sseConnection._onerror(e);
-                        } catch(error) {
-                            LOGGER.error('SSEConnection "onError" event handler threw unexpected error.', error);
-                        }
+                    if (errorTracking.errors.length === 0) {
+                        // Send ping request.
+                        // If the connection is ok, we should get a pingback ack and the above
+                        // errorTracking.pingbackTimeout should get cleared etc.
+                        // See 'pingback' below
+                        errorTracking.pingbackTimeout = setTimeout(function() {
+                            delete errorTracking.pingbackTimeout;
+                            if (typeof sseConnection._onerror === 'function' && errorTracking.errors.length > 0) {
+                                var errorToSend = errorTracking.errors[0];
+                                errorTracking.reset();
+                                try {
+                                    sseConnection._onerror(errorToSend);
+                                } catch(error) {
+                                    LOGGER.error('SSEConnection "onError" event handler threw unexpected error.', error);
+                                }
+                            } else {
+                                errorTracking.reset();
+                            }
+                        }, 5000); // TODO: magic num ... what's realistic ?
+                        ajax.get(sseConnection.pingUrl + '?dispatcherId=' + encodeURIComponent(sseConnection.jenkinsSessionInfo.dispatcherId));
                     }
+                    errorTracking.errors.push(e);
+                }, false);
+                source.addEventListener('pingback', function (e) {
+                    LOGGER.debug('SSE channel "pingback" event received.', e);
+                    errorTracking.reset();
                 }, false);
                 source.addEventListener('configure', function (e) {
                     LOGGER.debug('SSE channel "configure" ACK event (see batchId on event).', e);
@@ -190,6 +224,38 @@ SSEConnection.prototype = {
     },
     onError: function (handler) {
         this._onerror = handler;
+    },
+    waitServerRunning: function (handler) {
+        if (!this.eventSource) {
+            throw new Error('Not connected.');
+        }
+        if (typeof handler !== 'function') {
+            throw new Error('No waitServerRunning callback function provided.');
+        }
+
+        var connection = this;
+        var failureCount = 0;
+
+        function doPingWait() {
+            ajax.isAlive(connection.pingUrl, function(status) {
+                // status 0 means timed out.
+                if (status === 0) {
+                    failureCount++;
+
+                    // Try again in few seconds
+                    LOGGER.debug('Server not responding (%s).', connection.jenkinsUrl);
+                    setTimeout(doPingWait, 3000);
+                } else {
+                    // Ping worked ... we connected.
+                    LOGGER.debug('Server is running.');
+                }
+                handler({
+                    statusCode: status,
+                    failureCount: failureCount
+                });
+            });
+        }
+        doPingWait();
     },
     disconnect: function () {
         if (this.eventSource) {
@@ -398,7 +464,7 @@ SSEConnection.prototype = {
                             processCount++;
                             subscription.callback(parsedData);
                         } catch (e) {
-                            console.trace(e);
+                            LOGGER.debug(e);
                         }
                     }
                 }

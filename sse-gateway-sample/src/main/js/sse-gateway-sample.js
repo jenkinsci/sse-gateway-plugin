@@ -2,15 +2,34 @@ var $ = require('jquery');
 
 $(document).ready(function start() {
     var sse = require('@jenkins-cd/sse-gateway');
-    var errors = $('#errors');
+    var notifications = $('#notifications');
     var logWindow = $('#event-logs');
 
     // See https://github.com/jenkinsci/sse-gateway-plugin
     var connection = sse.connect('sse-gateway-sample');
 
+    // Connection error handling...
     connection.onError(function (e) {
-        errors.text('Connection lost. Waiting to reconnect...');
-        errors.css('display', 'block');
+        // Check the connection...
+        connection.waitServerRunning(function(status) {
+            if (status.statusCode === 0) {
+                // Display a message if the connection
+                // really has been lost....
+                notifications.text('Connection lost. Waiting to reconnect...');
+                notifications.css('display', 'block');
+                notifications.attr('class', 'error');
+            } else if (status.failureCount > 0) {
+                // And if we had earlier failures, but
+                // now the connection is ok again ....
+                notifications.text('Reconnecting...');
+                notifications.attr('class', 'okay');
+                setTimeout(function() {
+                    // And reload the current page, forcing
+                    // a login if needed....
+                    window.location.reload(true);
+                }, 2000);
+            }
+        });
     });
 
     connection.subscribe('job', function (event) {

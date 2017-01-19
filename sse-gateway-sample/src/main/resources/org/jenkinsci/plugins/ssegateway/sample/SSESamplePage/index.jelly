@@ -11,7 +11,7 @@
               data-resurl="${resURL}">
         </head>
         <body>
-            <div id="errors"></div>
+            <div id="notifications"></div>
             <st:adjunct includes="org.jenkinsci.plugins.ssegateway.sse.EventSource" />
             <h1>SSE Gateway Sample</h1>
             The following window continuously logs "Job" channel events that are happening in the underlying Jenkins instance.

@@ -85,9 +85,29 @@ var sse = require('@jenkins-cd/sse-gateway');
 // Connect to the SSE Gateway.
 var connection = sse.connect('myplugin');
 
-connection.onError(function (error) {
-    // Handle the error
+// Connection error handling...
+connection.onError(function (e) {
+    // Check the connection...
+    connection.waitServerRunning(function(status) {
+        if (status.statusCode === 0) {
+            // Display a message if the connection
+            // really has been lost....
+            
+        } else if (status.failureCount > 0) {
+            // And if we had earlier failures, but
+            // now the connection is ok again, so undo
+            // earlier errors ...
+            
+            // And perhaps reload the current page, forcing
+            // a login if needed....
+            setTimeout(function() {
+                window.location.reload(true);
+            }, 2000);
+        }
+    });
 });
+
+// etc...
 ```
 
 > Note that only one handler can be registered per `connection` instance.
