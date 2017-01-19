@@ -171,6 +171,11 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         }
     }
 
+    @Restricted(DoNotUse.class) // Web only
+    public HttpResponse doPing() throws IOException {
+        return HttpResponses.okJSON();
+    }
+
     // Using a Servlet Filter for the async channel. We're doing this because we
     // do not want these requests making their way to Stapler. This is really
     // down to fear of the unknown magic that happens in Stapler and the effect
