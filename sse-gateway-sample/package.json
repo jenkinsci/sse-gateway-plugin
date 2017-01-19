@@ -13,7 +13,7 @@
     "gulp": "^3.9.1"
   },
   "dependencies": {
-    "@jenkins-cd/sse-gateway": "latest",
+    "@jenkins-cd/sse-gateway": "../",
     "@jenkins-cd/js-modules": "latest",
     "jquery": "^2.2.3"
   }
