@@ -12,13 +12,13 @@ $(document).ready(function start() {
     connection.onError(function (e) {
         // Check the connection...
         connection.waitServerRunning(function(status) {
-            if (status.statusCode === 0) {
+            if (status.connectError) {
                 // Display a message if the connection
                 // really has been lost....
                 notifications.text('Connection lost. Waiting to reconnect...');
                 notifications.css('display', 'block');
                 notifications.attr('class', 'error');
-            } else if (status.failureCount > 0) {
+            } else if (status.connectErrorCount > 0) {
                 // And if we had earlier failures, but
                 // now the connection is ok again ....
                 notifications.text('Reconnecting...');

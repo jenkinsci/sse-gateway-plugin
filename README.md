@@ -89,14 +89,14 @@ var connection = sse.connect('myplugin');
 connection.onError(function (e) {
     // Check the connection...
     connection.waitServerRunning(function(status) {
-        if (status.statusCode === 0) {
-            // Display a message if the connection
-            // really has been lost....
+        if (status.connectError) {
+            // Display a message if the last attempt to connect
+            // was a failure....
             
-        } else if (status.failureCount > 0) {
-            // And if we had earlier failures, but
-            // now the connection is ok again, so undo
-            // earlier errors ...
+        } else if (status.connectErrorCount > 0) {
+            // The last attempt to connect was not a failure,
+            // but we had earlier failures, so undo
+            // earlier error notifications etc ...
             
             // And perhaps reload the current page, forcing
             // a login if needed....

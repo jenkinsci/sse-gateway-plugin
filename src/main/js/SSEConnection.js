@@ -237,24 +237,31 @@ SSEConnection.prototype = {
         }
 
         var connection = this;
-        var failureCount = 0;
+        var connectErrorCount = 0;
 
         function doPingWait() {
             ajax.isAlive(connection.pingUrl, function (status) {
-                // status 0 means timed out.
-                if (status === 0) {
-                    failureCount++;
+                var connectError = false;
+                // - status 0 "typically" means timed out. Anything less than 100
+                //   is meaningless anyway, so lets just go with that.
+                // - status 500+ errors mean that the server (or intermediary) are
+                //   unable to handle the request, which from a users point of view
+                //   is equivalent to not being able to connect to the server.
+                if (status < 100 || status >= 500) {
+                    connectError = true;
+                    connectErrorCount++;
 
                     // Try again in few seconds
-                    LOGGER.debug('Server not responding (%s).', connection.jenkinsUrl);
+                    LOGGER.debug('Server connection error %s (%s).', status, connection.jenkinsUrl);
                     setTimeout(doPingWait, 3000);
                 } else {
                     // Ping worked ... we connected.
-                    LOGGER.debug('Server is running.');
+                    LOGGER.debug('Server connection ok.');
                 }
                 handler({
                     statusCode: status,
-                    failureCount: failureCount
+                    connectError: connectError,
+                    connectErrorCount: connectErrorCount
                 });
             });
         }

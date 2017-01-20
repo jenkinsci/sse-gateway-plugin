@@ -58,7 +58,6 @@ exports.isAlive = function (url, callback) {
         }
     }
 
-    http.timeout = 2000;
     http.onreadystatechange = function () {
         if (http.readyState === 4) {
             // http.status of 0 can mean timeout. Anything
@@ -71,6 +70,7 @@ exports.isAlive = function (url, callback) {
     };
 
     http.open('GET', url, true);
+    http.timeout = 5000;
     http.setRequestHeader('Accept', 'application/json');
     http.send();
 };
