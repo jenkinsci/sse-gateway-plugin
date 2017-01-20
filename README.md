@@ -114,7 +114,7 @@ connection.onError(function (e) {
 
 Note how the supplied `connection.onError` handler makes a call to `connection.waitConnectionOk`.
   `connection.waitConnectionOk` takes a connection status callback handler. This handler is called
-   periodically until the connection is ok again i.e. it can be called more than one, constantly getting
+   periodically until the connection is ok again i.e. it can be called more than once, constantly getting
    feedback on the connection state.
 
 # Internet Explorer Support
