@@ -81,7 +81,7 @@ exports.post = function (data, toUrl, jenkinsSessionInfo) {
     http.onreadystatechange = function () {
         if (http.readyState === 4) {
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug('HTTP POST %s', url, http);
+                LOGGER.debug('HTTP POST %s', toUrl, http);
             }
             if (http.status >= 200 && http.status < 300) {
                 try {

@@ -125,7 +125,7 @@ SSEConnection.prototype = {
         // Used to keep track of connection errors.
         var errorTracking = {
             errors: [],
-            reset: function() {
+            reset: function () {
                 if (errorTracking.pingbackTimeout) {
                     clearTimeout(errorTracking.pingbackTimeout);
                     delete errorTracking.pingbackTimeout;
@@ -172,21 +172,24 @@ SSEConnection.prototype = {
                         // If the connection is ok, we should get a pingback ack and the above
                         // errorTracking.pingbackTimeout should get cleared etc.
                         // See 'pingback' below
-                        errorTracking.pingbackTimeout = setTimeout(function() {
+                        errorTracking.pingbackTimeout = setTimeout(function () {
                             delete errorTracking.pingbackTimeout;
-                            if (typeof sseConnection._onerror === 'function' && errorTracking.errors.length > 0) {
+                            if (typeof sseConnection._onerror === 'function'
+                                && errorTracking.errors.length > 0) {
                                 var errorToSend = errorTracking.errors[0];
                                 errorTracking.reset();
                                 try {
                                     sseConnection._onerror(errorToSend);
-                                } catch(error) {
-                                    LOGGER.error('SSEConnection "onError" event handler threw unexpected error.', error);
+                                } catch (error) {
+                                    LOGGER.error('SSEConnection "onError" event handler ' +
+                                        'threw unexpected error.', error);
                                 }
                             } else {
                                 errorTracking.reset();
                             }
                         }, 5000); // TODO: magic num ... what's realistic ?
-                        ajax.get(sseConnection.pingUrl + '?dispatcherId=' + encodeURIComponent(sseConnection.jenkinsSessionInfo.dispatcherId));
+                        ajax.get(sseConnection.pingUrl + '?dispatcherId=' +
+                            encodeURIComponent(sseConnection.jenkinsSessionInfo.dispatcherId));
                     }
                     errorTracking.errors.push(e);
                 }, false);
@@ -237,7 +240,7 @@ SSEConnection.prototype = {
         var failureCount = 0;
 
         function doPingWait() {
-            ajax.isAlive(connection.pingUrl, function(status) {
+            ajax.isAlive(connection.pingUrl, function (status) {
                 // status 0 means timed out.
                 if (status === 0) {
                     failureCount++;
