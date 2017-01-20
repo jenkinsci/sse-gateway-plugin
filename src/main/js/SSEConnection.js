@@ -228,7 +228,7 @@ SSEConnection.prototype = {
     onError: function (handler) {
         this._onerror = handler;
     },
-    waitServerRunning: function (handler) {
+    waitConnectionOk: function (handler) {
         if (!this.eventSource) {
             throw new Error('Not connected.');
         }

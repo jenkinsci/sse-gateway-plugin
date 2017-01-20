@@ -88,10 +88,10 @@ var connection = sse.connect('myplugin');
 // Connection error handling...
 connection.onError(function (e) {
     // Check the connection...
-    connection.waitServerRunning(function(status) {
+    connection.waitConnectionOk(function(status) {
         if (status.connectError) {
-            // Display a message if the last attempt to connect
-            // was a failure....
+            // The last attempt to connect was a failure, so
+            // notify the user in some way....
             
         } else if (status.connectErrorCount > 0) {
             // The last attempt to connect was not a failure,
@@ -111,6 +111,11 @@ connection.onError(function (e) {
 ```
 
 > Note that only one handler can be registered per `connection` instance.
+
+Note how the supplied `connection.onError` handler makes a call to `connection.waitConnectionOk`.
+  `connection.waitConnectionOk` takes a connection status callback handler. This handler is called
+   periodically until the connection is ok again i.e. it can be called more than one, constantly getting
+   feedback on the connection state.
 
 # Internet Explorer Support
 
