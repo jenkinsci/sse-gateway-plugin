@@ -75,6 +75,48 @@ var jobSubs = connection.subscribe('job', function (event) {
 connection.unsubscribe(jobSubs);
 ```
 
+## Handling connection errors
+
+As is to be expected, the connection to Jenkins can be lost. To handle this situation, simply register an `onError` handler with the connection instance.
+
+```javascript
+var sse = require('@jenkins-cd/sse-gateway');
+
+// Connect to the SSE Gateway.
+var connection = sse.connect('myplugin');
+
+// Connection error handling...
+connection.onError(function (e) {
+    // Check the connection...
+    connection.waitConnectionOk(function(status) {
+        if (status.connectError) {
+            // The last attempt to connect was a failure, so
+            // notify the user in some way....
+            
+        } else if (status.connectErrorCount > 0) {
+            // The last attempt to connect was not a failure,
+            // but we had earlier failures, so undo
+            // earlier error notifications etc ...
+            
+            // And perhaps reload the current page, forcing
+            // a login if needed....
+            setTimeout(function() {
+                window.location.reload(true);
+            }, 2000);
+        }
+    });
+});
+
+// etc...
+```
+
+> Note that only one handler can be registered per `connection` instance.
+
+Note how the supplied `connection.onError` handler makes a call to `connection.waitConnectionOk`.
+  `connection.waitConnectionOk` takes a connection status callback handler. This handler is called
+   periodically until the connection is ok again i.e. it can be called more than once, constantly getting
+   feedback on the connection state.
+
 # Internet Explorer Support
 
 As always with Internet Explorer, there are issues. It doesn't support the SSE `EventSource` so in order to

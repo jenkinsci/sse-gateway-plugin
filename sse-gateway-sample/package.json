@@ -1,0 +1,20 @@
+{
+  "name": "sse-gateway-sample",
+  "version": "1.0.0",
+  "description": "SSE Gateway Sample",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Tom Fennelly <tom.fennelly@gmail.com> (https://github.com/tfennelly)",
+  "license": "MIT",
+  "devDependencies": {
+    "@jenkins-cd/js-builder": "latest",
+    "gulp": "^3.9.1"
+  },
+  "dependencies": {
+    "@jenkins-cd/sse-gateway": "../",
+    "@jenkins-cd/js-modules": "latest",
+    "jquery": "^2.2.3"
+  }
+}

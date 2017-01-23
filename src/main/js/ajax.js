@@ -1,10 +1,17 @@
 var json = require('./json');
 
-exports.get = function (url, onSuccess) {
+// See https://github.com/tfennelly/jenkins-js-logging - will move to jenskinsci org
+var logging = require('@jenkins-cd/logging');
+var LOGGER = logging.logger('org.jenkinsci.sse');
+
+exports.get = function (url, onSuccess, onError) {
     var http = new XMLHttpRequest();
 
     http.onreadystatechange = function () {
         if (http.readyState === 4) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug('HTTP GET %s', url, http);
+            }
             if (http.status >= 200 && http.status < 300) {
                 try {
                     var responseJSON = JSON.parse(http.responseText);
@@ -22,10 +29,14 @@ exports.get = function (url, onSuccess) {
                     }
                 } catch (e) {
                     // Not a JSON response.
+                    if (onError) {
+                        onError(http);
+                    }
                 }
             } else {
-                console.error('SSE Gateway error to ' + url + ': ');
-                console.error(http);
+                if (onError) {
+                    onError(http);
+                }
             }
         }
     };
@@ -36,11 +47,42 @@ exports.get = function (url, onSuccess) {
     http.send();
 };
 
+exports.isAlive = function (url, callback) {
+    var http = new XMLHttpRequest();
+    var callbackCalled = false;
+
+    function doCallback(result) {
+        if (!callbackCalled) {
+            callback(result);
+            callbackCalled = true;
+        }
+    }
+
+    http.onreadystatechange = function () {
+        if (http.readyState === 4) {
+            // http.status of 0 can mean timeout. Anything
+            // else "seems" to be good.
+            doCallback(http.status);
+        }
+    };
+    http.ontimeout = function () {
+        doCallback(0);
+    };
+
+    http.open('GET', url, true);
+    http.timeout = 5000;
+    http.setRequestHeader('Accept', 'application/json');
+    http.send();
+};
+
 exports.post = function (data, toUrl, jenkinsSessionInfo) {
     var http = new XMLHttpRequest();
 
     http.onreadystatechange = function () {
         if (http.readyState === 4) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug('HTTP POST %s', toUrl, http);
+            }
             if (http.status >= 200 && http.status < 300) {
                 try {
                     var responseJSON = JSON.parse(http.responseText);
@@ -55,9 +97,6 @@ exports.post = function (data, toUrl, jenkinsSessionInfo) {
                 } catch (e) {
                     // Not a JSON response.
                 }
-            } else {
-                console.error('SSE Gateway error to ' + toUrl + ': ');
-                console.error(http);
             }
         }
     };
