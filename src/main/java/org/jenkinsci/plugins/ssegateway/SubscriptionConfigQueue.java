@@ -26,7 +26,7 @@ package org.jenkinsci.plugins.ssegateway;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
-import org.jenkins.pubsub.EventFilter;
+import org.jenkinsci.plugins.pubsub.EventFilter;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 import org.kohsuke.accmod.Restricted;

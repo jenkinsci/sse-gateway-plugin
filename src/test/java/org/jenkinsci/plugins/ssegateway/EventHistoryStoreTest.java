@@ -1,8 +1,8 @@
 package org.jenkinsci.plugins.ssegateway;
 
 import net.sf.json.JSONObject;
-import org.jenkins.pubsub.EventProps;
-import org.jenkins.pubsub.SimpleMessage;
+import org.jenkinsci.plugins.pubsub.EventProps;
+import org.jenkinsci.plugins.pubsub.SimpleMessage;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

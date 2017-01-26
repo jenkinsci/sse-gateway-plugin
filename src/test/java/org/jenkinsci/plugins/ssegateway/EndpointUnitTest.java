@@ -1,8 +1,8 @@
 package org.jenkinsci.plugins.ssegateway;
 
-import org.jenkins.pubsub.ChannelSubscriber;
-import org.jenkins.pubsub.EventFilter;
-import org.jenkins.pubsub.PubsubBus;
+import org.jenkinsci.plugins.pubsub.ChannelSubscriber;
+import org.jenkinsci.plugins.pubsub.EventFilter;
+import org.jenkinsci.plugins.pubsub.PubsubBus;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 import org.junit.After;

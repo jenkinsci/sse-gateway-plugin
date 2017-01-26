@@ -22,7 +22,7 @@ notification "channels".
 ## Subscribing to "job" channel events (basic)
 
 The "job" channel is where you listen for events relating to Jenkins Jobs, all of which are enumerated in
- [the Events.JobChannel Javadoc](http://jenkinsci.github.io/pubsub-light-module/org/jenkins/pubsub/Events.JobChannel.html).
+ [the Events.JobChannel Javadoc](http://jenkinsci.github.io/pubsub-light-module/org/jenkinsci/plugins/pubsub/Events.JobChannel.html).
 
 ```javascript
 var sse = require('@jenkins-cd/sse-gateway');
