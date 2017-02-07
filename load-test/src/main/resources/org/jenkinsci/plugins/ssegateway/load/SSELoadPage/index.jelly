@@ -22,12 +22,9 @@
         </head>
         <body>
             <div id="notifications"></div>
-            <h1>SSE Gateway Sample</h1>
-            The following window continuously logs "Job" channel events that are happening in the underlying Jenkins instance.
-            <p/>
-            Create a few jobs that pass and fail (in another window), run them and then watch this window in parallel.
+            <h1>SSE Gateway Load</h1>
             <div id="event-logs"></div>
-            <st:adjunct includes="org.jenkins.ui.jsmodules.sse-gateway-sample.sse-gateway-sample" />
+            <st:adjunct includes="org.jenkins.ui.jsmodules.sse-gateway-load-test.sse-gateway-load" />
         </body>
     </html>
 </j:jelly>

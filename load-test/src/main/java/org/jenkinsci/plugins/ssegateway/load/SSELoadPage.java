@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.plugins.ssegateway.sample;
+package org.jenkinsci.plugins.ssegateway.load;
 
 import hudson.Extension;
 import hudson.model.RootAction;
@@ -30,17 +30,17 @@ import hudson.model.RootAction;
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 @Extension
-public class SSESamplePage implements RootAction {
+public class SSELoadPage implements RootAction {
 
     public String getIconFileName() {
         return "green.png";
     }
 
     public String getDisplayName() {
-        return "SSE Gateway Sample";
+        return "SSE Gateway Load Test";
     }
 
     public String getUrlName() {
-        return "/sse-gateway-sample";
+        return "/sse-gateway-load";
     }
 }

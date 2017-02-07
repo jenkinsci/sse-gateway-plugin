@@ -6,12 +6,12 @@ $(document).ready(function start() {
     var logWindow = $('#event-logs');
 
     // See https://github.com/jenkinsci/sse-gateway-plugin
-    var connection = sse.connect('sse-gateway-sample');
+    var connection = sse.connect('sse-gateway-load');
 
     // Connection error handling...
-    connection.onError(function (e) {
+    connection.onError(function () {
         // Check the connection...
-        connection.waitConnectionOk(function(status) {
+        connection.waitConnectionOk(function (status) {
             if (status.connectError) {
                 // Display a message if the connection
                 // really has been lost....
@@ -23,7 +23,7 @@ $(document).ready(function start() {
                 // now the connection is ok again ....
                 notifications.text('Reconnecting...');
                 notifications.attr('class', 'okay');
-                setTimeout(function() {
+                setTimeout(function () {
                     // And reload the current page, forcing
                     // a login if needed....
                     window.location.reload(true);
