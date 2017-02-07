@@ -23,6 +23,16 @@
         <body>
             <div id="notifications"></div>
             <h1>SSE Gateway Load</h1>
+            <div id="event-params">
+                <strong>Number of messages</strong><br/>
+                <input id="numMessages" type="text" value="50" /><p/>
+                <strong>Message Interval</strong><br/>
+                <input id="intervalMillis" type="text" value="50" /> ms
+                <p/>
+                <button id="runButton">Run</button>
+            </div>
+            <p/>
+            <button id="resetButton">Reset</button>
             <div id="event-logs"></div>
             <st:adjunct includes="org.jenkins.ui.jsmodules.sse-gateway-load-test.sse-gateway-load" />
         </body>

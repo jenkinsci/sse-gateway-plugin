@@ -25,6 +25,10 @@ package org.jenkinsci.plugins.ssegateway.load;
 
 import hudson.Extension;
 import hudson.model.RootAction;
+import org.jenkins.pubsub.MessageException;
+import org.jenkins.pubsub.PubsubBus;
+import org.jenkins.pubsub.SimpleMessage;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -42,5 +46,38 @@ public class SSELoadPage implements RootAction {
 
     public String getUrlName() {
         return "/sse-gateway-load";
+    }
+
+    public String doFireEvents(StaplerRequest request) {
+        final String numMessagesParam = request.getParameter("numMessages");
+        final String intervalMillisParam = request.getParameter("intervalMillis");
+
+        if (numMessagesParam != null && intervalMillisParam != null) {
+            new Thread() {
+                @Override
+                public void run() {
+                    final int numMessages = new Integer(numMessagesParam);
+                    final int intervalMillis = new Integer(intervalMillisParam);
+                    final PubsubBus bus = PubsubBus.getBus();
+
+                    System.out.println("Starting to send messages.");
+                    for (int i = 0; i < numMessages; i++) {
+                        try {
+                            bus.publish(new SimpleMessage()
+                                    .setChannelName("load-test")
+                                    .setEventName("amessage")
+                                    .set("eventId", Integer.toString(i))
+                            );
+                            Thread.sleep(intervalMillis);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    System.out.println("Done sending messages.");
+                }
+            }.start();
+        }
+
+        return "done";
     }
 }
