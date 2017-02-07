@@ -21,8 +21,6 @@
 
         </head>
         <body>
-            <div id="notifications"></div>
-            <h1>SSE Gateway Load</h1>
             <div id="event-params">
                 <strong>Number of messages</strong><br/>
                 <input id="numMessages" type="text" value="50" /><p/>
