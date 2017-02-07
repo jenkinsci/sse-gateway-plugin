@@ -20,8 +20,8 @@
     <jenkins-test-harness.version>2.8</jenkins-test-harness.version>
   </properties>
 
-  <name>SSE Gateway Sample Plugin</name>
-  <description>SSE Gateway Sample Plugin</description>
+  <name>SSE Gateway Load Test Plugin</name>
+  <description>SSE Gateway Load Test Plugin</description>
 
   <!-- The default licence for Jenkins OSS Plugins is MIT. Substitute for the applicable one if needed. -->
 
