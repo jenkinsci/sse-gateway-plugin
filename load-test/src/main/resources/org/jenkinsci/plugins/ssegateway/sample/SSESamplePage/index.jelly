@@ -1,0 +1,33 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:x="jelly:xml">
+    <st:contentType value="text/html;charset=UTF-8"/>
+
+    <x:doctype name="html"/>
+    <html>
+        <j:new var="h" className="hudson.Functions"/><!-- instead of JSP functions -->
+        ${h.initPageVariables(context)}
+
+        <j:set var="isMSIE" value="${userAgent.contains('MSIE') || userAgent.contains('Trident')}"/>
+
+        <head data-rooturl="${rootURL}"
+              data-resurl="${resURL}">
+
+            <j:if test="${isMSIE}">
+                <meta http-equiv="X-UA-Compatible" content="IE=edge"></meta>
+                <meta name="viewport" content="width=device-width,minimum-scale=1,maximum-scale=1"></meta>
+                <!-- IE doesn't support EventSource/SSE. Add a pollyfill. -->
+                <st:adjunct includes="org.jenkinsci.plugins.ssegateway.sse.EventSource" />
+            </j:if>
+
+        </head>
+        <body>
+            <div id="notifications"></div>
+            <h1>SSE Gateway Sample</h1>
+            The following window continuously logs "Job" channel events that are happening in the underlying Jenkins instance.
+            <p/>
+            Create a few jobs that pass and fail (in another window), run them and then watch this window in parallel.
+            <div id="event-logs"></div>
+            <st:adjunct includes="org.jenkins.ui.jsmodules.sse-gateway-sample.sse-gateway-sample" />
+        </body>
+    </html>
+</j:jelly>

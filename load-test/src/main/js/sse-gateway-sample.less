@@ -1,0 +1,56 @@
+#notifications {
+  display: none;
+  position: fixed;
+  left: 5px;
+  right: 5px;
+  top: 5px;
+  padding: 15px;
+  margin: 10px 5px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+#notifications.okay {
+  color: #31708f;
+  background-color: #d9edf7;
+  border-color: #bce8f1;
+}
+
+#notifications.error {
+  color: #a94442;
+  background-color: #f2dede;
+  border-color: #ebccd1;
+}
+
+#event-logs {
+  border: solid #989898 1px;
+  border-radius: 3px;
+  margin: 10px 5px;
+  padding: 5px;
+  min-height: 30px;
+
+  .run {
+    span {
+      margin: 2px;
+      padding: 2px 4px;
+      font-size: 90%;
+      border-radius: 4px;
+      opacity: 0.6;
+    }
+  }
+  .run.ended {
+    span {
+      background-color: #f9f2f4;
+      border-color: #c7254e;
+      color: #c7254e;
+      opacity: 1.0;
+    }
+  }
+  .run.ended.SUCCESS {
+    span {
+      background-color: #e1ffe4;
+      border-color: #77c75c;
+      color: #77c75c;
+    }
+  }
+}
