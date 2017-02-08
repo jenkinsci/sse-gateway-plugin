@@ -55,4 +55,31 @@
     </dependency>
   </dependencies>
 
+  <!--
+  Add the ./target/.jenkins_test file. Without it, the SSE headless client will
+  not get server session info and so will not be able to POST configuration
+  requests.
+  -->
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>1.8</version>
+        <executions>
+          <execution>
+            <phase>generate-test-resources</phase>
+            <configuration>
+              <target>
+                <touch file="./target/.jenkins_test"/>
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
 </project>
