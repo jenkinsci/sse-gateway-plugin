@@ -32,7 +32,7 @@
             <p/>
             <button id="resetButton">Reset</button>
             <div id="event-logs"></div>
-            <st:adjunct includes="org.jenkins.ui.jsmodules.sse-gateway-load-test.sse-gateway-load" />
+            <st:adjunct includes="org.jenkins.ui.jsmodules.sse-gateway-load-test.sse-gateway-browser-load" />
         </body>
     </html>
 </j:jelly>
