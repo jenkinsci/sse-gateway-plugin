@@ -81,12 +81,9 @@ exports.isAlive = function (url, callback) {
 
 exports.post = function (data, toUrl, jenkinsSessionInfo, onError) {
     var http = new XMLHttpRequest();
-    var dataClone;
 
-    if (typeof data === 'object') {
-        dataClone = JSON.parse(json.stringify(data));
-    } else if (typeof data === 'string') {
-        dataClone = JSON.parse(data);
+    if (typeof data === 'string') {
+        data = JSON.parse(data);
     }
 
     http.onreadystatechange = function () {
@@ -107,14 +104,14 @@ exports.post = function (data, toUrl, jenkinsSessionInfo, onError) {
                     }
                 } catch (e) {
                     if (onError) {
-                        onError(dataClone, http);
+                        onError(data, http);
                     } else {
                         LOGGER.warn('SSE Gateway error parsing response to POST ' + toUrl, e);
                     }
                 }
             } else {
                 if (onError) {
-                    onError(dataClone, http);
+                    onError(data, http);
                 } else {
                     LOGGER.warn('SSE Gateway error response to POST ' + toUrl, http);
                 }
@@ -143,8 +140,8 @@ exports.post = function (data, toUrl, jenkinsSessionInfo, onError) {
         http.setRequestHeader(jenkinsSessionInfo.crumb.name, jenkinsSessionInfo.crumb.value);
     }
 
-    if (dataClone) {
-        http.send(json.stringify(dataClone));
+    if (data) {
+        http.send(json.stringify(data));
     } else {
         http.send();
     }
