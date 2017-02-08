@@ -293,7 +293,6 @@ SSEConnection.prototype = {
                     }
                 } finally {
                     try {
-                        console.log('Closing EventSource');
                         this.eventSource.close();
                     } finally {
                         this.eventSource = undefined;
