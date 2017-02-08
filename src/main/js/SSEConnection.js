@@ -58,6 +58,7 @@ function SSEConnection(clientId, configuration) {
     this.jenkinsUrl = this.configuration.jenkinsUrl;
     this.eventSource = undefined;
     this.eventSourceListenerQueue = [];
+    this.connectable = true;
     this.jenkinsSessionInfo = undefined;
     this.subscriptions = [];
     this.channelListeners = {};
@@ -216,6 +217,13 @@ SSEConnection.prototype = {
                 }
 
                 sseConnection.eventSource = source;
+                if (sseConnection.connectable === false) {
+                    sseConnection.disconnect();
+                }
+            }, function(httpObject) {
+                LOGGER.error('SSEConnection failure (' + httpObject.status + '): ' + httpObject.responseText, httpObject);
+                sseConnection.connectable = false;
+                sseConnection._clearDoConfigure();
             });
         }
 
@@ -268,33 +276,43 @@ SSEConnection.prototype = {
         doPingWait();
     },
     disconnect: function () {
-        if (this.eventSource) {
-            try {
-                if (typeof this.eventSource.removeEventListener === 'function') {
-                    for (var channelName in this.channelListeners) {
-                        if (this.channelListeners.hasOwnProperty(channelName)) {
-                            try {
-                                this.eventSource.removeEventListener(channelName,
-                                    this.channelListeners[channelName]);
-                            } catch (e) {
-                                LOGGER.error('Unexpected error removing listners', e);
+        try {
+            if (this.eventSource) {
+                try {
+                    if (typeof this.eventSource.removeEventListener === 'function') {
+                        for (var channelName in this.channelListeners) {
+                            if (this.channelListeners.hasOwnProperty(channelName)) {
+                                try {
+                                    this.eventSource.removeEventListener(channelName,
+                                        this.channelListeners[channelName]);
+                                } catch (e) {
+                                    LOGGER.error('Unexpected error removing listners', e);
+                                }
                             }
                         }
                     }
-                }
-            } finally {
-                try {
-                    this.eventSource.close();
                 } finally {
-                    this.eventSource = undefined;
-                    this.channelListeners = {};
-                    delete clientConnections[this.clientId];
+                    try {
+                        console.log('Closing EventSource');
+                        this.eventSource.close();
+                    } finally {
+                        this.eventSource = undefined;
+                        this.channelListeners = {};
+                        delete clientConnections[this.clientId];
+                    }
                 }
             }
+        } finally {
+            this.connectable = false;
+            this._clearDoConfigure();
         }
     },
     subscribe: function () {
         this._clearDoConfigure();
+
+        if (!this.connectable) {
+            return;
+        }
 
         var channelName;
         var filter;
