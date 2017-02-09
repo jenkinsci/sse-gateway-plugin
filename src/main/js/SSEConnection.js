@@ -220,8 +220,9 @@ SSEConnection.prototype = {
                 if (sseConnection.connectable === false) {
                     sseConnection.disconnect();
                 }
-            }, function(httpObject) {
-                LOGGER.error('SSEConnection failure (' + httpObject.status + '): ' + httpObject.responseText, httpObject);
+            }, function (httpObject) {
+                LOGGER.error('SSEConnection failure (' + httpObject.status
+                    + '): ' + httpObject.responseText, httpObject);
                 sseConnection.connectable = false;
                 sseConnection._clearDoConfigure();
             });
@@ -310,7 +311,7 @@ SSEConnection.prototype = {
         this._clearDoConfigure();
 
         if (!this.connectable) {
-            return;
+            return undefined;
         }
 
         var channelName;
@@ -537,7 +538,7 @@ SSEConnection.prototype = {
             var configurationQueue = JSON.parse(JSON.stringify(this.configurationQueue));
             var sseConnection = this;
 
-            ajax.post(configurationQueue, configureUrl, sessionInfo, function(data, http) {
+            ajax.post(configurationQueue, configureUrl, sessionInfo, function (data, http) {
                 LOGGER.error('Error configuring SSE connection.', data, http);
                 if (sseConnection.configuration.onConfigError) {
                     sseConnection.configuration.onConfigError(data, http);

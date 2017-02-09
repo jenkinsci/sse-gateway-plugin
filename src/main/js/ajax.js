@@ -83,6 +83,7 @@ exports.post = function (data, toUrl, jenkinsSessionInfo, onError) {
     var http = new XMLHttpRequest();
 
     if (typeof data === 'string') {
+        /* eslint-disable no-param-reassign */
         data = JSON.parse(data);
     }
 
