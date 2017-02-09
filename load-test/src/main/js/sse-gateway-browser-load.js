@@ -10,6 +10,7 @@ $(document).ready(function start() {
     var intervalMillisInput = $('#intervalMillis');
     var numChannelsInput = $('#numChannels');
     var logWindow = $('#event-logs');
+    var messageCounter = $('<div class="messageCounter">');
     var loggerPre = $('<pre>');
 
     var triggerFunc = function(channelName, numMessages, intervalMillis) {
@@ -24,7 +25,9 @@ $(document).ready(function start() {
     };
     function reset() {
         logWindow.empty();
+        messageCounter.empty();
         loggerPre.empty();
+        logWindow.append(messageCounter);
         logWindow.append(loggerPre);
     }
     reset();
@@ -33,9 +36,19 @@ $(document).ready(function start() {
         var numMessages = parseInt(numMessagesInput.val());
         var intervalMillis = parseInt(intervalMillisInput.val());
         var numChannels = parseInt(numChannelsInput.val());
+        var done = false;
 
         var harness = new Harness(connection, triggerFunc, loggerFunc);
-        harness.run(numMessages, intervalMillis, numChannels);
+        var runState = harness.run(numMessages, intervalMillis, numChannels, function() {
+            done = true;
+        });
+        function trackMessages() {
+            messageCounter.text(runState.getMessageCount());
+            if (!done) {
+                setTimeout(trackMessages, 1000);
+            }
+        }
+        trackMessages();
     });
 
     $('#resetButton').click(function () {
