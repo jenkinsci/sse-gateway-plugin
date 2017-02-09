@@ -55,7 +55,7 @@ $(document).ready(function start() {
                 logWindow.append("<div>Time taken: " + timeTaken + "ms for " + numMessages + " messages, with a " + intervalMillis + "ms sleep between each message.</div>");
                 logWindow.append("<div>That's " + timePerMessage + "ms per message (or " + timePerMessageMinusInterval + "ms if the sleep is factored out).</div>");
                 logWindow.append("<p/>");
-                logWindow.append("<div>Also remember that a some of the overall time may (may not - just keep it in mind) relate to client side dom manipulation (looking for and removing the little message indicators). The CLI node load test would be a more accurate timing test.</div>");
+                logWindow.append("<div>Also remember that some of the overall time may (may not - just keep it in mind) relate to client side DOM manipulation (looking for and removing the little message indicators). The CLI node load test may be a more accurate timing test.</div>");
             }
         }
     });
