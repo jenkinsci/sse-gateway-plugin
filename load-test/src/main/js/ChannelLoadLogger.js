@@ -17,7 +17,7 @@ ChannelLoadLogger.prototype = {
         var endTimeMillis;
 
         var subscription = self.connection.subscribe({
-            channelName: 'load-test',
+            channelName: self.channelName,
             onEvent: function (event) {
                 try {
                     var eventId = parseInt(event.eventId);

@@ -49,6 +49,7 @@ public class SSELoadPage implements RootAction {
     }
 
     public String doFireEvents(StaplerRequest request) {
+        final String channelName = request.getParameter("channelName");
         final String numMessagesParam = request.getParameter("numMessages");
         final String intervalMillisParam = request.getParameter("intervalMillis");
 
@@ -60,20 +61,22 @@ public class SSELoadPage implements RootAction {
                     final int intervalMillis = new Integer(intervalMillisParam);
                     final PubsubBus bus = PubsubBus.getBus();
 
-                    System.out.println("Starting to send messages.");
+                    System.out.println("Starting to send messages on channel '" + channelName + "'.");
                     for (int i = 0; i < numMessages; i++) {
                         try {
                             bus.publish(new SimpleMessage()
-                                    .setChannelName("load-test")
+                                    .setChannelName(channelName)
                                     .setEventName("amessage")
                                     .set("eventId", Integer.toString(i))
                             );
-                            Thread.sleep(intervalMillis);
+                            if (intervalMillis > 0) {
+                                Thread.sleep(intervalMillis);
+                            }
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
-                    System.out.println("Done sending messages.");
+                    System.out.println("Done sending messages on channel '" + channelName + "'.");
                 }
             }.start();
         }
