@@ -58,6 +58,7 @@ function SSEConnection(clientId, configuration) {
     this.jenkinsUrl = this.configuration.jenkinsUrl;
     this.eventSource = undefined;
     this.eventSourceListenerQueue = [];
+    this.connectable = true;
     this.jenkinsSessionInfo = undefined;
     this.subscriptions = [];
     this.channelListeners = {};
@@ -216,6 +217,14 @@ SSEConnection.prototype = {
                 }
 
                 sseConnection.eventSource = source;
+                if (sseConnection.connectable === false) {
+                    sseConnection.disconnect();
+                }
+            }, function (httpObject) {
+                LOGGER.error('SSEConnection failure (' + httpObject.status
+                    + '): ' + httpObject.responseText, httpObject);
+                sseConnection.connectable = false;
+                sseConnection._clearDoConfigure();
             });
         }
 
@@ -268,33 +277,42 @@ SSEConnection.prototype = {
         doPingWait();
     },
     disconnect: function () {
-        if (this.eventSource) {
-            try {
-                if (typeof this.eventSource.removeEventListener === 'function') {
-                    for (var channelName in this.channelListeners) {
-                        if (this.channelListeners.hasOwnProperty(channelName)) {
-                            try {
-                                this.eventSource.removeEventListener(channelName,
-                                    this.channelListeners[channelName]);
-                            } catch (e) {
-                                LOGGER.error('Unexpected error removing listners', e);
+        try {
+            if (this.eventSource) {
+                try {
+                    if (typeof this.eventSource.removeEventListener === 'function') {
+                        for (var channelName in this.channelListeners) {
+                            if (this.channelListeners.hasOwnProperty(channelName)) {
+                                try {
+                                    this.eventSource.removeEventListener(channelName,
+                                        this.channelListeners[channelName]);
+                                } catch (e) {
+                                    LOGGER.error('Unexpected error removing listners', e);
+                                }
                             }
                         }
                     }
-                }
-            } finally {
-                try {
-                    this.eventSource.close();
                 } finally {
-                    this.eventSource = undefined;
-                    this.channelListeners = {};
-                    delete clientConnections[this.clientId];
+                    try {
+                        this.eventSource.close();
+                    } finally {
+                        this.eventSource = undefined;
+                        this.channelListeners = {};
+                        delete clientConnections[this.clientId];
+                    }
                 }
             }
+        } finally {
+            this.connectable = false;
+            this._clearDoConfigure();
         }
     },
     subscribe: function () {
         this._clearDoConfigure();
+
+        if (!this.connectable) {
+            return undefined;
+        }
 
         var channelName;
         var filter;
@@ -518,8 +536,14 @@ SSEConnection.prototype = {
             this.configurationQueue.dispatcherId = sessionInfo.dispatcherId;
             // clone the config, just in case of bad change later.
             var configurationQueue = JSON.parse(JSON.stringify(this.configurationQueue));
+            var sseConnection = this;
 
-            ajax.post(configurationQueue, configureUrl, sessionInfo);
+            ajax.post(configurationQueue, configureUrl, sessionInfo, function (data, http) {
+                LOGGER.error('Error configuring SSE connection.', data, http);
+                if (sseConnection.configuration.onConfigError) {
+                    sseConnection.configuration.onConfigError(data, http);
+                }
+            });
 
             this._resetConfigQueue(true);
         }

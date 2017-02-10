@@ -1,0 +1,39 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:x="jelly:xml">
+    <st:contentType value="text/html;charset=UTF-8"/>
+
+    <x:doctype name="html"/>
+    <html>
+        <j:new var="h" className="hudson.Functions"/><!-- instead of JSP functions -->
+        ${h.initPageVariables(context)}
+
+        <j:set var="isMSIE" value="${userAgent.contains('MSIE') || userAgent.contains('Trident')}"/>
+
+        <head data-rooturl="${rootURL}"
+              data-resurl="${resURL}">
+
+            <j:if test="${isMSIE}">
+                <meta http-equiv="X-UA-Compatible" content="IE=edge"></meta>
+                <meta name="viewport" content="width=device-width,minimum-scale=1,maximum-scale=1"></meta>
+                <!-- IE doesn't support EventSource/SSE. Add a pollyfill. -->
+                <st:adjunct includes="org.jenkinsci.plugins.ssegateway.sse.EventSource" />
+            </j:if>
+
+        </head>
+        <body>
+            <div id="event-params">
+                <strong>Number of messages</strong><br/>
+                <input id="numMessages" type="text" value="500" /><p/>
+                <strong>Message Interval</strong><br/>
+                <input id="intervalMillis" type="text" value="10" /> ms<p/>
+                <strong>Num Channels</strong><br/>
+                <input id="numChannels" type="text" value="1" />
+                <p/>
+                <button id="runButton">Run</button> <button id="resetButton">Clear</button>
+            </div>
+            <p/>
+            <div id="event-logs"></div>
+            <st:adjunct includes="org.jenkins.ui.jsmodules.sse-gateway-load-test.sse-gateway-browser-load" />
+        </body>
+    </html>
+</j:jelly>

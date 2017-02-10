@@ -19,7 +19,7 @@ exports.get = function (url, onSuccess, onError) {
                     // some processing error on the backend and a hudson.util.HttpResponses
                     // JSON response.
                     if (responseJSON.status && responseJSON.status === 'error') {
-                        console.error('SSE Gateway error response to '
+                        LOGGER.error('SSE Gateway error response to '
                             + url + ': '
                             + responseJSON.message);
                     }
@@ -31,11 +31,15 @@ exports.get = function (url, onSuccess, onError) {
                     // Not a JSON response.
                     if (onError) {
                         onError(http);
+                    } else {
+                        LOGGER.warn('SSE Gateway error parsing response to GET ' + url, e);
                     }
                 }
             } else {
                 if (onError) {
                     onError(http);
+                } else {
+                    LOGGER.warn('SSE Gateway error response to GET ' + url, http);
                 }
             }
         }
@@ -75,8 +79,13 @@ exports.isAlive = function (url, callback) {
     http.send();
 };
 
-exports.post = function (data, toUrl, jenkinsSessionInfo) {
+exports.post = function (data, toUrl, jenkinsSessionInfo, onError) {
     var http = new XMLHttpRequest();
+
+    if (typeof data === 'string') {
+        /* eslint-disable no-param-reassign */
+        data = JSON.parse(data);
+    }
 
     http.onreadystatechange = function () {
         if (http.readyState === 4) {
@@ -90,12 +99,22 @@ exports.post = function (data, toUrl, jenkinsSessionInfo) {
                     // some processing error on the backend and a hudson.util.HttpResponses
                     // JSON response.
                     if (responseJSON.status && responseJSON.status === 'error') {
-                        console.error('SSE Gateway error response to '
+                        LOGGER.error('SSE Gateway error response to '
                             + toUrl + ': '
                             + responseJSON.message);
                     }
                 } catch (e) {
-                    // Not a JSON response.
+                    if (onError) {
+                        onError(data, http);
+                    } else {
+                        LOGGER.warn('SSE Gateway error parsing response to POST ' + toUrl, e);
+                    }
+                }
+            } else {
+                if (onError) {
+                    onError(data, http);
+                } else {
+                    LOGGER.warn('SSE Gateway error response to POST ' + toUrl, http);
                 }
             }
         }
@@ -123,11 +142,7 @@ exports.post = function (data, toUrl, jenkinsSessionInfo) {
     }
 
     if (data) {
-        if (typeof data === 'object') {
-            http.send(json.stringify(data));
-        } else {
-            http.send(data);
-        }
+        http.send(json.stringify(data));
     } else {
         http.send();
     }
