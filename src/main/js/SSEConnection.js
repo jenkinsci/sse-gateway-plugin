@@ -69,6 +69,7 @@ function SSEConnection(clientId, configuration) {
     };
     this.configurationListeners = {};
     this.nextDoConfigureTimeout = undefined;
+    this.doPingTimeout = undefined;
 
     // Initialize the queue config batch tracking
     this._resetConfigQueue();
@@ -245,11 +246,15 @@ SSEConnection.prototype = {
             throw new Error('No waitServerRunning callback function provided.');
         }
 
+        var sseConnection = this;
         var connection = this;
         var connectErrorCount = 0;
 
         function doPingWait() {
             ajax.isAlive(connection.pingUrl, function (status) {
+                // Ok to schedule another ping.
+                sseConnection.doPingTimeout = undefined;
+
                 var connectError = false;
                 // - status 0 "typically" means timed out. Anything less than 100
                 //   is meaningless anyway, so lets just go with that.
@@ -262,7 +267,7 @@ SSEConnection.prototype = {
 
                     // Try again in few seconds
                     LOGGER.debug('Server connection error %s (%s).', status, connection.jenkinsUrl);
-                    setTimeout(doPingWait, 3000);
+                    sseConnection.doPingTimeout = setTimeout(doPingWait, 3000);
                 } else {
                     // Ping worked ... we connected.
                     LOGGER.debug('Server connection ok.');
@@ -274,7 +279,9 @@ SSEConnection.prototype = {
                 });
             });
         }
-        doPingWait();
+        if (!sseConnection.doPingTimeout) {
+            doPingWait();
+        }
     },
     disconnect: function () {
         try {
