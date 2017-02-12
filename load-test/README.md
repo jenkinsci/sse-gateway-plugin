@@ -10,6 +10,8 @@ Just run `mvn hpi:run` in this folder.
 
 This test exercises the "headless" SSE client (which uses the `EventSource` polyfill).
 
+> __Note__: Disable Jenkins security.
+
 From the root of this folder, run `npm run headless <num-messages> <interval> <num-channels>`.
 
 e.g.
