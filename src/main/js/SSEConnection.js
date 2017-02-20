@@ -128,6 +128,10 @@ SSEConnection.prototype = {
         var errorTracking = {
             errors: [],
             reset: function () {
+                if (errorTracking.waitForHealingTimeout) {
+                    clearTimeout(errorTracking.waitForHealingTimeout);
+                    delete errorTracking.waitForHealingTimeout;
+                }
                 if (errorTracking.pingbackTimeout) {
                     clearTimeout(errorTracking.pingbackTimeout);
                     delete errorTracking.pingbackTimeout;
@@ -170,28 +174,34 @@ SSEConnection.prototype = {
                 source.addEventListener('error', function (e) {
                     LOGGER.debug('SSE channel "error" event.', e);
                     if (errorTracking.errors.length === 0) {
-                        // Send ping request.
-                        // If the connection is ok, we should get a pingback ack and the above
-                        // errorTracking.pingbackTimeout should get cleared etc.
-                        // See 'pingback' below
-                        errorTracking.pingbackTimeout = setTimeout(function () {
-                            delete errorTracking.pingbackTimeout;
-                            if (typeof sseConnection._onerror === 'function'
-                                && errorTracking.errors.length > 0) {
-                                var errorToSend = errorTracking.errors[0];
-                                errorTracking.reset();
-                                try {
-                                    sseConnection._onerror(errorToSend);
-                                } catch (error) {
-                                    LOGGER.error('SSEConnection "onError" event handler ' +
-                                        'threw unexpected error.', error);
-                                }
-                            } else {
-                                errorTracking.reset();
+                        // First give the connection a chance to heal itself.
+                        errorTracking.waitForHealingTimeout = setTimeout(function () {
+                            if (errorTracking.errors.length !== 0) {
+                                // The connection is still not ok. Lets fire a ping request.
+                                // If the connection becomes ok, we should get a pingback
+                                // ack and the timeouts etc should get cleared etc.
+                                // See 'pingback' below
+                                errorTracking.pingbackTimeout = setTimeout(function () {
+                                    delete errorTracking.pingbackTimeout;
+                                    if (typeof sseConnection._onerror === 'function'
+                                        && errorTracking.errors.length > 0) {
+                                        var errorToSend = errorTracking.errors[0];
+                                        errorTracking.reset();
+                                        try {
+                                            sseConnection._onerror(errorToSend);
+                                        } catch (error) {
+                                            LOGGER.error('SSEConnection "onError" event handler ' +
+                                                'threw unexpected error.', error);
+                                        }
+                                    } else {
+                                        errorTracking.reset();
+                                    }
+                                }, 3000); // TODO: magic num ... what's realistic ?
+                                ajax.get(sseConnection.pingUrl + '?dispatcherId=' +
+                                    encodeURIComponent(
+                                        sseConnection.jenkinsSessionInfo.dispatcherId));
                             }
-                        }, 5000); // TODO: magic num ... what's realistic ?
-                        ajax.get(sseConnection.pingUrl + '?dispatcherId=' +
-                            encodeURIComponent(sseConnection.jenkinsSessionInfo.dispatcherId));
+                        }, 4000); // TODO: magic num ... what's realistic ?
                     }
                     errorTracking.errors.push(e);
                 }, false);
