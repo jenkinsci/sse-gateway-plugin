@@ -381,13 +381,21 @@ public abstract class EventDispatcher implements Serializable {
     public static final class SSEHttpSessionListener extends HttpSessionListener {
         @Override
         public void sessionDestroyed(HttpSessionEvent httpSessionEvent) {
-            Map<String, EventDispatcher> dispatchers = EventDispatcherFactory.getDispatchers(httpSessionEvent.getSession());
             try {
-                for (EventDispatcher dispatcher : dispatchers.values()) {
-                    dispatcher.unsubscribeAll();
+                Map<String, EventDispatcher> dispatchers = EventDispatcherFactory.getDispatchers(httpSessionEvent.getSession());
+                try {
+                    for (EventDispatcher dispatcher : dispatchers.values()) {
+                        try {
+                            dispatcher.unsubscribeAll();
+                        } catch (Exception e) {
+                            LOGGER.log(Level.FINE, "Error during unsubscribeAll() for dispatcher " + dispatcher.getId() + ".", e);
+                        }
+                    }
+                } finally {
+                    dispatchers.clear();
                 }
-            } finally {
-                dispatchers.clear();
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "Error during session cleanup. The session has probably timed out.", e);
             }
         }
     }
