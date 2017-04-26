@@ -109,7 +109,10 @@ final class SubscriptionConfigQueue {
             LOGGER.log(Level.SEVERE, "Unexpected error stopping SSE Configure Queue.", e);
         }
     }
-    
+
+    /**
+     * Queues up the application of {@link SubscriptionConfig}.
+     */
     static boolean add(SubscriptionConfig subscriptionConfig) {
         return queue.offer(subscriptionConfig);
     }

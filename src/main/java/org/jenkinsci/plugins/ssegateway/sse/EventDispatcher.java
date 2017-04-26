@@ -110,6 +110,12 @@ public abstract class EventDispatcher implements Serializable {
         return String.format("%s (%s)", id, System.identityHashCode(this));
     }
 
+    /**
+     * Writes a message to {@link HttpServletResponse}
+     *
+     * @return
+     *      false if the response is not writable
+     */
     public synchronized boolean dispatchEvent(String name, String data) throws IOException, ServletException {
         HttpServletResponse response = getResponse();
         
@@ -159,7 +165,7 @@ public abstract class EventDispatcher implements Serializable {
         if (channelName != null) {
             SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
             if (subscriber == null) {
-                subscriber = new SSEChannelSubscriber(this);
+                subscriber = new SSEChannelSubscriber();
 
                 bus.subscribe(channelName, subscriber, authentication, filter);
                 subscribers.put(filter, subscriber);
@@ -358,19 +364,16 @@ public abstract class EventDispatcher implements Serializable {
             }
         }
     }
-    
-    private static final class SSEChannelSubscriber implements ChannelSubscriber {
-        
-        private EventDispatcher eventDispatcher;
-        private int numSubscribers = 0;
 
-        public SSEChannelSubscriber(EventDispatcher eventDispatcher) {
-            this.eventDispatcher = eventDispatcher;
-        }
+    /**
+     * Receive event from {@link PubsubBus} and sends it to this client.
+     */
+    private final class SSEChannelSubscriber implements ChannelSubscriber {
+        private int numSubscribers = 0;
 
         @Override
         public void onMessage(@Nonnull Message message) {
-            eventDispatcher.doDispatch(message);
+            doDispatch(message);
         }
     }
     
