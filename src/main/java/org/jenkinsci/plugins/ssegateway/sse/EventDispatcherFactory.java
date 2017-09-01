@@ -70,7 +70,7 @@ public class EventDispatcherFactory {
             EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(clientId, session);
             
             if (dispatcher == null) {
-                LOGGER.log(Level.WARNING, String.format("Unknown dispatcher client Id '%s' on HTTP session '%s'. Creating a new one. " +
+                LOGGER.log(Level.FINE, String.format("Unknown dispatcher client Id '%s' on HTTP session '%s'. Creating a new one. " +
                         "Make sure you are calling 'connect' before 'listen' and that HTTP sessions are being maintained between 'connect' and 'configure' calls. " +
                         "SSE client reconnects will not work - probably fine if running in non-browser/test mode.", clientId, session.getId()));
                 dispatcher = EventDispatcherFactory.newDispatcher(clientId, session);
