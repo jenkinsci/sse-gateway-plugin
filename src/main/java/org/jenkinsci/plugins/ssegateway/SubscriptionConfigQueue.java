@@ -31,8 +31,8 @@ import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.StaplerRequest;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -171,7 +171,7 @@ final class SubscriptionConfigQueue {
             return dispatcherId;
         }
 
-        static SubscriptionConfig fromRequest(StaplerRequest request) throws IOException {
+        static SubscriptionConfig fromRequest(HttpServletRequest request) throws IOException {
             JSONObject payload = Util.readJSONPayload(request);
             SubscriptionConfig config = new SubscriptionConfig();
             

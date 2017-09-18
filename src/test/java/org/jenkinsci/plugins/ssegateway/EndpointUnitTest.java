@@ -48,7 +48,9 @@ public class EndpointUnitTest {
     @Test
     public void test_configure_empty_config() throws IOException, ServletException {
         Endpoint endpoint = new Endpoint() {
-            @Override protected void init() {}
+            @Override protected void init() {
+                setServletBase(new SseServletBase());
+            }
         };
         StaplerRequest request = newRequest("/sample-config-01.json");
         
@@ -61,7 +63,9 @@ public class EndpointUnitTest {
     @Test
     public void test_configure_subscribe_unsubscribe() throws IOException, ServletException {
         Endpoint endpoint = new Endpoint() {
-            @Override protected void init() {}
+            @Override protected void init() {
+                setServletBase(new SseServletBase());
+            }
         };
 
         Map<EventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();
@@ -81,7 +85,9 @@ public class EndpointUnitTest {
     @Test
     public void test_configure_subscribe_unsubscribeAll() throws IOException, ServletException {
         Endpoint endpoint = new Endpoint() {
-            @Override protected void init() {}
+            @Override protected void init() {
+                setServletBase(new SseServletBase());
+            }
         };
 
         Map<EventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();

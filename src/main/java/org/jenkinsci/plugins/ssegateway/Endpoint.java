@@ -23,14 +23,13 @@
  */
 package org.jenkinsci.plugins.ssegateway;
 
+import com.google.common.collect.ImmutableMap;
 import hudson.Extension;
 import hudson.model.RootAction;
 import hudson.security.csrf.CrumbExclusion;
 import hudson.util.HttpResponses;
 import hudson.util.PluginServletFilter;
 import jenkins.model.Jenkins;
-import net.sf.json.JSONObject;
-import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -48,7 +47,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -64,8 +62,10 @@ public class Endpoint extends CrumbExclusion implements RootAction {
 
     public static final String SSE_GATEWAY_URL = "/sse-gateway";
     public static final String SSE_LISTEN_URL_PREFIX = SSE_GATEWAY_URL + "/listen/";
-    
+
     private static final Logger LOGGER = Logger.getLogger(Endpoint.class.getName());
+
+    private SseServletBase servletBase;
 
     public Endpoint() throws ServletException {
         init();
@@ -74,7 +74,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     @Override
     public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
         String contentType = request.getHeader("Content-Type");
-        
+
         if(contentType != null && contentType.contains("application/json")) {
             String requestedResource = getRequestedResourcePath(request);
 
@@ -98,6 +98,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
             }
         }
         PluginServletFilter.addFilter(new SSEListenChannelFilter());
+        servletBase = new SseServletBase();
     }
 
     @Override
@@ -114,79 +115,44 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     public String getUrlName() {
         return SSE_GATEWAY_URL;
     }
-    
+
     @Restricted(DoNotUse.class) // Web only
     public HttpResponse doConnect(StaplerRequest request, StaplerResponse response) throws IOException {
-        String clientId = request.getParameter("clientId");
-        
-        if (clientId == null) {
-            throw new IOException("No 'clientId' parameter specified in connect request.");
-        }
-        
-        HttpSession session = request.getSession();
-        EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(clientId, session);
-        
-        // If there was already a dispatcher with this ID, then remove
-        // all subscriptions from it and reuse the instance.
-        if (dispatcher != null) {
-            LOGGER.log(Level.FINE, "We already have a Dispatcher for clientId {0}. Removing all subscriptions on the existing Dispatcher instance and reusing it.", dispatcher.toString());
-            dispatcher.unsubscribeAll();
-        } else {
-            // Else create a new instance with this id.
-            EventDispatcherFactory.newDispatcher(clientId, session);
-        }
-        
-        response.setStatus(HttpServletResponse.SC_OK);
-        
-        JSONObject responseData = new JSONObject();
-        responseData.put("jsessionid", session.getId());
-        
-        return HttpResponses.okJSON(responseData); 
+        servletBase.initDispatcher(request, response);
+        return HttpResponses.okJSON(ImmutableMap.of("jsessionid", request.getSession().getId()));
     }
-    
+
     @RequirePOST
     @Restricted(DoNotUse.class) // Web only
     public HttpResponse doConfigure(StaplerRequest request, StaplerResponse response) throws IOException {
         SubscriptionConfigQueue.SubscriptionConfig subscriptionConfig = SubscriptionConfigQueue.SubscriptionConfig.fromRequest(request);
 
-        LOGGER.log(Level.FINE, "Processing configuration request. batchId={0}", subscriptionConfig.getBatchId());
-        
-        if (subscriptionConfig.getDispatcherId() == null) {
+        final boolean validConfig = servletBase.validateSubscriptionConfig(subscriptionConfig);
+        final boolean queuedOkay = servletBase.enqueueSubscriptionConfig(subscriptionConfig);
+
+        if (validConfig && queuedOkay) {
+            response.setStatus(HttpServletResponse.SC_OK);
+            return HttpResponses.okJSON();
+        } else if(!validConfig) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return HttpResponses.errorJSON("'dispatcherId' not specified.");
-        } else if (!subscriptionConfig.hasConfigs()) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return HttpResponses.errorJSON("No 'subscribe' or 'unsubscribe' configurations provided in configuration request.");
+            if (subscriptionConfig.getDispatcherId() == null) {
+                return HttpResponses.errorJSON("'dispatcherId' not specified.");
+            } else if (!subscriptionConfig.hasConfigs()) {
+                return HttpResponses.errorJSON("No 'subscribe' or 'unsubscribe' configurations provided in configuration request.");
+            }
         }
 
-        // The requests are added to a queue and processed async. A
-        // status notification will be pushed to the client async.
-        boolean queuedOkay = SubscriptionConfigQueue.add(subscriptionConfig);
-        
-        response.setStatus(HttpServletResponse.SC_OK);
-        if (queuedOkay) {
-            return HttpResponses.okJSON();
-        } else {
-            return HttpResponses.errorJSON("Unable to process channel subscription request at this time.");
-        }
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        return HttpResponses.errorJSON("Unable to process channel subscription request at this time.");
     }
 
     @Restricted(DoNotUse.class) // Web only
     public HttpResponse doPing(StaplerRequest request) throws IOException {
-        String dispatcherId = request.getParameter("dispatcherId");
+        final boolean success = servletBase.ping(request);
 
-        if (dispatcherId != null) {
-            EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(dispatcherId, request.getSession());
-            if (dispatcher != null) {
-                try {
-                    dispatcher.dispatchEvent("pingback", "ack");
-                } catch (ServletException e) {
-                    LOGGER.log(Level.FINE, "Failed to send pingback to dispatcher " + dispatcherId + ".", e);
-                    return HttpResponses.errorJSON("Failed to send pingback to dispatcher " + dispatcherId + ".");
-                }
-            }
+        if(!success) {
+            return HttpResponses.errorJSON("Failed to send pingback to dispatcher " + request.getParameter("dispatcherId") + ".");
         }
-
         return HttpResponses.okJSON();
     }
 
@@ -207,16 +173,16 @@ public class Endpoint extends CrumbExclusion implements RootAction {
             if (servletRequest instanceof HttpServletRequest) {
                 HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
                 String requestedResource = getRequestedResourcePath(httpServletRequest);
-                
+
                 if (requestedResource.startsWith(SSE_LISTEN_URL_PREFIX)) {
                     HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
                     String[] clientTokens = requestedResource.substring(SSE_LISTEN_URL_PREFIX.length()).split(";");
                     String clientId = clientTokens[0];
-                    
+
                     // If there's a second token it would be the jsessionid for 
                     // when we're using a headless client. Not needed here though,
                     // so just stripping out the clientId part.
-                    
+
                     clientId = URLDecoder.decode(clientId, "UTF-8");
                     EventDispatcherFactory.start(clientId, httpServletRequest, httpServletResponse);
                     return; // Do not allow this request on to Stapler
@@ -235,4 +201,11 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         return httpServletRequest.getRequestURI().substring(httpServletRequest.getContextPath().length());
     }
 
+    public SseServletBase getServletBase() {
+        return servletBase;
+    }
+
+    public void setServletBase(SseServletBase servletBase) {
+        this.servletBase = servletBase;
+    }
 }
