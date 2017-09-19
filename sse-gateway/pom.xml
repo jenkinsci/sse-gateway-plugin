@@ -10,7 +10,7 @@
         <version>1.16-SNAPSHOT</version>
     </parent>
 
-    <artifactId>sse-gateway-plugin</artifactId>
+    <artifactId>sse-gateway</artifactId>
     <version>1.16-SNAPSHOT</version>
     <packaging>hpi</packaging>
 

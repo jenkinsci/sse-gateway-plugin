@@ -82,6 +82,7 @@
 
   <modules>
     <module>sse-common</module>
-    <module>sse-gateway-plugin</module>
+    <module>sse-gateway-client</module>
+    <module>sse-gateway</module>
   </modules>
 </project>

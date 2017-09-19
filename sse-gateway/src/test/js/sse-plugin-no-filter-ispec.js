@@ -44,7 +44,7 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                         onSubscibedCalled = true;
                     }
                 });
-                
+
                 // jobsStarted should eventually equal number of jobs started i.e. 2
                 var jobsStarted = 0;
                 sseConnection.subscribe('job', function (event) {
@@ -55,7 +55,7 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                         jobsStarted++;
                     }
                 });
-                
+
                 // jobSubsCalled should only hit 1 because we unsubscribe jobSubs 
                 // before starting the second job.
                 var jobSubsCalled = 0; 
@@ -97,7 +97,7 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                         });
                     }
                 });
-                
+
                 // Trigger the first build. This should trigger
                 // the SSE event listeners below.
                 waitUntil(function() {

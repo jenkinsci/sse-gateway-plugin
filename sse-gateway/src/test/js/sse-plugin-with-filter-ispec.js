@@ -10,11 +10,11 @@ describe("sse plugin integration tests - with filters", function () {
 
     it("- test build receives events", function (done) {
         jsTest.onPage(function() {
-            var sseClient = require('../../../headless-client');
+            var sseClient = require('@jenkins-cd/sse-gateway/headless-client');
 
             var sseConnection = sseClient.connect('sse-client-123', function(jenkinsSessionInfo) {
-                var ajax = jsTest.requireSrcModule('ajax');
-                
+                var ajax = require('@jenkins-cd/sse-gateway/src/main/js/ajax');
+
                 // Once connected to the SSE Gateway, fire off a build of the sample job
                 ajax.post(undefined, sseConnection.jenkinsUrl + '/job/sse-gateway-test-job/build', jenkinsSessionInfo);
 

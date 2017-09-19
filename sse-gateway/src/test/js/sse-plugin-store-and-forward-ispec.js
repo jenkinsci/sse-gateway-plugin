@@ -81,10 +81,10 @@ describe("sse plugin integration tests - ", function () {
             
             startProxy(function() {
                 console.log('** proxy started');
-                var sseClient = require('../../../headless-client');
+                var sseClient = require('@jenkins-cd/sse-gateway/headless-client');
                 var sseConnection = sseClient.connect('sse-client-123', function(jenkinsSessionInfo) {
                     function build(jenkinsSessionInfo) {
-                        var ajax = jsTest.requireSrcModule('ajax');
+                        var ajax = require('@jenkins-cd/sse-gateway/src/main/js/ajax');
                         ajax.post(undefined, jenkinsUrl + 'job/sse-gateway-test-job/build', jenkinsSessionInfo);
                     }
                 
