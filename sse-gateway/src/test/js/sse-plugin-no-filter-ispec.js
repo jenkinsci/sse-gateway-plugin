@@ -11,7 +11,7 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
 
     it("- test build receives events", function (done) {
         jsTest.onPage(function() {
-            var sseClient = require('../../../headless-client');
+            var sseClient = require('@jenkins-cd/sse-gateway/headless-client');
             var jenkinsSessionInfo;
 
             var sseConnection = sseClient.connect('sse-client-123', function(jenkinsSession) {
@@ -26,7 +26,7 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                 var onUnsubscibedCalled = false;
 
                 function runBuild() {
-                    var ajax = jsTest.requireSrcModule('ajax');
+                    var ajax = require('@jenkins-cd/sse-gateway/src/main/js/ajax');
                     ajax.post(undefined, sseConnection.jenkinsUrl + '/job/sse-gateway-test-job/build', jenkinsSessionInfo);
                 }
 
