@@ -27,7 +27,6 @@
   "homepage": "https://github.com/jenkinsci/sse-gateway-plugin",
   "devDependencies": {
     "@jenkins-cd/js-builder": "0.0.40",
-    "@jenkins-cd/js-modules": "0.0.8",
     "@jenkins-cd/js-test": "^1.2.3",
     "@jenkins-cd/js-modules": "^0.0.8",
     "@jenkins-cd/logging": "^0.0.6",

@@ -20,4 +20,4 @@ var SSEConnection = require('./src/main/js/SSEConnection');
 SSEConnection.DEFAULT_CONFIGURATION.batchConfigDelay = 0; // exec batch configs immediately i.e. no delay for batching up.
 SSEConnection.DEFAULT_CONFIGURATION.sendSessionId = true; // maintain sessions with the backend via jsessionid
 
-module.exports = require('./src/main/js/sse-client');;
+module.exports = require('./src/main/js/sse-client');
