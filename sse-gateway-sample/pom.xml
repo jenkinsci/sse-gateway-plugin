@@ -47,12 +47,12 @@
       <url>http://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
+
   <dependencies>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>sse-gateway</artifactId>
-      <version>1.13-SNAPSHOT</version>
+      <artifactId>sse-gateway-plugin</artifactId>
+      <version>1.16-SNAPSHOT</version>
     </dependency>
   </dependencies>
-
 </project>

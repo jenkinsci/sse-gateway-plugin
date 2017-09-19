@@ -12,7 +12,8 @@
   "license": "MIT",
   "devDependencies": {
     "@jenkins-cd/js-builder": "latest",
-    "gulp": "^3.9.1"
+    "gulp": "^3.9.1",
+    "@jenkins-cd/logging": "^0.0.6"
   },
   "dependencies": {
     "@jenkins-cd/sse-gateway": "../",
