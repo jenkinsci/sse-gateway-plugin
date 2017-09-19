@@ -8,9 +8,10 @@
     <version>2.10</version> <!-- CAUTION: do not go past 2.16 without doing something like https://github.com/jenkinsci/workflow-cps-plugin/pull/87 -->
     <relativePath />
   </parent>
-  <artifactId>sse-gateway</artifactId>
+
+  <artifactId>sse-gateway-parent</artifactId>
   <version>1.16-SNAPSHOT</version>
-  <packaging>hpi</packaging>
+  <packaging>pom</packaging>
 
   <properties>
     <jenkins.version>2.2</jenkins.version>
@@ -51,49 +52,36 @@
     </pluginRepository>
   </pluginRepositories>
 
-  <dependencies>
-    <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
-      <version>3.1.0</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci.plugins</groupId>
-      <artifactId>pubsub-light</artifactId>
-      <version>1.6</version>
-    </dependency>
-    
-    <!-- Test deps -->
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <version>1.10.19</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.github.eirslett</groupId>
-      <artifactId>frontend-plugin-core</artifactId>
-      <version>1.0</version>
-      <scope>test</scope>
-    </dependency>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>javax.servlet</groupId>
+        <artifactId>javax.servlet-api</artifactId>
+        <version>3.1.0</version>
+        <scope>provided</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>pubsub-light</artifactId>
+        <version>1.6</version>
+      </dependency>
 
-  </dependencies>
+      <!-- Test deps -->
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-core</artifactId>
+        <version>1.10.19</version>
+      </dependency>
+      <dependency>
+        <groupId>com.github.eirslett</groupId>
+        <artifactId>frontend-plugin-core</artifactId>
+        <version>1.0</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
-  <build>
-    <plugins>
-        <plugin>
-          <groupId>org.jenkins-ci.tools</groupId>
-          <artifactId>maven-hpi-plugin</artifactId>
-          <extensions>true</extensions>
-          <configuration>
-            <showDeprecation>true</showDeprecation>
-            <contextPath>/jenkins</contextPath>
-            <!-- TODO specify ${java.level} when JENKINS-20679 implemented -->
-            <disabledTestInjection>true</disabledTestInjection>
-          </configuration>
-        </plugin>
-    </plugins>
-  </build>
-  
+  <modules>
+    <module>sse-common</module>
+    <module>sse-gateway-plugin</module>
+  </modules>
 </project>
