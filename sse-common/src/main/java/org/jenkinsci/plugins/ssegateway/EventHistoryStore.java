@@ -72,7 +72,7 @@ public final class EventHistoryStore {
 
     @SuppressFBWarnings(value = "LI_LAZY_INIT_STATIC", 
                 justification = "internal class (marked @Restricted NoExternalUse + package private methods) - need it this way for testing.")
-    static void setHistoryRoot(@Nonnull File historyRoot) throws IOException {
+    public static void setHistoryRoot(@Nonnull File historyRoot) throws IOException {
         // In a non-test mode, we only allow setting of the historyRoot 
         // once (during plugin init - see Endpoint class).
         if (EventHistoryStore.historyRoot != null && !Util.isTestEnv()) {

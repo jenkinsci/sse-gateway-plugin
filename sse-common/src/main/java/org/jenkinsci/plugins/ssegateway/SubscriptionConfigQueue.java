@@ -47,7 +47,7 @@ import java.util.logging.Logger;
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 @Restricted(NoExternalUse.class)
-final class SubscriptionConfigQueue {
+public final class SubscriptionConfigQueue {
 
     private static final Logger LOGGER = Logger.getLogger(SubscriptionConfigQueue.class.getName());
     
@@ -152,7 +152,7 @@ final class SubscriptionConfigQueue {
         }
     }
 
-    static class SubscriptionConfig {
+    public static class SubscriptionConfig {
         
         private static final SubscriptionConfig STOP_CONFIG = new SubscriptionConfig();
 
@@ -167,11 +167,11 @@ final class SubscriptionConfigQueue {
             return batchId;
         }
 
-        String getDispatcherId() {
+        public String getDispatcherId() {
             return dispatcherId;
         }
 
-        static SubscriptionConfig fromRequest(HttpServletRequest request) throws IOException {
+        public static SubscriptionConfig fromRequest(HttpServletRequest request) throws IOException {
             JSONObject payload = Util.readJSONPayload(request);
             SubscriptionConfig config = new SubscriptionConfig();
             
