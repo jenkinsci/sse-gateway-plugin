@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/jenkinsci/sse-gateway-plugin",
   "dependencies": {
-    "@jenkins-cd/sse-gateway": "0.0.21"
+    "@jenkins-cd/sse-gateway": "../sse-gateway-client"
   },
   "devDependencies": {
     "@jenkins-cd/js-builder": "0.0.40",

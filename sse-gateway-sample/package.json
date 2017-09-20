@@ -16,7 +16,7 @@
     "@jenkins-cd/logging": "^0.0.6"
   },
   "dependencies": {
-    "@jenkins-cd/sse-gateway": "../",
+    "@jenkins-cd/sse-gateway": "../sse-gateway-client",
     "@jenkins-cd/js-modules": "latest",
     "jquery": "^2.2.3"
   }
