@@ -8,6 +8,7 @@
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>sse-gateway-parent</artifactId>
         <version>1.16-SNAPSHOT</version>
+        <relativePath>../</relativePath>
     </parent>
 
     <artifactId>sse-gateway-client</artifactId>
