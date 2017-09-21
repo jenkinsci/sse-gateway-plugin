@@ -60,7 +60,7 @@ public final class SubscriptionConfigQueue {
         return (queue != null);
     }
     
-    static synchronized void start() {
+    public static synchronized void start() {
         if (queue != null) {
             LOGGER.info("SSE Configure Queue already started. Ignoring unexpected request to start again.");
             return;
@@ -97,7 +97,7 @@ public final class SubscriptionConfigQueue {
         }.start();
     }
 
-    static synchronized void stop() {
+    public static synchronized void stop() {
         if (queue == null) {
             LOGGER.info("SSE Configure Queue is not started. Ignoring unexpected request to stop.");
             return;
