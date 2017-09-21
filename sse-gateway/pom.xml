@@ -15,6 +15,13 @@
     <version>1.16-SNAPSHOT</version>
     <packaging>hpi</packaging>
 
+    <repositories>
+        <repository>
+            <id>repo-jenkins-ci</id>
+            <url>http://repo.jenkins-ci.org/releases/</url>
+        </repository>
+    </repositories>
+
     <properties>
         <jenkins.version>2.2</jenkins.version>
         <java.level>7</java.level>
