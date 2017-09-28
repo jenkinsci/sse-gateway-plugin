@@ -81,11 +81,13 @@ public class EventDispatcherFactory {
             openData.put("dispatcherId", dispatcher.getId());
             openData.put("dispatcherInst", System.identityHashCode(dispatcher));
 
-            // append any additional data passed in for the open event message
-            final Set extraKeys = extraOpenData.keySet();
-            for(final Object key : extraKeys) {
-                if(key instanceof String) {
-                    openData.put((String) key, extraOpenData.get(key));
+            // append any additional data passed in for the open event message, if provided (probably for testing)
+            if (extraOpenData != null) {
+                final Set extraKeys = extraOpenData.keySet();
+                for(final Object key : extraKeys) {
+                    if(key instanceof String) {
+                        openData.put((String) key, extraOpenData.get(key));
+                    }
                 }
             }
 
