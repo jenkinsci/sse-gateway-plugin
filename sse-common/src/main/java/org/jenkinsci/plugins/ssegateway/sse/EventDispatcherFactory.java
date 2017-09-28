@@ -23,35 +23,32 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
-import hudson.security.csrf.CrumbIssuer;
-import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.jenkinsci.plugins.ssegateway.Util;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.acegisecurity.Authentication;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-@Restricted(NoExternalUse.class)
 public class EventDispatcherFactory {
 
     private static final Logger LOGGER = Logger.getLogger(EventDispatcherFactory.class.getName());
 
     public static final String DISPATCHER_SESSION_KEY = EventDispatcher.class.getName();
-    
+
     private static Class<? extends EventDispatcher> runtimeClass;
-    
+
     static {
         try {
             if (isAsyncSupported()) {
@@ -64,7 +61,7 @@ public class EventDispatcherFactory {
         }
     }
     
-    public static EventDispatcher start(@Nonnull String clientId, @Nonnull HttpServletRequest request, @Nonnull HttpServletResponse response) {
+    public static EventDispatcher start(@Nonnull String clientId, @Nonnull HttpServletRequest request, @Nonnull HttpServletResponse response, @Nonnull Authentication authentication, final JSONObject extraOpenData) {
         try {
             HttpSession session = request.getSession();
             EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(clientId, session);
@@ -73,7 +70,7 @@ public class EventDispatcherFactory {
                 LOGGER.log(Level.FINE, String.format("Unknown dispatcher client Id '%s' on HTTP session '%s'. Creating a new one. " +
                         "Make sure you are calling 'connect' before 'listen' and that HTTP sessions are being maintained between 'connect' and 'configure' calls. " +
                         "SSE client reconnects will not work - probably fine if running in non-browser/test mode.", clientId, session.getId()));
-                dispatcher = EventDispatcherFactory.newDispatcher(clientId, session);
+                dispatcher = EventDispatcherFactory.newDispatcher(clientId, session, authentication);
             }
             
             dispatcher.start(request, response);
@@ -83,24 +80,15 @@ public class EventDispatcherFactory {
 
             openData.put("dispatcherId", dispatcher.getId());
             openData.put("dispatcherInst", System.identityHashCode(dispatcher));
-            
-            if (Util.isTestEnv()) {
-                openData.putAll(Util.getSessionInfo(session));
 
-                // Crumb needed for testing because we use it to fire off some 
-                // test builds via the POST API.
-                Jenkins jenkins = Jenkins.getInstance();
-                CrumbIssuer crumbIssuer = jenkins.getCrumbIssuer();
-                if (crumbIssuer != null) {
-                    JSONObject crumb = new JSONObject();
-                    crumb.put("name", crumbIssuer.getDescriptor().getCrumbRequestField());
-                    crumb.put("value", crumbIssuer.getCrumb(request));
-                    openData.put("crumb", crumb);
-                } else {
-                    LOGGER.log(Level.WARNING, "No CrumbIssuer on Jenkins instance. Some POSTs might not work.");
+            // append any additional data passed in for the open event message
+            final Set extraKeys = extraOpenData.keySet();
+            for(final Object key : extraKeys) {
+                if(key instanceof String) {
+                    openData.put((String) key, extraOpenData.get(key));
                 }
             }
-            
+
             dispatcher.dispatchEvent("open", openData.toString());
             
             // Run the retry process in case this is a reconnect.
@@ -119,6 +107,7 @@ public class EventDispatcherFactory {
      * @return The session {@link EventDispatcher}s.
      */
     public synchronized static Map<String, EventDispatcher> getDispatchers(@Nonnull HttpSession session) {
+        @SuppressWarnings("unchecked")
         Map<String, EventDispatcher> dispatchers = (Map<String, EventDispatcher>) session.getAttribute(DISPATCHER_SESSION_KEY);
         if (dispatchers == null) {
             dispatchers = new HashMap<>();
@@ -134,10 +123,11 @@ public class EventDispatcherFactory {
      * @param session The {@link HttpSession}.
      * @return The new {@link EventDispatcher} instance.
      */
-    public synchronized static EventDispatcher newDispatcher(@Nonnull String clientId, @Nonnull HttpSession session) {
+    public synchronized static EventDispatcher newDispatcher(@Nonnull String clientId, @Nonnull HttpSession session, @Nonnull Authentication authentication) {
         Map<String, EventDispatcher> dispatchers = getDispatchers(session);
         try {
-            EventDispatcher dispatcher = runtimeClass.newInstance();
+            final Constructor dispatcherConstructor = runtimeClass.getConstructor(Authentication.class);
+            final EventDispatcher dispatcher = (EventDispatcher) dispatcherConstructor.newInstance(new Object[] { authentication });
             dispatcher.setId(clientId);
             dispatchers.put(clientId, dispatcher);
             if (LOGGER.isLoggable(Level.FINE)) {

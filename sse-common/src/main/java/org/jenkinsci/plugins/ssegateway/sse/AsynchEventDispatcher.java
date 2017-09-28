@@ -24,6 +24,7 @@
 package org.jenkinsci.plugins.ssegateway.sse;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.acegisecurity.Authentication;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
@@ -53,6 +54,10 @@ class AsynchEventDispatcher extends EventDispatcher {
     private transient AsyncContext asyncContext;
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "Doesn't make sense to persist it")
     private transient final Lock asyncContextLock = new ReentrantLock();
+
+    public AsynchEventDispatcher(final Authentication authentication) {
+        super(authentication);
+    }
 
     @Override
     public void start(HttpServletRequest request, HttpServletResponse response) {

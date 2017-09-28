@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.ssegateway;
 
 import com.google.common.collect.ImmutableMap;
+import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,12 +37,13 @@ public class SseServletBaseTest {
     public void initDispatcher_nullClientId() throws Exception {
         final HttpServletRequest mockRequest = mock(HttpServletRequest.class);
         final HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+        final Authentication mockAuth = mock(Authentication.class);
 
         when(mockRequest.getParameter("clientId")).thenReturn(null);
 
         try {
             // method under test
-            testServletBase.initDispatcher(mockRequest, mockResponse);
+            testServletBase.initDispatcher(mockRequest, mockResponse, mockAuth);
             fail("should have caught IOException");
         } catch (final IOException e) {
             assertTrue(e.getMessage().equals("No 'clientId' parameter specified in connect request."));
@@ -52,6 +54,7 @@ public class SseServletBaseTest {
     public void initDispatcher_existingDispatcher() throws Exception {
         final HttpServletRequest mockRequest = mock(HttpServletRequest.class);
         final HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+        final Authentication mockAuth = mock(Authentication.class);
         final HttpSession mockSession = mock(HttpSession.class);
         final EventDispatcher mockDispatcher = mock(EventDispatcher.class);
 
@@ -61,7 +64,7 @@ public class SseServletBaseTest {
         when(mockSession.getAttribute(DISPATCHER_SESSION_KEY)).thenReturn(dispatchers);
 
         // method under test
-        testServletBase.initDispatcher(mockRequest, mockResponse);
+        testServletBase.initDispatcher(mockRequest, mockResponse, mockAuth);
 
         verify(mockDispatcher).unsubscribeAll();
         verify(mockResponse).setStatus(HttpServletResponse.SC_OK);
@@ -71,6 +74,7 @@ public class SseServletBaseTest {
     public void initDispatcher_newDispatcher() throws Exception {
         final HttpServletRequest mockRequest = mock(HttpServletRequest.class);
         final HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+        final Authentication mockAuth = mock(Authentication.class);
         final HttpSession mockSession = mock(HttpSession.class);
         final EventDispatcher mockDispatcher = mock(EventDispatcher.class);
 
@@ -79,7 +83,7 @@ public class SseServletBaseTest {
         when(mockSession.getAttribute(DISPATCHER_SESSION_KEY)).thenReturn(null).thenReturn(new HashMap<>());
 
         // method under test
-        testServletBase.initDispatcher(mockRequest, mockResponse);
+        testServletBase.initDispatcher(mockRequest, mockResponse, mockAuth);
 
         verify(mockSession).setAttribute(anyString(), anyMap());
         verify(mockDispatcher, never()).unsubscribeAll();

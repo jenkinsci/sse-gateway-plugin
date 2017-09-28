@@ -26,11 +26,9 @@ package org.jenkinsci.plugins.ssegateway;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
-import org.jenkinsci.plugins.pubsub.EventFilter;
+import org.jenkinsci.plugins.ssegateway.message.SubscriptionConfigEventFilter;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -46,7 +44,6 @@ import java.util.logging.Logger;
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-@Restricted(NoExternalUse.class)
 public final class SubscriptionConfigQueue {
 
     private static final Logger LOGGER = Logger.getLogger(SubscriptionConfigQueue.class.getName());
@@ -128,12 +125,14 @@ public final class SubscriptionConfigQueue {
         if (subscriptionConfig.unsubscribeAll) {
             dispatcher.unsubscribeAll();
         }
-        for (EventFilter filter : subscriptionConfig.unsubscribeSet) {
+        for (SubscriptionConfigEventFilter filter : subscriptionConfig.unsubscribeSet) {
+            LOGGER.log(Level.FINER, "processing unsubscribe request for subscriptionConfig={0}", filter);
             if (dispatcher.unsubscribe(filter)) {
                 EventHistoryStore.onChannelUnsubscribe(filter.getChannelName());
             }
         }
-        for (EventFilter filter : subscriptionConfig.subscribeSet) {
+        for (SubscriptionConfigEventFilter filter : subscriptionConfig.subscribeSet) {
+            LOGGER.log(Level.FINER, "processing subscribe request for subscriptionConfig={0}", filter);
             if (dispatcher.subscribe(filter)) {
                 EventHistoryStore.onChannelSubscribe(filter.getChannelName());
             }
@@ -159,8 +158,8 @@ public final class SubscriptionConfigQueue {
         private String batchId;
         private String dispatcherId;
         private HttpSession session;
-        private List<EventFilter> subscribeSet = Collections.emptyList();
-        private List<EventFilter> unsubscribeSet = Collections.emptyList();
+        private List<SubscriptionConfigEventFilter> subscribeSet = Collections.emptyList();
+        private List<SubscriptionConfigEventFilter> unsubscribeSet = Collections.emptyList();
         private boolean unsubscribeAll = false;
 
         public String getBatchId() {
@@ -192,15 +191,15 @@ public final class SubscriptionConfigQueue {
             return config;
         }
 
-        private static List<EventFilter> extractFilterSet(JSONObject payload, String key) {
+        private static List<SubscriptionConfigEventFilter> extractFilterSet(JSONObject payload, String key) {
             JSONArray jsonObjs = payload.optJSONArray(key);
             
             if (jsonObjs != null && !jsonObjs.isEmpty()) {
-                List<EventFilter> filterSet = new ArrayList<>();
+                List<SubscriptionConfigEventFilter> filterSet = new ArrayList<>();
                 for (int i = 0; i < jsonObjs.size(); i++) {
                     try {
                         JSONObject jsonObj = jsonObjs.getJSONObject(i);
-                        EventFilter filter = (EventFilter) jsonObj.toBean(EventFilter.class);
+                        SubscriptionConfigEventFilter filter = (SubscriptionConfigEventFilter) jsonObj.toBean(SubscriptionConfigEventFilter.class);
                         filterSet.add(filter);
                     } catch (JSONException e) {
                         LOGGER.log(Level.SEVERE, "Invalid SSE payload. Expecting an array of JSON Objects for property " + key, e);

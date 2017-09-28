@@ -23,9 +23,10 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import org.acegisecurity.Authentication;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -43,6 +44,10 @@ class SynchEventDispatcher extends EventDispatcher {
     private static final Logger LOGGER = Logger.getLogger(SynchEventDispatcher.class.getName());
 
     private transient HttpServletResponse response;
+
+    public SynchEventDispatcher(final Authentication authentication) {
+        super(authentication);
+    }
 
     @Override
     public void start(HttpServletRequest request, HttpServletResponse response) {

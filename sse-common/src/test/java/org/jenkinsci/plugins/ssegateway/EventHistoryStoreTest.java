@@ -2,7 +2,7 @@ package org.jenkinsci.plugins.ssegateway;
 
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.pubsub.EventProps;
-import org.jenkinsci.plugins.pubsub.SimpleMessage;
+import org.jenkinsci.plugins.pubsub.message.SimpleMessage;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,7 +86,7 @@ public class EventHistoryStoreTest {
         String eventAsString = EventHistoryStore.getChannelEvent("job", message.getEventUUID());
         Assert.assertNotNull(eventAsString);
         JSONObject eventAsJSON = JSONObject.fromObject(eventAsString);
-        Assert.assertEquals(message.getEventUUID(), eventAsJSON.getString(EventProps.Jenkins.jenkins_event_uuid.name()));
+        Assert.assertEquals(message.getEventUUID(), eventAsJSON.getString(EventProps.event_uuid.name()));
     }
     
     @Test

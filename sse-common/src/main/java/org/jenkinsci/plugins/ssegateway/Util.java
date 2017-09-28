@@ -23,11 +23,9 @@
  */
 package org.jenkinsci.plugins.ssegateway;
 
-import hudson.Functions;
+import com.google.common.base.Predicate;
 import net.sf.json.JSONObject;
 import org.apache.commons.io.IOUtils;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -42,7 +40,6 @@ import java.util.Map;
  * Internal utility methods.
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-@Restricted(NoExternalUse.class)
 public class Util {
 
     private Util() {
@@ -50,11 +47,11 @@ public class Util {
 
     public static JSONObject readJSONPayload(HttpServletRequest request) throws IOException {
         String characterEncoding = request.getCharacterEncoding();
-        
+
         if (characterEncoding == null) {
             characterEncoding = "UTF-8";
         }
-        
+
         Reader streamReader = new InputStreamReader(request.getInputStream(), characterEncoding);
         try {
             String payloadAsString = IOUtils.toString(streamReader);
@@ -65,25 +62,25 @@ public class Util {
     }
 
     private static Boolean isTestEnv = null;
-    public static boolean isTestEnv() {
+    public static boolean isTestEnv(final Predicate<Void> testEnvCheck) {
         if (isTestEnv != null) {
             return isTestEnv;
         }
-        
-        if (Functions.getIsUnitTest()) {
+
+        if (testEnvCheck != null && testEnvCheck.apply(null)) {
             isTestEnv = true;
         } else if (new File("./target/.jenkins_test").exists()) {
             isTestEnv = true;
         } else if (new File("./target/classes/" + Util.class.getName().replace(".", "/") + ".class").exists()) {
             isTestEnv = true;
         }
-        
+
         // If there's none of the markers, then we're not
         // in a test env.
         if (isTestEnv == null){
             isTestEnv = false;
         }
-        
+
         return isTestEnv;
     }
 

@@ -23,13 +23,19 @@
  */
 package org.jenkinsci.plugins.ssegateway;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import hudson.Extension;
+import hudson.Functions;
 import hudson.model.RootAction;
+import hudson.model.User;
 import hudson.security.csrf.CrumbExclusion;
+import hudson.security.csrf.CrumbIssuer;
 import hudson.util.HttpResponses;
 import hudson.util.PluginServletFilter;
 import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
+import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
@@ -39,6 +45,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
+import javax.annotation.Nullable;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -47,6 +54,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -75,7 +83,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
         String contentType = request.getHeader("Content-Type");
 
-        if(contentType != null && contentType.contains("application/json")) {
+        if (contentType != null && contentType.contains("application/json")) {
             String requestedResource = getRequestedResourcePath(request);
 
             if (requestedResource.equals(SSE_GATEWAY_URL + "/configure")) {
@@ -89,6 +97,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
 
     protected void init() throws ServletException {
         Jenkins jenkins = Jenkins.getInstance();
+
         if (jenkins != null) {
             try {
                 EventHistoryStore.setHistoryRoot(new File(jenkins.getRootDir(), "/logs/sse-events"));
@@ -97,6 +106,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                 LOGGER.log(Level.SEVERE, "Unexpected error setting EventHistoryStore event history root dir.", e);
             }
         }
+
         PluginServletFilter.addFilter(new SSEListenChannelFilter());
         servletBase = new SseServletBase();
     }
@@ -118,7 +128,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
 
     @Restricted(DoNotUse.class) // Web only
     public HttpResponse doConnect(StaplerRequest request, StaplerResponse response) throws IOException {
-        servletBase.initDispatcher(request, response);
+        servletBase.initDispatcher(request, response, getAuthentication());
         return HttpResponses.okJSON(ImmutableMap.of("jsessionid", request.getSession().getId()));
     }
 
@@ -133,7 +143,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         if (validConfig && queuedOkay) {
             response.setStatus(HttpServletResponse.SC_OK);
             return HttpResponses.okJSON();
-        } else if(!validConfig) {
+        } else if (!validConfig) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             if (subscriptionConfig.getDispatcherId() == null) {
                 return HttpResponses.errorJSON("'dispatcherId' not specified.");
@@ -150,7 +160,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     public HttpResponse doPing(StaplerRequest request) throws IOException {
         final boolean success = servletBase.ping(request);
 
-        if(!success) {
+        if (!success) {
             return HttpResponses.errorJSON("Failed to send pingback to dispatcher " + request.getParameter("dispatcherId") + ".");
         }
         return HttpResponses.okJSON();
@@ -184,17 +194,57 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                     // so just stripping out the clientId part.
 
                     clientId = URLDecoder.decode(clientId, "UTF-8");
-                    EventDispatcherFactory.start(clientId, httpServletRequest, httpServletResponse);
+
+                    // optionally add extra data to the open event message
+                    JSONObject extraOpenData = new JSONObject();
+                    if (Util.isTestEnv(new Predicate<Void>() {
+                        @Override
+                        public boolean apply(@Nullable final Void nothing) {
+                            return Functions.getIsUnitTest();
+                        }
+                    })) {
+                        extraOpenData = new JSONObject();
+                        final HttpSession session = ((HttpServletRequest) servletRequest).getSession();
+                        extraOpenData.putAll(Util.getSessionInfo(session));
+
+                        // Crumb needed for testing because we use it to fire off some
+                        // test builds via the POST API.
+                        Jenkins jenkins = Jenkins.getInstance();
+                        CrumbIssuer crumbIssuer = jenkins.getCrumbIssuer();
+                        if (crumbIssuer != null) {
+                            JSONObject crumb = new JSONObject();
+                            crumb.put("name", crumbIssuer.getDescriptor().getCrumbRequestField());
+                            crumb.put("value", crumbIssuer.getCrumb(servletRequest));
+                            extraOpenData.put("crumb", crumb);
+                        } else {
+                            LOGGER.log(Level.WARNING, "No CrumbIssuer on Jenkins instance. Some POSTs might not work.");
+                        }
+                    }
+
+                    final Authentication authentication = getAuthentication();
+
+                    EventDispatcherFactory.start(clientId, httpServletRequest, httpServletResponse, authentication, extraOpenData);
                     return; // Do not allow this request on to Stapler
                 }
             }
-            filterChain.doFilter(servletRequest,servletResponse);
+            filterChain.doFilter(servletRequest, servletResponse);
         }
 
         @Override
         public void destroy() {
             SubscriptionConfigQueue.stop();
         }
+    }
+
+    private static Authentication getAuthentication() {
+        User current = User.current();
+        final Authentication authentication;
+        if (current != null) {
+            authentication = Jenkins.getAuthentication();
+        } else {
+            authentication = Jenkins.ANONYMOUS;
+        }
+        return authentication;
     }
 
     private static String getRequestedResourcePath(HttpServletRequest httpServletRequest) {

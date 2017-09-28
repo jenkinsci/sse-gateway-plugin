@@ -23,9 +23,8 @@
  */
 package org.jenkinsci.plugins.ssegateway;
 
-import hudson.model.User;
+import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
-import org.mockito.Mockito;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -36,6 +35,10 @@ import java.io.IOException;
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 public class MockEventDispatcher extends EventDispatcher {
+    public MockEventDispatcher(final Authentication authentication) {
+        super(authentication);
+    }
+
     @Override
     public void start(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
     }
@@ -44,10 +47,10 @@ public class MockEventDispatcher extends EventDispatcher {
         return null;
     }
 
-    @Override
-    protected User getUser() {
-        User user = Mockito.mock(User.class);
-        Mockito.when(user.getId()).thenReturn("alice");
-        return user;
-    }
+//    @Override
+//    protected User getUser() {
+//        User user = Mockito.mock(User.class);
+//        Mockito.when(user.getId()).thenReturn("alice");
+//        return user;
+//    }
 }

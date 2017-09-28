@@ -23,13 +23,14 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import com.google.common.base.Predicate;
 import org.jenkinsci.plugins.ssegateway.Util;
 
 /**
  * SSE channel "sse" event properties.
  * <p>
  * Note, events are currently only published on this channel when running
- * in test mode (see {@link Util#isTestEnv()}).
+ * in test mode (see {@link Util#isTestEnv(Predicate)}).
  * 
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */

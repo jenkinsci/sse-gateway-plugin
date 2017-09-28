@@ -1,8 +1,9 @@
 package org.jenkinsci.plugins.ssegateway;
 
+import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.pubsub.ChannelSubscriber;
-import org.jenkinsci.plugins.pubsub.EventFilter;
 import org.jenkinsci.plugins.pubsub.PubsubBus;
+import org.jenkinsci.plugins.ssegateway.message.SubscriptionConfigEventFilter;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 import org.junit.After;
@@ -17,7 +18,6 @@ import org.mockito.Mockito;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -31,7 +31,8 @@ public class EndpointUnitTest {
     @Before
     public void setup() {
         SubscriptionConfigQueue.start();
-        eventDispatcher = new MockEventDispatcher();
+        final Authentication mockAuthentication = Mockito.mock(Authentication.class);
+        eventDispatcher = new MockEventDispatcher(mockAuthentication);
         response = Mockito.mock(StaplerResponse.class);
     }
     @After
@@ -56,7 +57,7 @@ public class EndpointUnitTest {
         
         endpoint.doConfigure(request, response);
 
-        Map<EventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();
+        Map<SubscriptionConfigEventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();
         Assert.assertEquals(0, subscribers.size());
     }
 
@@ -68,7 +69,7 @@ public class EndpointUnitTest {
             }
         };
 
-        Map<EventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();
+        Map<SubscriptionConfigEventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();
         Assert.assertEquals(0, subscribers.size());
 
         // Subscribe ...
@@ -90,7 +91,7 @@ public class EndpointUnitTest {
             }
         };
 
-        Map<EventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();
+        Map<SubscriptionConfigEventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();
         Assert.assertEquals(0, subscribers.size());
 
         // Subscribe ...
@@ -118,7 +119,7 @@ public class EndpointUnitTest {
         return request;
     }
 
-    private void waitForCountToGrow(Map<EventFilter, ChannelSubscriber> subscribers, int count) {
+    private void waitForCountToGrow(Map<SubscriptionConfigEventFilter, ChannelSubscriber> subscribers, int count) {
         long start = System.currentTimeMillis();
         while (true) {
             if (subscribers.size() >= count) {
@@ -136,7 +137,7 @@ public class EndpointUnitTest {
         }
     }
 
-    private void waitForCountToShrink(Map<EventFilter, ChannelSubscriber> subscribers, int count) {
+    private void waitForCountToShrink(Map<SubscriptionConfigEventFilter, ChannelSubscriber> subscribers, int count) {
         long start = System.currentTimeMillis();
         while (true) {
             if (subscribers.size() <= count) {

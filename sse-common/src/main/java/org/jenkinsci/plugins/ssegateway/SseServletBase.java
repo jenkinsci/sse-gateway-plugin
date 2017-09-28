@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.ssegateway;
 
+import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 
@@ -22,7 +23,7 @@ public class SseServletBase {
      *
      * @throws IOException
      */
-    public void initDispatcher(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void initDispatcher(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
         String clientId = request.getParameter("clientId");
 
         if (clientId == null) {
@@ -39,7 +40,7 @@ public class SseServletBase {
             dispatcher.unsubscribeAll();
         } else {
             // Else create a new instance with this id.
-            EventDispatcherFactory.newDispatcher(clientId, session);
+            EventDispatcherFactory.newDispatcher(clientId, session, authentication);
         }
 
         response.setStatus(HttpServletResponse.SC_OK);

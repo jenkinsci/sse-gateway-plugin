@@ -23,6 +23,14 @@
  */
 package org.jenkinsci.plugins.ssegateway;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import org.apache.commons.io.FileUtils;
+import org.jenkinsci.plugins.pubsub.ChannelSubscriber;
+import org.jenkinsci.plugins.pubsub.PubsubBus;
+import org.jenkinsci.plugins.pubsub.message.Message;
+import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.File;
@@ -39,16 +47,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.security.ACL;
-import org.apache.commons.io.FileUtils;
-import org.jenkinsci.plugins.pubsub.ChannelSubscriber;
-import org.jenkinsci.plugins.pubsub.Message;
-import org.jenkinsci.plugins.pubsub.PubsubBus;
-import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 /**
  * Channel event message history store.
  * <p>
@@ -57,11 +55,11 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  * 
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-@Restricted(NoExternalUse.class)
 public final class EventHistoryStore {
-
     private static final Logger LOGGER = Logger.getLogger(EventHistoryStore.class.getName());
-    
+
+    private static final String SYSTEM_USERNAME = "SYSTEM";
+
     private static File historyRoot;
     private static long expiresAfter = (1000 * 60); // default of 1 minutes
     private static Map<String, File> channelDirs = new ConcurrentHashMap<>();
@@ -75,7 +73,7 @@ public final class EventHistoryStore {
     public static void setHistoryRoot(@Nonnull File historyRoot) throws IOException {
         // In a non-test mode, we only allow setting of the historyRoot 
         // once (during plugin init - see Endpoint class).
-        if (EventHistoryStore.historyRoot != null && !Util.isTestEnv()) {
+        if (EventHistoryStore.historyRoot != null && !Util.isTestEnv(null)) {
             LOGGER.log(Level.SEVERE, "Invalid attempt to change historyRoot after it has already been set. Ignoring.");
             return;
         }
@@ -90,7 +88,7 @@ public final class EventHistoryStore {
 
     static void setExpiryMillis(long expiresAfterMillis) {
         // In a non-test mode, we don't allow setting of the expiresAfter at all.
-        if (!Util.isTestEnv()) {
+        if (!Util.isTestEnv(null)) {
             LOGGER.log(Level.SEVERE, "Invalid attempt to change expiresAfterMillis. Ignoring.");
             return;
         }
@@ -289,7 +287,7 @@ public final class EventHistoryStore {
             EventHistoryLogger logger = channelLoggers.get(channelName);
             if (logger == null) {
                 logger = new EventHistoryLogger(counter);
-                PubsubBus.getBus().subscribe(channelName, logger, ACL.SYSTEM, null);
+                PubsubBus.getBus().subscribe(channelName, logger, new UsernamePasswordAuthenticationToken(SYSTEM_USERNAME,"SYSTEM"), null);
                 channelLoggers.put(channelName, logger);
             }
         }

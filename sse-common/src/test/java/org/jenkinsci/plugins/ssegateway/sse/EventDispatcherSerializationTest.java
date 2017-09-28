@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
@@ -41,12 +42,12 @@ public class EventDispatcherSerializationTest {
 
     @Test
     public void test_AsynchEventDispatcher() throws IOException {
-        serialize(new AsynchEventDispatcher());
+        serialize(new AsynchEventDispatcher(new UsernamePasswordAuthenticationToken("username", "password")));
     }
 
     @Test
     public void test_SynchEventDispatcher() throws IOException {
-        serialize(new SynchEventDispatcher());
+        serialize(new SynchEventDispatcher(new UsernamePasswordAuthenticationToken("username", "password")));
     }
 
     private void serialize(EventDispatcher dispatcher) throws IOException {
