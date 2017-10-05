@@ -38,7 +38,6 @@ public interface SSEChannel {
 
     /**
      * The event names.
-     * @see org.jenkinsci.plugins.pubsub.EventProps.Jenkins#jenkins_event
      */
     enum Event {
         subscribe,

@@ -27,8 +27,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
 import org.apache.commons.io.FileUtils;
 import org.jenkinsci.plugins.pubsub.ChannelSubscriber;
+import org.jenkinsci.plugins.pubsub.Message;
 import org.jenkinsci.plugins.pubsub.PubsubBus;
-import org.jenkinsci.plugins.pubsub.message.Message;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 
 import javax.annotation.CheckForNull;
@@ -125,7 +125,9 @@ public final class EventHistoryStore {
             
             File writeEventFile = new File(channelDir, eventUUID + "_WRITE.json");
             File readEventFile = new File(channelDir, eventUUID + ".json");
-        
+
+            LOGGER.log(Level.FINEST, "store() - writing to writeEventFile={0}, readEventFile={1}", new Object[]{ writeEventFile.getAbsolutePath(), readEventFile.getAbsoluteFile() });
+
             FileUtils.writeStringToFile(writeEventFile, message.toJSON(), "UTF-8");
             if (!writeEventFile.renameTo(readEventFile)) {
                 LOGGER.log(Level.SEVERE, "Unexpected error renaming EventHistoryStore entry file to {0}.", readEventFile.getAbsolutePath());
@@ -191,10 +193,13 @@ public final class EventHistoryStore {
     }
 
     static File getChannelDir(@Nonnull String channelName) throws IOException {
+        LOGGER.log(Level.FINEST, "getChannelDir() - channelName={0}", channelName);
+
         assertHistoryRootSet();
 
         File channelDir = channelDirs.get(channelName);
         if (channelDir == null) {
+            LOGGER.log(Level.FINEST, "getChannelDir() - creating new channelDir={0}", historyRoot.getAbsolutePath() + channelName);
             channelDir = new File(historyRoot, channelName);
             channelDirs.put(channelName, channelDir);
         }

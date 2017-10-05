@@ -40,6 +40,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <pubsub-light.version>1.13-SNAPSHOT</pubsub-light.version>
   </properties>
 
   <dependencyManagement>
@@ -53,7 +54,12 @@
       <dependency>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>pubsub-light-common</artifactId>
-        <version>1.13-SNAPSHOT</version>
+        <version>${pubsub-light.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>pubsub-light-guava-provider</artifactId>
+        <version>${pubsub-light.version}</version>
       </dependency>
       <dependency>
         <groupId>org.jenkins-ci.main</groupId>

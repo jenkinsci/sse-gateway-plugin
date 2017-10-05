@@ -1,6 +1,6 @@
-package org.jenkinsci.plugins.ssegateway.message;
+package org.jenkinsci.plugins.ssegateway;
 
-import org.jenkinsci.plugins.pubsub.message.EventFilter;
+import org.jenkinsci.plugins.pubsub.EventFilter;
 
 /**
  * Version of {@code org.jenkinsci.plugins.pubsub.message.EventFilter} intended to maintain backwards compatibility with the SSE client.

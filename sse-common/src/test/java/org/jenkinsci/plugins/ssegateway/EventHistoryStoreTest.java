@@ -1,8 +1,8 @@
 package org.jenkinsci.plugins.ssegateway;
 
 import net.sf.json.JSONObject;
-import org.jenkinsci.plugins.pubsub.EventProps;
-import org.jenkinsci.plugins.pubsub.message.SimpleMessage;
+import org.jenkinsci.plugins.pubsub.BasicMessage;
+import org.jenkinsci.plugins.pubsub.CommonEventProps;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,14 +79,14 @@ public class EventHistoryStoreTest {
 
     @Test
     public void test_get_event() throws Exception {
-        SimpleMessage message = createMessage();
+        BasicMessage message = createMessage();
         
         EventHistoryStore.store(message);
         
         String eventAsString = EventHistoryStore.getChannelEvent("job", message.getEventUUID());
         Assert.assertNotNull(eventAsString);
         JSONObject eventAsJSON = JSONObject.fromObject(eventAsString);
-        Assert.assertEquals(message.getEventUUID(), eventAsJSON.getString(EventProps.event_uuid.name()));
+        Assert.assertEquals(message.getEventUUID(), eventAsJSON.getString(CommonEventProps.event_uuid.name()));
     }
     
     @Test
@@ -160,8 +160,8 @@ public class EventHistoryStoreTest {
         }
     }
 
-    private SimpleMessage createMessage() {
-        return new SimpleMessage().setChannelName(CHANNEL_NAME)
+    private BasicMessage createMessage() {
+        return new BasicMessage().setChannelName(CHANNEL_NAME)
                 .setEventName("test-event")
                 .set("timestamp", Long.toString(System.currentTimeMillis()))
                 .set("messageNum", Integer.toString(IOTA++));

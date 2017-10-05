@@ -28,6 +28,7 @@
         <jenkins-test-harness.version>2.8</jenkins-test-harness.version>
         <node.version>5.8.0</node.version>
         <npm.version>3.7.3</npm.version>
+        <pubsub-light.version>1.13-SNAPSHOT</pubsub-light.version>
     </properties>
 
     <dependencies>
@@ -38,10 +39,19 @@
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>pubsub-light-plugin</artifactId>
-            <version>1.13-SNAPSHOT</version>
+            <artifactId>pubsub-light-common</artifactId>
+            <version>${pubsub-light.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>pubsub-light-plugin</artifactId>
+            <version>${pubsub-light.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>pubsub-light-jenkins-guava-provider</artifactId>
+            <version>${pubsub-light.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>sse-common</artifactId>

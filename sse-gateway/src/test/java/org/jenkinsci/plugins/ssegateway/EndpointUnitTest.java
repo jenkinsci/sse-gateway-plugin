@@ -3,7 +3,6 @@ package org.jenkinsci.plugins.ssegateway;
 import org.acegisecurity.Authentication;
 import org.jenkinsci.plugins.pubsub.ChannelSubscriber;
 import org.jenkinsci.plugins.pubsub.PubsubBus;
-import org.jenkinsci.plugins.ssegateway.message.SubscriptionConfigEventFilter;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 import org.junit.After;

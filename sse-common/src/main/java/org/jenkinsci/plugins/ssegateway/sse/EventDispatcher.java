@@ -25,15 +25,15 @@ package org.jenkinsci.plugins.ssegateway.sse;
 
 import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
+import org.jenkinsci.plugins.pubsub.BasicMessage;
 import org.jenkinsci.plugins.pubsub.ChannelSubscriber;
-import org.jenkinsci.plugins.pubsub.EventProps;
+import org.jenkinsci.plugins.pubsub.CommonEventProps;
+import org.jenkinsci.plugins.pubsub.Message;
+import org.jenkinsci.plugins.pubsub.MessageException;
 import org.jenkinsci.plugins.pubsub.PubsubBus;
-import org.jenkinsci.plugins.pubsub.exception.MessageException;
-import org.jenkinsci.plugins.pubsub.message.Message;
-import org.jenkinsci.plugins.pubsub.message.SimpleMessage;
 import org.jenkinsci.plugins.ssegateway.EventHistoryStore;
+import org.jenkinsci.plugins.ssegateway.SubscriptionConfigEventFilter;
 import org.jenkinsci.plugins.ssegateway.Util;
-import org.jenkinsci.plugins.ssegateway.message.SubscriptionConfigEventFilter;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
@@ -108,6 +108,8 @@ public abstract class EventDispatcher implements Serializable {
      *      false if the response is not writable
      */
     public synchronized boolean dispatchEvent(String name, String data) throws IOException, ServletException {
+        LOGGER.log(Level.FINEST, "dispatchEvent() - name={0}, data={1}", new Object[]{ name, data });
+
         HttpServletResponse response = getResponse();
         
         if (response == null) {
@@ -165,7 +167,7 @@ public abstract class EventDispatcher implements Serializable {
             }
 
             subscriber.numSubscribers++;
-            publishStateEvent(SSEChannel.Event.subscribe,  new SimpleMessage()
+            publishStateEvent(SSEChannel.Event.subscribe,  new BasicMessage()
                     .set(SSEChannel.EventProps.sse_subs_dispatcher, id)
                     .set(SSEChannel.EventProps.sse_subs_channel_name, channelName)
                     .set(SSEChannel.EventProps.sse_subs_filter, filter.toJSON())
@@ -173,7 +175,7 @@ public abstract class EventDispatcher implements Serializable {
 
             return true;
         } else {
-            LOGGER.log(Level.SEVERE, String.format("Invalid SSE subscribe configuration. '%s' not specified.", EventProps.channel_name));
+            LOGGER.log(Level.SEVERE, String.format("Invalid SSE subscribe configuration. '%s' not specified.", CommonEventProps.channel_name));
         }
         
         return false;
@@ -192,7 +194,7 @@ public abstract class EventDispatcher implements Serializable {
                         subscribers.remove(filter);
                     }
                 }
-                publishStateEvent(SSEChannel.Event.unsubscribe,  new SimpleMessage()
+                publishStateEvent(SSEChannel.Event.unsubscribe,  new BasicMessage()
                         .set(SSEChannel.EventProps.sse_subs_dispatcher, id)
                         .set(SSEChannel.EventProps.sse_subs_channel_name, channelName)
                         .set(SSEChannel.EventProps.sse_subs_filter, filter.toJSON())
@@ -202,7 +204,7 @@ public abstract class EventDispatcher implements Serializable {
                 LOGGER.log(Level.WARNING, "Invalid SSE unsubscribe configuration. No active subscription matching filter: ");
             }
         } else {
-            LOGGER.log(Level.SEVERE, String.format("Invalid SSE unsubscribe configuration. '%s' not specified.", EventProps.channel_name));
+            LOGGER.log(Level.SEVERE, String.format("Invalid SSE unsubscribe configuration. '%s' not specified.", CommonEventProps.channel_name));
         }
         return false;
     }
@@ -240,7 +242,7 @@ public abstract class EventDispatcher implements Serializable {
         }
 
         try {
-            SimpleMessage message = new SimpleMessage()
+            BasicMessage message = new BasicMessage()
                     .setChannelName("sse")
                     .set("jenkins_channel", "sse")
                     .setEventName(event)
@@ -333,6 +335,8 @@ public abstract class EventDispatcher implements Serializable {
     }
 
     private void doDispatch(@Nonnull Message message) {
+        LOGGER.log(Level.FINEST, "doDispatch() - message={0}", message.toString());
+
         if (!retryQueue.isEmpty()) {
             // We do not attempt to dispatch events directly
             // while there are events sitting in the retryQueue.

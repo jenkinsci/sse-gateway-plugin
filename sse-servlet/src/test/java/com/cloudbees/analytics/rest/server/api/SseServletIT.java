@@ -10,8 +10,8 @@ import org.eclipse.jetty.server.session.DefaultSessionIdManager;
 import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHandler;
+import org.jenkinsci.plugins.pubsub.BasicMessage;
 import org.jenkinsci.plugins.pubsub.PubsubBus;
-import org.jenkinsci.plugins.pubsub.message.SimpleMessage;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -119,7 +119,7 @@ public class SseServletIT {
         LOGGER.info("received ping response={}", pingResponse.readEntity(String.class));
 
         LOGGER.info("sending message to subscribers to channel={}", someChannel);
-        final SimpleMessage message = new SimpleMessage();
+        final BasicMessage message = new BasicMessage();
         message.setChannelName(someChannel);
         message.set("jenkins_channel", someChannel);
         message.setEventName("job_crud_created");
