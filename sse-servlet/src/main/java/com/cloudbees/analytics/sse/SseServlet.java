@@ -81,19 +81,18 @@ public class SseServlet extends HttpServlet {
     @Override
     protected void doGet(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         LOGGER.debug("doGet - called with requestUrl={}", request.getRequestURL().toString());
-        validatePath(request, response);
         processGet(request, response);
     }
 
     private void processGet(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         if (pathMatches(request.getPathInfo(), CONNECT_PATH)) {
             doConnect(request, response);
-        } else if (pathMatches(request.getPathInfo(), LISTEN_PATH + "/\\w+")) {
+        } else if (pathMatches(request.getPathInfo(), LISTEN_PATH + "/[\\w-]+")) {
             doListen(request, response);
         } else if (pathMatches(request.getPathInfo(), PING_PATH)) {
             doPing(request, response);
         } else {
-            errorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "invalid path, path=" + request.getPathInfo());
+            errorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "invalid or missing path, path=" + request.getPathInfo());
         }
 
     }
@@ -107,7 +106,6 @@ public class SseServlet extends HttpServlet {
      */
     @Override
     protected void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
-        validatePath(request, response);
         processPost(request, response);
     }
 
@@ -119,15 +117,9 @@ public class SseServlet extends HttpServlet {
         }
     }
 
-    private void validatePath(final HttpServletRequest request, final HttpServletResponse response) {
-        if (request.getPathInfo() == null) {
-            errorResponse(response, HttpServletResponse.SC_BAD_REQUEST, "invalid or missing path, path=" + request.getPathInfo());
-        }
-    }
-
     private boolean pathMatches(final String pathInfo, final String patternString) {
         final Pattern pattern = Pattern.compile(patternString);
-        return pattern.matcher(pathInfo).matches();
+        return pathInfo != null && pattern.matcher(pathInfo).matches();
     }
 
     /**
