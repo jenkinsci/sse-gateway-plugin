@@ -1,0 +1,397 @@
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2016, CloudBees, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package org.jenkinsci.plugins.ssegateway.sse;
+
+import net.sf.json.JSONObject;
+import org.acegisecurity.Authentication;
+import org.jenkinsci.plugins.pubsub.*;
+import org.jenkinsci.plugins.ssegateway.*;
+
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+import javax.servlet.http.*;
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.logging.*;
+
+/**
+ * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
+ */
+public abstract class EventDispatcher implements Serializable {
+
+    public static final String SESSION_SYNC_OBJ = "org.jenkinsci.plugins.ssegateway.sse.session.sync";
+    private static final Logger LOGGER = Logger.getLogger(EventDispatcher.class.getName());
+
+    private String id = null;
+
+    private transient PubsubBus bus;
+    private Authentication authentication;
+
+    private transient Map<SubscriptionConfigEventFilter, ChannelSubscriber> subscribers = new ConcurrentHashMap<>();
+    
+    // Lists of events that need to be retried on the next reconnect.
+    private transient Queue<Retry> retryQueue = new ConcurrentLinkedQueue<>();
+
+    public EventDispatcher() {
+    }
+
+    public EventDispatcher(final Authentication authentication) {
+        this.authentication = authentication;
+        this.bus = PubsubBus.getBus();
+    }
+
+    public abstract void start(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException;
+    public abstract HttpServletResponse getResponse();
+
+    public Map<SubscriptionConfigEventFilter, ChannelSubscriber> getSubscribers() {
+        return Collections.unmodifiableMap(subscribers);
+    }
+
+    public final String getId() {
+        if (id == null) {
+            throw new IllegalStateException("Call to getId before the ID ewas set.");
+        }
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s (%s)", id, System.identityHashCode(this));
+    }
+
+    public Authentication getAuthentication() {
+        return authentication;
+    }
+
+    /**
+     * Writes a message to {@link HttpServletResponse}
+     *
+     * @return
+     *      false if the response is not writable
+     */
+    public synchronized boolean dispatchEvent(String name, String data) throws IOException, ServletException {
+        LOGGER.log(Level.FINEST, "dispatchEvent() - name={0}, data={1}", new Object[]{ name, data });
+
+        HttpServletResponse response = getResponse();
+        
+        if (response == null) {
+            // The SSE channel is not connected or is reconnecting after timeout.
+            // Event will go to retry queue.
+            return false;
+        }
+        
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, String.format("SSE dispatcher %s sending event name: %s, data: %s", this, name, data));
+        }
+        
+        PrintWriter writer = response.getWriter();
+        
+        if (writer.checkError()) {
+            return false;
+        }
+        
+        if (name != null) {
+            writer.write("event: " + name + "\n");
+        }
+        if (data != null) {
+            writer.write("data: " + data + "\n");
+        }
+        writer.write("\n");
+        
+        return (!writer.checkError());
+    }
+    
+    public void stop() {
+        // override as needed
+    }
+
+    void setDefaultHeaders() {
+        HttpServletResponse response = getResponse();
+        response.setStatus(200);
+        response.setContentType("text/event-stream");
+        response.setCharacterEncoding("UTF-8");
+        response.setHeader("Cache-Control","no-cache");
+        response.setHeader("Connection","keep-alive");
+    }
+
+    public boolean subscribe(@Nonnull SubscriptionConfigEventFilter filter) {
+        String channelName = filter.getChannelName();
+
+        if (channelName != null) {
+            SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
+            if (subscriber == null) {
+                subscriber = new SSEChannelSubscriber();
+
+                bus.subscribe(channelName, subscriber, authentication, filter);
+                subscribers.put(filter, subscriber);
+            } else {
+                // Already subscribed to this event.
+            }
+
+            subscriber.numSubscribers++;
+            publishStateEvent(SSEChannel.Event.subscribe,  new BasicMessage()
+                    .set(SSEChannel.EventProps.sse_subs_dispatcher, id)
+                    .set(SSEChannel.EventProps.sse_subs_channel_name, channelName)
+                    .set(SSEChannel.EventProps.sse_subs_filter, filter.toJSON())
+            );
+
+            return true;
+        } else {
+            LOGGER.log(Level.SEVERE, String.format("Invalid SSE subscribe configuration. '%s' not specified.", CommonEventProps.channel_name));
+        }
+        
+        return false;
+    }
+
+    public boolean unsubscribe(@Nonnull SubscriptionConfigEventFilter filter) {
+        String channelName = filter.getChannelName();
+        if (channelName != null) {
+            SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
+            if (subscriber != null) {
+                subscriber.numSubscribers--;
+                if (subscriber.numSubscribers == 0) {
+                    try {
+                        bus.unsubscribe(channelName, subscriber);
+                    } finally {
+                        subscribers.remove(filter);
+                    }
+                }
+                publishStateEvent(SSEChannel.Event.unsubscribe,  new BasicMessage()
+                        .set(SSEChannel.EventProps.sse_subs_dispatcher, id)
+                        .set(SSEChannel.EventProps.sse_subs_channel_name, channelName)
+                        .set(SSEChannel.EventProps.sse_subs_filter, filter.toJSON())
+                );
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "Invalid SSE unsubscribe configuration. No active subscription matching filter: ");
+            }
+        } else {
+            LOGGER.log(Level.SEVERE, String.format("Invalid SSE unsubscribe configuration. '%s' not specified.", CommonEventProps.channel_name));
+        }
+        return false;
+    }
+
+    public void unsubscribeAll() {
+        Set<Map.Entry<SubscriptionConfigEventFilter, ChannelSubscriber>> entries = subscribers.entrySet();
+        for (Map.Entry<SubscriptionConfigEventFilter, ChannelSubscriber> entry : entries) {
+            ChannelSubscriber subscriber = entry.getValue();
+            SubscriptionConfigEventFilter filter = entry.getKey();
+            String channelName = filter.getChannelName();
+
+            bus.unsubscribe(channelName, subscriber);
+        }
+        subscribers.clear();
+    }
+
+    private void scheduleRetryQueueProcessing(long delay) {
+        if (delay > 0) {
+            new Timer().scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    processRetries();
+                }
+            }, delay, delay);
+        } else {
+            processRetries();
+        }
+    }
+
+    private void publishStateEvent(SSEChannel.Event event, Message additional) {
+        // Only publish these events if we're running
+        // in a test.
+        if (!Util.isTestEnv(null)) {
+            return;
+        }
+
+        try {
+            BasicMessage message = new BasicMessage()
+                    .setChannelName("sse")
+                    .set("jenkins_channel", "sse")
+                    .setEventName(event)
+                    .set("jenkins_event", event.name())
+                    .set("sse_numsubs", Integer.toString(subscribers.size()));
+            if (additional != null) {
+                message.putAll(additional);
+            }
+            bus.publish(message);
+        } catch (MessageException e) {
+            LOGGER.log(Level.WARNING, "Failed to publish SSE Dispatcher state event.", e);
+        }
+    }
+
+    private void dispatchReload() {
+        retryQueue.clear();
+        try {
+            dispatchEvent("reload", null);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Unable to send reload event to client.", e);
+        }
+    }
+    
+    private void addToRetryQueue(@Nonnull Message message) {
+        if (!retryQueue.add(new Retry(message))) {
+            // Unable to add to the queue. Lets just tell the client
+            // that it needs to reload the page.
+            dispatchReload();
+        }
+    }
+
+    synchronized void processRetries() {
+        Retry retry = retryQueue.peek();
+        
+        try {
+            while (retry != null) {
+                try {
+                    String eventJSON = EventHistoryStore.getChannelEvent(retry.channelName, retry.eventUUID);
+
+                    if (eventJSON == null) {
+                        // The event is not in the store. This can be simply because the event has
+                        // not yet arrived at the store and been stored. It might need another
+                        // moment or two to get there.
+                        if (!retry.needsMoreTimeToLandInStore()) {
+                            // Something's gone wrong. The event should be in the store by now.
+                            // Lets tell the client that it needs to do a full page reload. Not much
+                            // else can be done at this stage.
+                            dispatchReload(); // This clears the queue too.
+                            return;
+                        } else {
+                            // The event should be in the store (not expired, so would not 
+                            // have been deleted). Only explanation is that it has not yet
+                            // landed there. Let's pause the retry process
+                            // for a moment and retry again in the hope that the event
+                            // eventually lands there. Exiting here will schedule a new run
+                            // of this retry process (see finally block below).
+                            return;
+                        }
+                    }
+                    
+                    if (Util.isTestEnv(null)) {
+                        JSONObject eventJSONObj = JSONObject.fromObject(eventJSON);
+                        eventJSONObj.put(SSEChannel.EventProps.sse_dispatch_retry.name(), "true");
+                        eventJSON = eventJSONObj.toString();
+                    }
+
+                    if (!dispatchEvent(retry.channelName, eventJSON)) {
+                        LOGGER.log(Level.FINE, String.format("Error dispatching retry event to SSE channel. Write failed. Dispatcher %s.", this));
+                        return;
+                    } else if (LOGGER.isLoggable(Level.FINEST)) {
+                        LOGGER.log(Level.FINEST, "Dispatched retry event to SSE channel. Dispatcher {0}. Event {1}.", new Object[] {this, eventJSON});
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.FINE, String.format("Error dispatching retry event to SSE channel. Write failed. Dispatcher %s.", this), e);
+                    return;
+                }
+
+                // Only remove from the queue once successfully dispatched.
+                retryQueue.remove();
+                retry = retryQueue.peek();
+            }
+
+        } finally {
+            if (!retryQueue.isEmpty()) {
+                // For some reason the processing has exited prematurely.
+                // Schedule it to run again. We must clear this ASAP.
+                scheduleRetryQueueProcessing(100);
+            }
+        }
+    }
+
+    private void doDispatch(@Nonnull Message message) {
+        LOGGER.log(Level.FINEST, "doDispatch() - message={0}", message.toString());
+
+        if (!retryQueue.isEmpty()) {
+            // We do not attempt to dispatch events directly
+            // while there are events sitting in the retryQueue.
+            // The retryQueue must be empty.
+            addToRetryQueue(message);
+        } else {
+            try {
+                message.set(SSEChannel.EventProps.sse_subs_dispatcher, this.id);
+                message.set(SSEChannel.EventProps.sse_subs_dispatcher_inst, Integer.toString(System.identityHashCode(this)));
+
+                if (!dispatchEvent(message.getChannelName(), message.toJSON())) {
+                    LOGGER.log(Level.FINE, "Error dispatching event to SSE channel. Write failed.");
+                    addToRetryQueue(message);
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, "Error dispatching event to SSE channel.", e);
+                addToRetryQueue(message);
+            }
+        }
+    }
+
+    /**
+     * Receive event from {@link PubsubBus} and sends it to this client.
+     */
+    private final class SSEChannelSubscriber implements ChannelSubscriber, Serializable {
+        private int numSubscribers = 0;
+
+        @Override
+        public void onMessage(@Nonnull Message message) {
+            doDispatch(message);
+        }
+
+        public int getNumSubscribers() {
+            return numSubscribers;
+        }
+    }
+
+    private static class Retry {
+        private final long timestamp = System.currentTimeMillis();
+        private final String channelName;
+        private final String eventUUID;
+
+        private Retry(@Nonnull Message message) {
+            // We want to keep the memory footprint of the retryQueue
+            // to a minimum. That is why we are interning these strings
+            // (multiple dispatchers will likely be retrying the same messages)
+            // as well as saving the actual message bodies to file and reading those
+            // back when it comes time to process the retry i.e. keep as little
+            // in memory as possible + share references where we can.
+            this.channelName = message.getChannelName().intern();
+            this.eventUUID = message.getEventUUID().intern();
+        }
+        
+        private boolean needsMoreTimeToLandInStore() {
+            // There's no way it should take more than 10 seconds for
+            // event to hit the store (10 seconds longer than it took to
+            // hit the dispatcher). Once we go outside that window,
+            // then we return false from this function.
+            return (System.currentTimeMillis() - timestamp < 10000);
+        }
+    }
+
+    // repopulate transient fields upon deserialization
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        retryQueue = new ConcurrentLinkedQueue<>();
+        bus = PubsubBus.getBus();
+        subscribers = new ConcurrentHashMap<>();
+    }
+}
