@@ -26,16 +26,11 @@ package org.jenkinsci.plugins.ssegateway.sse;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.acegisecurity.Authentication;
 
-import javax.servlet.AsyncContext;
-import javax.servlet.AsyncEvent;
-import javax.servlet.AsyncListener;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import javax.servlet.*;
+import javax.servlet.http.*;
+import java.io.*;
+import java.util.concurrent.locks.*;
+import java.util.logging.*;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -53,7 +48,7 @@ class AsynchEventDispatcher extends EventDispatcher {
     
     private transient AsyncContext asyncContext;
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "Doesn't make sense to persist it")
-    private transient final Lock asyncContextLock = new ReentrantLock();
+    private transient Lock asyncContextLock = new ReentrantLock();
 
     public AsynchEventDispatcher(final Authentication authentication) {
         super(authentication);
@@ -112,5 +107,11 @@ class AsynchEventDispatcher extends EventDispatcher {
     @Override
     public void stop() {
         asyncContext.complete();
+    }
+
+    // repopulate transient fields upon deserialization
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        asyncContextLock = new ReentrantLock();
     }
 }

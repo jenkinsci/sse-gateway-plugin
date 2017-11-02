@@ -26,17 +26,11 @@ package org.jenkinsci.plugins.ssegateway.sse;
 import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import javax.annotation.*;
+import javax.servlet.http.*;
 import java.lang.reflect.Constructor;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.*;
+import java.util.logging.*;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -128,17 +122,22 @@ public class EventDispatcherFactory {
     public synchronized static EventDispatcher newDispatcher(@Nonnull String clientId, @Nonnull HttpSession session, @Nonnull Authentication authentication) {
         Map<String, EventDispatcher> dispatchers = getDispatchers(session);
         try {
-            final Constructor dispatcherConstructor = runtimeClass.getConstructor(Authentication.class);
-            final EventDispatcher dispatcher = (EventDispatcher) dispatcherConstructor.newInstance(new Object[] { authentication });
-            dispatcher.setId(clientId);
+            final EventDispatcher dispatcher = buildEventDispatcher(clientId, authentication);
             dispatchers.put(clientId, dispatcher);
             if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, String.format("New dispatcher '%s' attached to HTTP session '%s'.", dispatcher, session.getId()));
+                LOGGER.log(Level.FINE, String.format("New dispatcher '%s' attached to HTTP session  '%s'.", dispatcher, session.getId()));
             }
             return dispatcher;
         } catch (Exception e) {
             throw new IllegalStateException("Unexpected Exception.", e);
         }
+    }
+
+    public static EventDispatcher buildEventDispatcher(final @Nonnull String clientId, final @Nonnull Authentication authentication) throws ReflectiveOperationException {
+        final Constructor dispatcherConstructor = runtimeClass.getConstructor(Authentication.class);
+        final EventDispatcher dispatcher = (EventDispatcher) dispatcherConstructor.newInstance(new Object[] { authentication });
+        dispatcher.setId(clientId);
+        return dispatcher;
     }
 
     /**

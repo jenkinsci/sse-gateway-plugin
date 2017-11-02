@@ -24,11 +24,12 @@
 package org.jenkinsci.plugins.ssegateway.sse;
 
 import org.acegisecurity.providers.UsernamePasswordAuthenticationToken;
+import org.apache.commons.lang.SerializationUtils;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import java.io.*;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * See https://issues.jenkins-ci.org/browse/JENKINS-41063
@@ -42,12 +43,20 @@ public class EventDispatcherSerializationTest {
 
     @Test
     public void test_AsynchEventDispatcher() throws IOException {
-        serialize(new AsynchEventDispatcher(new UsernamePasswordAuthenticationToken("username", "password")));
+        final AsynchEventDispatcher dispatcher = new AsynchEventDispatcher(new UsernamePasswordAuthenticationToken("username", "password"));
+        serialize(dispatcher);
+
+        final byte[] serialized = SerializationUtils.serialize(dispatcher);
+        final AsynchEventDispatcher deserialized = (AsynchEventDispatcher) SerializationUtils.deserialize(serialized);
+
+        assertEquals(dispatcher.getAuthentication(), deserialized.getAuthentication());
     }
 
     @Test
     public void test_SynchEventDispatcher() throws IOException {
-        serialize(new SynchEventDispatcher(new UsernamePasswordAuthenticationToken("username", "password")));
+        final UsernamePasswordAuthenticationToken dispatcher = new UsernamePasswordAuthenticationToken("username", "password");
+        serialize(new SynchEventDispatcher(dispatcher));
+        SerializationUtils.deserialize(SerializationUtils.serialize(dispatcher));
     }
 
     private void serialize(EventDispatcher dispatcher) throws IOException {

@@ -25,33 +25,16 @@ package org.jenkinsci.plugins.ssegateway.sse;
 
 import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
-import org.jenkinsci.plugins.pubsub.BasicMessage;
-import org.jenkinsci.plugins.pubsub.ChannelSubscriber;
-import org.jenkinsci.plugins.pubsub.CommonEventProps;
-import org.jenkinsci.plugins.pubsub.Message;
-import org.jenkinsci.plugins.pubsub.MessageException;
-import org.jenkinsci.plugins.pubsub.PubsubBus;
-import org.jenkinsci.plugins.ssegateway.EventHistoryStore;
-import org.jenkinsci.plugins.ssegateway.SubscriptionConfigEventFilter;
-import org.jenkinsci.plugins.ssegateway.Util;
+import org.jenkinsci.plugins.pubsub.*;
+import org.jenkinsci.plugins.ssegateway.*;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.Serializable;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import javax.servlet.http.*;
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.logging.*;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -62,13 +45,18 @@ public abstract class EventDispatcher implements Serializable {
     private static final Logger LOGGER = Logger.getLogger(EventDispatcher.class.getName());
 
     private String id = null;
-    private final transient PubsubBus bus;
-    private final transient Authentication authentication;
+
+    private transient PubsubBus bus;
+    private Authentication authentication;
+
     private transient Map<SubscriptionConfigEventFilter, ChannelSubscriber> subscribers = new ConcurrentHashMap<>();
     
     // Lists of events that need to be retried on the next reconnect.
     private transient Queue<Retry> retryQueue = new ConcurrentLinkedQueue<>();
-    
+
+    public EventDispatcher() {
+    }
+
     public EventDispatcher(final Authentication authentication) {
         this.authentication = authentication;
         this.bus = PubsubBus.getBus();
@@ -212,7 +200,7 @@ public abstract class EventDispatcher implements Serializable {
     public void unsubscribeAll() {
         Set<Map.Entry<SubscriptionConfigEventFilter, ChannelSubscriber>> entries = subscribers.entrySet();
         for (Map.Entry<SubscriptionConfigEventFilter, ChannelSubscriber> entry : entries) {
-            SSEChannelSubscriber subscriber = (SSEChannelSubscriber) entry.getValue();
+            ChannelSubscriber subscriber = entry.getValue();
             SubscriptionConfigEventFilter filter = entry.getKey();
             String channelName = filter.getChannelName();
 
@@ -223,12 +211,12 @@ public abstract class EventDispatcher implements Serializable {
 
     private void scheduleRetryQueueProcessing(long delay) {
         if (delay > 0) {
-            new Timer().schedule(new TimerTask() {
+            new Timer().scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
                     processRetries();
                 }
-            }, delay);
+            }, delay, delay);
         } else {
             processRetries();
         }
@@ -287,7 +275,7 @@ public abstract class EventDispatcher implements Serializable {
                         // not yet arrived at the store and been stored. It might need another
                         // moment or two to get there.
                         if (!retry.needsMoreTimeToLandInStore()) {
-                            // Something's gone wrong. The event should be in the store by now. 
+                            // Something's gone wrong. The event should be in the store by now.
                             // Lets tell the client that it needs to do a full page reload. Not much
                             // else can be done at this stage.
                             dispatchReload(); // This clears the queue too.
@@ -361,12 +349,16 @@ public abstract class EventDispatcher implements Serializable {
     /**
      * Receive event from {@link PubsubBus} and sends it to this client.
      */
-    private final class SSEChannelSubscriber implements ChannelSubscriber {
+    private final class SSEChannelSubscriber implements ChannelSubscriber, Serializable {
         private int numSubscribers = 0;
 
         @Override
         public void onMessage(@Nonnull Message message) {
             doDispatch(message);
+        }
+
+        public int getNumSubscribers() {
+            return numSubscribers;
         }
     }
 
@@ -393,5 +385,13 @@ public abstract class EventDispatcher implements Serializable {
             // then we return false from this function.
             return (System.currentTimeMillis() - timestamp < 10000);
         }
+    }
+
+    // repopulate transient fields upon deserialization
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        retryQueue = new ConcurrentLinkedQueue<>();
+        bus = PubsubBus.getBus();
+        subscribers = new ConcurrentHashMap<>();
     }
 }
