@@ -116,6 +116,7 @@
     <module>sse-gateway-client</module>
     <module>sse-gateway</module>
     <module>sse-servlet</module>
+    <module>sse-servlet-redis-config</module>
   </modules>
 
   <build>

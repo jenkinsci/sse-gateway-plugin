@@ -1,10 +1,7 @@
-package com.cloudbees.analytics.sse;
+package org.jenkinsci.plugins.ssegateway.servlet;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.jenkinsci.plugins.ssegateway.EventHistoryStore;
-import org.jenkinsci.plugins.ssegateway.SseServletBase;
-import org.jenkinsci.plugins.ssegateway.SubscriptionConfigQueue;
+import org.apache.logging.log4j.*;
+import org.jenkinsci.plugins.ssegateway.*;
 
 import java.io.IOException;
 import java.nio.file.Files;

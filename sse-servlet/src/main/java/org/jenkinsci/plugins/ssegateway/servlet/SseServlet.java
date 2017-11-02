@@ -21,30 +21,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package com.cloudbees.analytics.sse;
+package org.jenkinsci.plugins.ssegateway.servlet;
 
 import com.google.common.collect.ImmutableMap;
 import net.sf.json.JSONObject;
 import org.acegisecurity.Authentication;
 import org.acegisecurity.adapters.PrincipalAcegiUserToken;
 import org.apache.commons.lang.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.*;
 import org.jenkinsci.plugins.ssegateway.SubscriptionConfigQueue;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import javax.servlet.http.*;
+import java.io.*;
 import java.net.URLDecoder;
 import java.security.Principal;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -231,12 +224,16 @@ public class SseServlet extends HttpServlet {
     }
 
     private void okResponse(final HttpServletResponse response, final String body) {
-        writeResponse(response, 200, body);
+        final Map<String, String> responseObject = ImmutableMap.of("status", OK, "data", body);
+        final JSONObject responseJson = JSONObject.fromObject(responseObject);
+        writeResponse(response, 200, responseJson.toString());
     }
 
-    private void okResponse(final HttpServletResponse response, final Map<String, String> jsonMap) {
-        final JSONObject jsonObject = JSONObject.fromObject(jsonMap);
-        writeResponse(response, 200, jsonObject.toString());
+    private void okResponse(final HttpServletResponse response, final Map<String, Object> dataMap) {
+        final JSONObject jsonObject = JSONObject.fromObject(dataMap);
+        final Map<String, String> responseObject = ImmutableMap.of("status", OK, "data", jsonObject.toString());
+        final JSONObject responseJson = JSONObject.fromObject(responseObject);
+        writeResponse(response, 200, responseJson.toString());
     }
 
     private void noContentResponse(final HttpServletResponse response) {

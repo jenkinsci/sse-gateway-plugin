@@ -11,7 +11,9 @@
     </parent>
 
     <artifactId>sse-servlet</artifactId>
-    <name>Standalone Servlet for SSE messaging</name>
+    <name>sse-servlet</name>
+    <description>Standalone Servlet for SSE messaging</description>
+    <packaging>war</packaging>
 
     <properties>
         <jersey.version>2.26</jersey.version>
@@ -84,6 +86,12 @@
             <version>${jersey.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.jenkins-ci.main</groupId>
+            <artifactId>jenkins-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -100,4 +108,41 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>guava-provider</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.jenkins-ci.plugins</groupId>
+                    <artifactId>pubsub-light-guava-provider</artifactId>
+                    <version>${pubsub-light.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+
+        <profile>
+            <id>redis-provider</id>
+            <dependencies>
+                <dependency>
+                    <groupId>org.jenkins-ci.plugins</groupId>
+                    <artifactId>sse-servlet-redis-config</artifactId>
+                    <version>${project.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.jenkins-ci.plugins</groupId>
+                    <artifactId>pubsub-light-redis-provider</artifactId>
+                    <version>${pubsub-light.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>org.jenkins-ci.plugins</groupId>
+                    <artifactId>pubsub-light-redis</artifactId>
+                    <version>${pubsub-light.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>
