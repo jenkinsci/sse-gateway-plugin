@@ -177,7 +177,7 @@ public class SseServletIT {
     }
 
     @Test
-    public void passMessageAroundCluster() throws Exception {
+    public void testRedisProvider_multipleServlets() throws Exception {
         final int jettyPort1 = 18080;
         final int jettyPort2 = 28080;
         final int jettyPort3 = 38080;
@@ -225,7 +225,7 @@ public class SseServletIT {
         message.setProperty("prop", "3");
         PubsubBus.getBus().publish(message);
 
-        Thread.sleep(10000);
+        Thread.sleep(1000);
     }
 
     private void configure(final Client client, final String clientId, final String someChannel, final int port, final Map<String, NewCookie> connectCookies) {
