@@ -212,7 +212,7 @@ public abstract class EventDispatcher implements Serializable {
                 );
                 return true;
             } else {
-                LOGGER.log(Level.FINE, "Invalid SSE unsubscribe configuration. No active subscription for channel: " + channelName));
+                LOGGER.log(Level.FINE, "Invalid SSE unsubscribe configuration. No active subscription for channel: " + channelName);
             }
         } else {
             LOGGER.log(Level.SEVERE, String.format("Invalid SSE unsubscribe configuration. '%s' not specified.", EventProps.Jenkins.jenkins_channel));
