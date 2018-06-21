@@ -21,6 +21,11 @@
   ],
   "author": "Tom Fennelly <tom.fennelly@gmail.com> (https://github.com/tfennelly)",
   "license": "MIT",
+  "license": "MIT",
+  "scripts": {
+    "mvnbuild": "gulp bundle",
+    "mvntest": "gulp test"
+  },
   "bugs": {
     "url": "https://issues.jenkins-ci.org/browse/JENKINS/component/21477"
   },
