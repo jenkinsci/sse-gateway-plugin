@@ -91,13 +91,31 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         Jenkins jenkins = Jenkins.getInstance();
         if (jenkins != null) {
             try {
-                EventHistoryStore.setHistoryRoot(new File(jenkins.getRootDir(), "/logs/sse-events"));
+                EventHistoryStore.setHistoryRoot(getHistoryDirectory(jenkins));
                 EventHistoryStore.enableAutoDeleteOnExpire();
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, "Unexpected error setting EventHistoryStore event history root dir.", e);
             }
         }
         PluginServletFilter.addFilter(new SSEListenChannelFilter());
+    }
+
+    /**
+     * Returns the root directory for sse-events based on the Jenkins logs directory
+     * (historically always found under <code>$JENKINS_HOME/logs</code>.
+     * Configurable since Jenkins 2.114.
+     *
+     * @see hudson.triggers.SafeTimerTask#LOGS_ROOT_PATH_PROPERTY
+     * @return the root directory for logs.
+     */
+    private File getHistoryDirectory(Jenkins jenkins) {
+        File jenkinsLogsDir = new File(jenkins.getRootDir(), "/logs");
+
+        final String overriddenLogsRoot = System.getProperty("hudson.triggers.SafeTimerTask.logsTargetDir");
+        if (overriddenLogsRoot != null) {
+            jenkinsLogsDir = new File(overriddenLogsRoot);
+        }
+        return new File(jenkinsLogsDir, "sse-events");
     }
 
     @Override
