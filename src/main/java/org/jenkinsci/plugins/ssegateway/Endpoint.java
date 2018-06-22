@@ -109,13 +109,13 @@ public class Endpoint extends CrumbExclusion implements RootAction {
      * @return the root directory for logs.
      */
     private File getHistoryDirectory(Jenkins jenkins) {
-        File jenkinsLogsDir = new File(jenkins.getRootDir(), "/logs");
-
         final String overriddenLogsRoot = System.getProperty("hudson.triggers.SafeTimerTask.logsTargetDir");
-        if (overriddenLogsRoot != null) {
-            jenkinsLogsDir = new File(overriddenLogsRoot);
+
+        if (overriddenLogsRoot == null) {
+            return new File(jenkins.getRootDir(), "/logs/sse-events");
+        } else {
+            return new File(overriddenLogsRoot, "sse-events");
         }
-        return new File(jenkinsLogsDir, "sse-events");
     }
 
     @Override
