@@ -23,30 +23,6 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
-import hudson.Extension;
-import hudson.model.User;
-import hudson.util.CopyOnWriteMap;
-import jenkins.model.Jenkins;
-import jenkins.util.HttpSessionListener;
-import net.sf.json.JSONObject;
-import org.acegisecurity.Authentication;
-import org.jenkinsci.plugins.pubsub.ChannelSubscriber;
-import org.jenkinsci.plugins.pubsub.EventFilter;
-import org.jenkinsci.plugins.pubsub.EventProps;
-import org.jenkinsci.plugins.pubsub.Message;
-import org.jenkinsci.plugins.pubsub.MessageException;
-import org.jenkinsci.plugins.pubsub.PubsubBus;
-import org.jenkinsci.plugins.pubsub.SimpleMessage;
-import org.jenkinsci.plugins.ssegateway.EventHistoryStore;
-import org.jenkinsci.plugins.ssegateway.Util;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
-import javax.annotation.Nonnull;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSessionEvent;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Serializable;
@@ -60,6 +36,33 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.Nonnull;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSessionEvent;
+
+import org.acegisecurity.Authentication;
+import org.jenkinsci.plugins.pubsub.ChannelSubscriber;
+import org.jenkinsci.plugins.pubsub.EventFilter;
+import org.jenkinsci.plugins.pubsub.EventProps;
+import org.jenkinsci.plugins.pubsub.Message;
+import org.jenkinsci.plugins.pubsub.MessageException;
+import org.jenkinsci.plugins.pubsub.PubsubBus;
+import org.jenkinsci.plugins.pubsub.SimpleMessage;
+import org.jenkinsci.plugins.ssegateway.EventHistoryStore;
+import org.jenkinsci.plugins.ssegateway.Util;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
+import hudson.Extension;
+import hudson.model.User;
+import hudson.util.CopyOnWriteMap;
+import jenkins.model.Jenkins;
+import jenkins.util.HttpSessionListener;
+
+import net.sf.json.JSONObject;
+
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
@@ -68,6 +71,7 @@ public abstract class EventDispatcher implements Serializable {
 
     public static final String SESSION_SYNC_OBJ = "org.jenkinsci.plugins.ssegateway.sse.session.sync";
     private static final Logger LOGGER = Logger.getLogger(EventDispatcher.class.getName());
+    private static final int MAX_RETRY_COUNT = 100;
 
     private String id = null;
     private final transient PubsubBus bus;
@@ -110,12 +114,6 @@ public abstract class EventDispatcher implements Serializable {
         return String.format("%s (%s)", id, System.identityHashCode(this));
     }
 
-    /**
-     * Writes a message to {@link HttpServletResponse}
-     *
-     * @return
-     *      false if the response is not writable
-     */
     public synchronized boolean dispatchEvent(String name, String data) throws IOException, ServletException {
         HttpServletResponse response = getResponse();
         
@@ -165,7 +163,7 @@ public abstract class EventDispatcher implements Serializable {
         if (channelName != null) {
             SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
             if (subscriber == null) {
-                subscriber = new SSEChannelSubscriber();
+                subscriber = new SSEChannelSubscriber(this);
 
                 bus.subscribe(channelName, subscriber, authentication, filter);
                 subscribers.put(filter, subscriber);
@@ -212,7 +210,7 @@ public abstract class EventDispatcher implements Serializable {
                 );
                 return true;
             } else {
-                LOGGER.log(Level.FINE, "Invalid SSE unsubscribe configuration. No active subscription for channel: " + channelName);
+                LOGGER.log(Level.WARNING, "Invalid SSE unsubscribe configuration. No active subscription matching filter: ");
             }
         } else {
             LOGGER.log(Level.SEVERE, String.format("Invalid SSE unsubscribe configuration. '%s' not specified.", EventProps.Jenkins.jenkins_channel));
@@ -280,6 +278,8 @@ public abstract class EventDispatcher implements Serializable {
             // Unable to add to the queue. Lets just tell the client
             // that it needs to reload the page.
             dispatchReload();
+        } else {
+            scheduleRetryQueueProcessing(100);
         }
     }
 
@@ -308,6 +308,7 @@ public abstract class EventDispatcher implements Serializable {
                             // for a moment and retry again in the hope that the event
                             // eventually lands there. Exiting here will schedule a new run
                             // of this retry process (see finally block below).
+                            LOGGER.log(Level.FINE, String.format("Dispatching retry event to SSE channel did nothing - retry too young. %s.", retry));
                             return;
                         }
                     }
@@ -319,14 +320,14 @@ public abstract class EventDispatcher implements Serializable {
                     }
 
                     if (!dispatchEvent(retry.channelName, eventJSON)) {
-                        LOGGER.log(Level.FINE, String.format("Error dispatching retry event to SSE channel. Write failed. Dispatcher %s.", this));
-                        return;
+                        LOGGER.log(Level.WARNING, String.format("Error dispatching retry event to SSE channel. Write failed. Dispatcher %s., retryCount %d", this, retry.getRetryCount()));
+                        if (retry.incRetryCount() < MAX_RETRY_COUNT){ return; }
                     } else if (LOGGER.isLoggable(Level.FINEST)) {
                         LOGGER.log(Level.FINEST, "Dispatched retry event to SSE channel. Dispatcher {0}. Event {1}.", new Object[] {this, eventJSON});
                     }
-                } catch (Exception e) {
-                    LOGGER.log(Level.FINE, String.format("Error dispatching retry event to SSE channel. Write failed. Dispatcher %s.", this), e);
-                    return;
+                } catch (Throwable e) {
+                    LOGGER.log(Level.WARNING, String.format("Error dispatching retry event to SSE channel. Write failed. Dispatcher %s., retryCount %d", this, retry.getRetryCount()), e);
+                    if (retry.incRetryCount() < MAX_RETRY_COUNT){ return; }
                 }
 
                 // Only remove from the queue once successfully dispatched.
@@ -355,7 +356,7 @@ public abstract class EventDispatcher implements Serializable {
                 message.set(SSEChannel.EventProps.sse_subs_dispatcher_inst, Integer.toString(System.identityHashCode(this)));
 
                 if (!dispatchEvent(message.getChannelName(), message.toJSON())) {
-                    LOGGER.log(Level.FINE, "Error dispatching event to SSE channel. Write failed.");
+                    LOGGER.log(Level.WARNING, "Error dispatching event to SSE channel. Write failed.");
                     addToRetryQueue(message);
                 }
             } catch (Exception e) {
@@ -364,16 +365,19 @@ public abstract class EventDispatcher implements Serializable {
             }
         }
     }
-
-    /**
-     * Receive event from {@link PubsubBus} and sends it to this client.
-     */
-    private final class SSEChannelSubscriber implements ChannelSubscriber {
+    
+    private static final class SSEChannelSubscriber implements ChannelSubscriber {
+        
+        private EventDispatcher eventDispatcher;
         private int numSubscribers = 0;
+
+        public SSEChannelSubscriber(EventDispatcher eventDispatcher) {
+            this.eventDispatcher = eventDispatcher;
+        }
 
         @Override
         public void onMessage(@Nonnull Message message) {
-            doDispatch(message);
+            eventDispatcher.doDispatch(message);
         }
     }
     
@@ -384,21 +388,13 @@ public abstract class EventDispatcher implements Serializable {
     public static final class SSEHttpSessionListener extends HttpSessionListener {
         @Override
         public void sessionDestroyed(HttpSessionEvent httpSessionEvent) {
+            Map<String, EventDispatcher> dispatchers = EventDispatcherFactory.getDispatchers(httpSessionEvent.getSession());
             try {
-                Map<String, EventDispatcher> dispatchers = EventDispatcherFactory.getDispatchers(httpSessionEvent.getSession());
-                try {
-                    for (EventDispatcher dispatcher : dispatchers.values()) {
-                        try {
-                            dispatcher.unsubscribeAll();
-                        } catch (Exception e) {
-                            LOGGER.log(Level.FINE, "Error during unsubscribeAll() for dispatcher " + dispatcher.getId() + ".", e);
-                        }
-                    }
-                } finally {
-                    dispatchers.clear();
+                for (EventDispatcher dispatcher : dispatchers.values()) {
+                    dispatcher.unsubscribeAll();
                 }
-            } catch (Exception e) {
-                LOGGER.log(Level.FINE, "Error during session cleanup. The session has probably timed out.", e);
+            } finally {
+                dispatchers.clear();
             }
         }
     }
@@ -407,6 +403,7 @@ public abstract class EventDispatcher implements Serializable {
         private final long timestamp = System.currentTimeMillis();
         private final String channelName;
         private final String eventUUID;
+        private int retryCount = 0;
 
         private Retry(@Nonnull Message message) {
             // We want to keep the memory footprint of the retryQueue
@@ -426,5 +423,17 @@ public abstract class EventDispatcher implements Serializable {
             // then we return false from this function.
             return (System.currentTimeMillis() - timestamp < 10000);
         }
+
+        @Override
+        public String toString() {
+            return String.format("%d %s : %s", timestamp, channelName, eventUUID);
+        }
+
+        public int incRetryCount(){
+            retryCount++;
+            return retryCount;
+        }
+
+        public int getRetryCount() { return retryCount; }
     }
 }
