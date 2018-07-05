@@ -70,6 +70,7 @@ public abstract class EventDispatcher implements Serializable {
     private static final Logger LOGGER = Logger.getLogger(EventDispatcher.class.getName());
     private static final int MAX_RETRY_COUNT = 100;
     private static final int RETRY_QUEUE_PROCESSING_DELAY = 100;
+    private volatile boolean isRetryLoopActive = false;
 
     private String id = null;
     private final transient PubsubBus bus;
@@ -236,12 +237,14 @@ public abstract class EventDispatcher implements Serializable {
 
     private void scheduleRetryQueueProcessing(long delay) {
         if (delay > 0) {
-            new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    processRetries();
-                }
-            }, delay);
+            if (!isRetryLoopActive){
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        processRetries();
+                    }
+                }, delay);
+            }
         } else {
             processRetries();
         }
@@ -292,6 +295,7 @@ public abstract class EventDispatcher implements Serializable {
         
         try {
             while (retry != null) {
+                isRetryLoopActive = true;
                 try {
                     String eventJSON = EventHistoryStore.getChannelEvent(retry.channelName, retry.eventUUID);
 
@@ -345,6 +349,7 @@ public abstract class EventDispatcher implements Serializable {
                 scheduleRetryQueueProcessing(RETRY_QUEUE_PROCESSING_DELAY);
             }
         }
+        isRetryLoopActive = false;
     }
 
     private void doDispatch(@Nonnull Message message) {
