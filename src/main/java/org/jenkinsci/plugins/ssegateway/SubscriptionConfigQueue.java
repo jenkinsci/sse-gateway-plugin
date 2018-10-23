@@ -121,7 +121,7 @@ final class SubscriptionConfigQueue {
         EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(subscriptionConfig.dispatcherId, subscriptionConfig.session);
 
         if (dispatcher == null) {
-            LOGGER.log(Level.WARNING, "Failed Jenkins SSE Gateway configuration request. Unknown SSE event dispatcher " + subscriptionConfig.dispatcherId);
+            LOGGER.log(Level.FINE, "Failed Jenkins SSE Gateway configuration request. Unknown SSE event dispatcher " + subscriptionConfig.dispatcherId);
             return;
         }
 
