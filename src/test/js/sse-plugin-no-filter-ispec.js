@@ -4,7 +4,7 @@
  * Run from Java (via GulpRunner) with a running Jenkins (via JenkinsRule).
  */
 
-var jsTest = require('@jenkins-cd/js-test');
+var jsTest = require('./jsTest');
 var waitUntil = require('wait-until-promise').default;
 
 describe("sse plugin integration tests - subscribe and unsubscribe - no filters", function () {

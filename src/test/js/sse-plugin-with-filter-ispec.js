@@ -4,11 +4,12 @@
  * Run from Java (via GulpRunner) with a running Jenkins (via JenkinsRule).
  */
 
-var jsTest = require('@jenkins-cd/js-test');
+var jsTest = require('./jsTest');
 
 describe("sse plugin integration tests - with filters", function () {
-
+   
     it("- test build receives events", function (done) {
+
         jsTest.onPage(function() {
             var sseClient = require('../../../headless-client');
 

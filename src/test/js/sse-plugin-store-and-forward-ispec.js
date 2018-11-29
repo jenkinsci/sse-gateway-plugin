@@ -28,13 +28,28 @@
  * Run from Java (via GulpRunner) with a running Jenkins (via JenkinsRule).
  */
 
-var jsTest = require('@jenkins-cd/js-test');
+var jsTest = require('./jsTest');
 var url = require('url');
+var ajax = require('../../main/js/ajax');
+
+var fs = require('fs');
+function ghettolog(message) {
+    fs.appendFileSync('ghetto-log.txt', message + "\n");
+}
+
 
 describe("sse plugin integration tests - ", function () {
 
+    it('has a test', function(){
+        // TODO: Remove this
+       
+    })
+   
+
     it("- store and forward", function (done) {
         
+        ghettolog('\n\n\n\n\n' + new Date() + '   starting test');
+
         //
         // The gist of what happend in tis test...
         //
@@ -55,7 +70,12 @@ describe("sse plugin integration tests - ", function () {
         var content = '<html><head data-rooturl="@JENKINS_URL@" data-resurl="@JENKINS_URL@/static/908d75c1" data-adjuncturl="@JENKINS_URL@/adjuncts/908d75c1"></head><body></body></html>'
             .replace('@JENKINS_URL@', 'http://localhost:18080/jenkins/');
         
+        ghettolog('about to call jsTest.onPage');
+        
+        try {
+
         jsTest.onPage(function() {
+            ghettolog('bbbb');
             var proxy;
 
             // Launching the http-proxy in a separate process completely because
@@ -84,7 +104,8 @@ describe("sse plugin integration tests - ", function () {
                 var sseClient = require('../../../headless-client');
                 var sseConnection = sseClient.connect('sse-client-123', function(jenkinsSessionInfo) {
                     function build(jenkinsSessionInfo) {
-                        var ajax = jsTest.requireSrcModule('ajax');
+                        
+                        // var ajax = jsTest.requireSrcModule('ajax');
                         ajax.post(undefined, jenkinsUrl + 'job/sse-gateway-test-job/build', jenkinsSessionInfo);
                     }
                 
@@ -133,5 +154,13 @@ describe("sse plugin integration tests - ", function () {
                 });
             });
         }, content);
+
+        } catch(e) {
+            ghettolog('jsTest.onPage call threw a ' + e.constructor.name + ':\n' + e);
+        }
+
+        ghettolog('jsTest.onPage call finished');
+
     }, 90000);
+
 });
