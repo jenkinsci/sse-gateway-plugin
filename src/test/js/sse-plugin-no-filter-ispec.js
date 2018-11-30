@@ -6,6 +6,7 @@
 
 var jsTest = require('./jsTest');
 var waitUntil = require('wait-until-promise').default;
+var ajax = require('../../main/js/ajax');
 
 describe("sse plugin integration tests - subscribe and unsubscribe - no filters", function () {
 
@@ -26,7 +27,6 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                 var onUnsubscibedCalled = false;
 
                 function runBuild() {
-                    var ajax = jsTest.requireSrcModule('ajax');
                     ajax.post(undefined, sseConnection.jenkinsUrl + '/job/sse-gateway-test-job/build', jenkinsSessionInfo);
                 }
 

@@ -5,6 +5,7 @@
  */
 
 var jsTest = require('./jsTest');
+var ajax = require('../../main/js/ajax');
 
 describe("sse plugin integration tests - with filters", function () {
    
@@ -14,7 +15,6 @@ describe("sse plugin integration tests - with filters", function () {
             var sseClient = require('../../../headless-client');
 
             var sseConnection = sseClient.connect('sse-client-123', function(jenkinsSessionInfo) {
-                var ajax = jsTest.requireSrcModule('ajax');
                 
                 // Once connected to the SSE Gateway, fire off a build of the sample job
                 ajax.post(undefined, sseConnection.jenkinsUrl + '/job/sse-gateway-test-job/build', jenkinsSessionInfo);
