@@ -9,7 +9,6 @@
     "README.md"
   ],
   "scripts": {
-    "test1": "gulp test --test sse-plugin-with-filter --testFileSuffix ispec",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
