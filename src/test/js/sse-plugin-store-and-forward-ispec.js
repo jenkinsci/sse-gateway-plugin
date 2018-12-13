@@ -28,8 +28,9 @@
  * Run from Java (via GulpRunner) with a running Jenkins (via JenkinsRule).
  */
 
-var jsTest = require('@jenkins-cd/js-test');
+var jsTest = require('./jsTest');
 var url = require('url');
+var ajax = require('../../main/js/ajax');
 
 describe("sse plugin integration tests - ", function () {
 
@@ -84,7 +85,6 @@ describe("sse plugin integration tests - ", function () {
                 var sseClient = require('../../../headless-client');
                 var sseConnection = sseClient.connect('sse-client-123', function(jenkinsSessionInfo) {
                     function build(jenkinsSessionInfo) {
-                        var ajax = jsTest.requireSrcModule('ajax');
                         ajax.post(undefined, jenkinsUrl + 'job/sse-gateway-test-job/build', jenkinsSessionInfo);
                     }
                 
@@ -133,5 +133,7 @@ describe("sse plugin integration tests - ", function () {
                 });
             });
         }, content);
+
     }, 90000);
+
 });
