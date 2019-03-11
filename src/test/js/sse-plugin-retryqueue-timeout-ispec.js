@@ -35,14 +35,12 @@ var os = require('os');
 
 describe("sse plugin integration tests - ", function () {
 
-    var originalJasmineTimeout;
-
     beforeEach(function() {
         originalJasmineTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
         jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
     });
 
-    it("- store and forward", function (done) {
+    it("- retry queue timeout", function (done) {
         
         //
         // The gist of what happend in tis test...
@@ -53,9 +51,10 @@ describe("sse plugin integration tests - ", function () {
         // lose it's connection to the server. Then, we fire off a build while the 
         // connection is lost. This should cause the dispatcher (on the server side) to
         // fail to push the SSE events, which should result in them being added to the
-        // retry queue in the dispatcher. Then, when we restart the proxy, the sse client
-        // should auto-reconnect and the backlog of missed events should arrive into the
-        // client. If that happens ... the test passes :)
+        // retry queue in the dispatcher.
+        // Now we wait until the retry queue event lifetime has passed.
+        // Then, when we restart the proxy, the sse client should auto-reconnect but there
+        // should no event arrive into the client.
         //
         
         var jenkinsUrl = process.env.JENKINS_URL;
@@ -109,52 +108,72 @@ describe("sse plugin integration tests - ", function () {
                         sseConnection.subscribe({
                             channelName: 'job',
                             onSubscribed: function() {
-                                firstSubscribe = false;
                                 // Once subscribed to the job channel, kill the proxy.
                                 // Wait for a moment before doing this however because
                                 // the configure request might not yet be fully completed.
-                                setTimeout(function() {
-                                    stopProxy(function() {
-                                        console.log('** proxy stopped.');
+                                if (firstSubscribe) {
+                                    firstSubscribe = false;
+                                    setTimeout(function() {
+                                        stopProxy(function() {
+                                            console.log('** proxy stopped.');
 
-                                        // Now lets fire off a build of the sample job
-                                        build(jenkinsSessionInfo);
+                                            // Now lets fire off a build of the sample job
+                                            console.log('** start build of sample job.');
+                                            build(jenkinsSessionInfo);
 
-                                        // After a few seconds, lets restart the proxy.
-                                        // Once we do that, the events we missed while the
-                                        // connection was lost (when the proxy was down)
-                                        // should come through in the onEvent method (see below).
-                                        setTimeout(function () {
-                                            console.log('** Restarting the proxy.');
-                                            startProxy();
-                                        }, 10000);
-                                    });
-                                }, 1000);
+                                            // After a few seconds (>RETRY_QUEUE_EVENT_LIFETIME),
+                                            // lets restart the proxy.
+                                            // Once we do that, no events are allowed.
+                                            // All events missed while the connection was lost
+                                            // (when the proxy was down) are discarded since the
+                                            // first event in the Retryqueue has exceeded the lifetime.
+                                            setTimeout(function () {
+                                                console.log('** Restarting the proxy.');
+                                                startProxy();
+                                                setTimeout(function () {
+                                                    console.log('** after some more time -  check if there are messages');
+                                                    console.log('**** eventCount: ' + eventCount.toString());
+                                                    console.log('**** eventRetryCount: ' + eventRetryCount.toString());
+                                                    expect(eventCount === 0).toBe(true);
+                                                    expect(eventRetryCount === 0).toBe(true);
+
+                                                    // We're done !!!
+                                                    sseConnection.disconnect();
+                                                    setTimeout(function () {
+                                                        stopProxy();
+                                                    }, 1000);
+                                                    console.log('** done');
+                                                    done();
+                                                }, 5000)  // give jenkins some time to send events - if there are any in the retry queue
+                                            }, 20000);  // > RETRY_QUEUE_EVENT_LIFETIME, set to '15' in SSEPluginIntegrationTest.java
+                                        });
+                                    }, 1000);
+                                }
                             },
                             onEvent: function(event) {
                                 eventCount++;
                                 if (event.sse_dispatch_retry) {
                                     eventRetryCount++;
                                 }
-
-                                // why not event.jenkins_event === 'job_run_queue_task_complete' ??
                                 if (!job_run_ended_received && (event.jenkins_event === 'job_run_ended')) {
                                     job_run_ended_received = true;
+                                    console.log('** \'job_run_ended\' event received.');
 
-                                    // Make sure we got all of the events and
-                                    // not just the last one, and that at least
-                                    // some of them were retry events.
-                                    expect(eventCount > 1).toBe(true);
-                                    expect(eventRetryCount > 1).toBe(true);
+                                    // No events allowed.
+                                    // Retryqueue event timeout has occured before
+                                    // restarting the proxy
+                                    console.log('** eventCount: ' + eventCount.toString());
+                                    console.log('** eventRetryCount: ' + eventRetryCount.toString());
+                                    expect(eventCount === 0).toBe(true);
+                                    expect(eventRetryCount === 0).toBe(true);
 
                                     // We're done !!!
-                                    console.log('** disconnect.');
                                     sseConnection.disconnect();
                                     setTimeout(function () {
                                         stopProxy();
-                                        console.log('** done.');
-                                        done();
                                     }, 1000);
+                                    console.log('** job_run_ended - done');
+                                    done();
                                 }
                             }
                         });

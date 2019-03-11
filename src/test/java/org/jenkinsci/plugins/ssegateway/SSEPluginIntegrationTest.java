@@ -45,7 +45,7 @@ public class SSEPluginIntegrationTest {
     public void setupRealm() {
         jenkins.jenkins.setSecurityRealm(jenkins.createDummySecurityRealm());
     }
-    
+
     @Test
     public void test_no_filter() throws TaskRunnerException, IOException {
         // Create a job. We will trigger a build of the job inside
@@ -57,7 +57,7 @@ public class SSEPluginIntegrationTest {
 
         gulpRunner.runIntegrationSpec("sse-plugin-no-filter");
     }
-    
+
     @Test
     public void test_with_filter() throws TaskRunnerException, IOException {
         // Create a job. We will trigger a build of the job inside
@@ -69,7 +69,7 @@ public class SSEPluginIntegrationTest {
 
         gulpRunner.runIntegrationSpec("sse-plugin-with-filter");
     }
-    
+
     @Test
     public void test_store_and_forward() throws TaskRunnerException, IOException {
         // Create a job. We will trigger a build of the job inside
@@ -81,4 +81,24 @@ public class SSEPluginIntegrationTest {
 
         gulpRunner.runIntegrationSpec("sse-plugin-store-and-forward");
     }
+
+    @Test
+    public void test_retryqueue_timeout() throws TaskRunnerException, IOException {
+        // Create a job. We will trigger a build of the job inside
+        // sse-plugin-retryqueue-timeout.js (the integration test). That build execution
+        // should trigger events to the event subscribers in the test.
+        jenkins.createFreeStyleProject("sse-gateway-test-job");
+
+        // set lifetime for retry events - default 300 sec
+        // in the integratation test we wait 20000ms until restarting the proxy
+        // -> all queued event should be removed from the queue
+        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME = 15;
+        // set delay for retry loop - default 100ms
+        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY = 500;
+
+        GulpRunner gulpRunner = new GulpRunner(jenkins);
+
+        gulpRunner.runIntegrationSpec("sse-plugin-retryqueue-timeout");
+    }
+
 }

@@ -93,7 +93,12 @@ describe("sse plugin integration tests - subscribe and unsubscribe - no filters"
                             expect(jobSubsCalled).toBe(1);
 
                             sseConnection.disconnect();
-                            done();
+                            // give jenkins some time to send remaining events
+                            // e.g. 'job_run_queue_task_complete'
+                            setTimeout(function () {
+                                console.log('** done.');
+                                done();
+                            }, 1000);
                         });
                     }
                 });
