@@ -72,8 +72,10 @@ public abstract class EventDispatcher implements Serializable {
     private volatile boolean isRetryLoopActive = false;
 
     // set lifetime for retry events - default 5min - 300 sec - 300000 msec
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings("MS_SHOULD_BE_FINAL")
     public static /* not final */ long RETRY_QUEUE_EVENT_LIFETIME = Integer.getInteger(EventDispatcher.class.getName() + ".RETRY_QUEUE_EVENT_LIFETIME", 5*60) * 1000;
     // set delay for retry loop - default 250ms
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings("MS_SHOULD_BE_FINAL")
     public static /* not final */ long RETRY_QUEUE_PROCESSING_DELAY = Integer.getInteger(EventDispatcher.class.getName() + ".RETRY_QUEUE_PROCESSING_DELAY", 250);
 
     private String id = null;
@@ -86,6 +88,7 @@ public abstract class EventDispatcher implements Serializable {
     private long timestamp_dispatchEventOK = System.currentTimeMillis();
 
     // set timeout for unsubscribe if last successful dispatchEvent call is older than this timeout  - default: 4 hrs - 240 min - 14400 sec - 14400000 msec
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings("MS_SHOULD_BE_FINAL")
     public static /* not final */ long TIMEOUT_DISPATCHERFAIL = Integer.getInteger(EventDispatcher.class.getName() + ".TIMEOUT_DISPATCHERFAIL", 4*60*60) * 1000;
 
     // Lists of events that need to be retried on the next reconnect.
@@ -110,7 +113,7 @@ public abstract class EventDispatcher implements Serializable {
 
     public final String getId() {
         if (id == null) {
-            throw new IllegalStateException("Call to getId before the ID ewas set.");
+            throw new IllegalStateException("Call to getId before the ID was set.");
         }
         return id;
     }
@@ -422,6 +425,10 @@ public abstract class EventDispatcher implements Serializable {
                     retryQueue.remove();
                     retry = retryQueue.peek();
                 }
+
+            } catch (Exception e) {
+                LOGGER.log(Level.FINE, String.format("EventDispatcher (%s) - Error dispatching retry event to SSE channel. Write failed.", this));
+                return;
 
             } finally {
                 if (!retryQueue.isEmpty()) {
