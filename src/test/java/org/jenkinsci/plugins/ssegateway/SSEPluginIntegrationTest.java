@@ -89,16 +89,23 @@ public class SSEPluginIntegrationTest {
         // should trigger events to the event subscribers in the test.
         jenkins.createFreeStyleProject("sse-gateway-test-job");
 
-        // set lifetime for retry events - default 300 sec
-        // in the integratation test we wait 20000ms until restarting the proxy
+        // set lifetime for retry events to 15 sec - default is 300 sec
+        // in the integration test waiting time is 20000ms until restarting the proxy
         // -> all queued event should be removed from the queue
+        long saveEventLifetime = org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME;
         org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME = 15;
-        // set delay for retry loop - default 100ms
+
+        // set delay for retry loop = 500ms - default is 100ms
+        long saveProcessingDelay = org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY;
         org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY = 500;
 
         GulpRunner gulpRunner = new GulpRunner(jenkins);
 
         gulpRunner.runIntegrationSpec("sse-plugin-retryqueue-timeout");
+
+        // restore saved values
+        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME = saveEventLifetime;
+        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY = saveProcessingDelay;
     }
 
 }
