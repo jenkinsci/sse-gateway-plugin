@@ -8,7 +8,7 @@ var jsTest = require('./jsTest');
 var ajax = require('../../main/js/ajax');
 
 describe("sse plugin integration tests - with filters", function () {
-   
+
     it("- test build receives events", function (done) {
 
         jsTest.onPage(function() {
@@ -31,7 +31,10 @@ describe("sse plugin integration tests - with filters", function () {
                     // shouldn't arrive, but if it does, we throw an error. 
                     setTimeout(function() {
                         sseConnection.disconnect();
-                        done();
+                        setTimeout(function () {
+                            console.log('** done.');
+                            done();
+                        }, 1000);
                     }, 500);
                 }, {
                     job_name: 'sse-gateway-test-job'

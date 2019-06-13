@@ -136,11 +136,11 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     @Restricted(DoNotUse.class) // Web only
     public HttpResponse doConnect(StaplerRequest request, StaplerResponse response) throws IOException {
         String clientId = request.getParameter("clientId");
-        
+
         if (clientId == null) {
             throw new IOException("No 'clientId' parameter specified in connect request.");
         }
-        
+
         HttpSession session = request.getSession();
         EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(clientId, session);
         

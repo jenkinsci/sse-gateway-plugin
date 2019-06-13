@@ -75,7 +75,7 @@ public class EventDispatcherFactory {
                         "SSE client reconnects will not work - probably fine if running in non-browser/test mode.", clientId, session.getId()));
                 dispatcher = EventDispatcherFactory.newDispatcher(clientId, session);
             }
-            
+
             dispatcher.start(request, response);
             dispatcher.setDefaultHeaders();
 
@@ -83,11 +83,11 @@ public class EventDispatcherFactory {
 
             openData.put("dispatcherId", dispatcher.getId());
             openData.put("dispatcherInst", System.identityHashCode(dispatcher));
-            
+
             if (Util.isTestEnv()) {
                 openData.putAll(Util.getSessionInfo(session));
 
-                // Crumb needed for testing because we use it to fire off some 
+                // Crumb needed for testing because we use it to fire off some
                 // test builds via the POST API.
                 Jenkins jenkins = Jenkins.getInstance();
                 CrumbIssuer crumbIssuer = jenkins.getCrumbIssuer();
@@ -100,12 +100,12 @@ public class EventDispatcherFactory {
                     LOGGER.log(Level.WARNING, "No CrumbIssuer on Jenkins instance. Some POSTs might not work.");
                 }
             }
-            
+
             dispatcher.dispatchEvent("open", openData.toString());
-            
+
             // Run the retry process in case this is a reconnect.
             dispatcher.processRetries();
-            
+
             return dispatcher;
         } catch (Exception e) {
             throw new IllegalStateException("Unexpected Exception.", e);
