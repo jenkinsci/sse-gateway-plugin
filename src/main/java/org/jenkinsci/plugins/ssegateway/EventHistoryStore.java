@@ -165,7 +165,6 @@ public final class EventHistoryStore {
     static int getChannelEventCount(@Nonnull String channelName) throws IOException {
         Path dirPath = Paths.get(getChannelDir(channelName).toURI());
         int count = 0;
-
         try (final DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
             for (final Path entry : dirStream) {
                 count++;
@@ -180,6 +179,9 @@ public final class EventHistoryStore {
      */
     static void deleteAllHistory() throws IOException {
         assertHistoryRootSet();
+        for(File directory : channelDirs.values()){
+            deleteAllFilesInDir(directory, null);
+        }
         deleteAllFilesInDir(EventHistoryStore.historyRoot, null);
     }
 
@@ -211,7 +213,9 @@ public final class EventHistoryStore {
     
     private synchronized static void deleteAllFilesInDir(File dir, Long olderThan) throws IOException {
         Path dirPath = Paths.get(dir.toURI());
-        
+        if(!Files.exists(dirPath)){
+            return;
+        }
         try (final DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
             for (final Path entry : dirStream) {
                 File file = entry.toFile();
@@ -235,22 +239,18 @@ public final class EventHistoryStore {
     
     public synchronized static void enableAutoDeleteOnExpire() {
         if (autoExpireTimer != null) {
+            LOGGER.log(Level.WARNING, "AutoExpireTimer was already enable.");
             return;
         }
         
         // Set up a timer that runs the DeleteStaleHistoryTask 3 times over the
         // duration of the event expiration timeout. By default this will be
-        // every 20 seconds i.e. in that case, events are never left lying around
-        // for more than 20 seconds past their expiration.
+        // every 10 seconds i.e. in that case, events are never left lying around
+        // for more than 10 seconds past their expiration.
         long taskSchedule = expiresAfter / 3;
         autoExpireTimer = new Timer();
         autoExpireTimer.schedule(new DeleteStaleHistoryTask(), taskSchedule, taskSchedule);
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                disableAutoDeleteOnExpire();
-            }
-        });
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> disableAutoDeleteOnExpire()));
     }
     
     public synchronized static void disableAutoDeleteOnExpire() {

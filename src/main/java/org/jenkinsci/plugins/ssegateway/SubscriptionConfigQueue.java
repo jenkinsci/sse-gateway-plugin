@@ -70,9 +70,8 @@ final class SubscriptionConfigQueue {
         // clients and then fire off 1 thread to process the queue.
         // TF: Might look at using an Executor for this, but I think this is fine for now.
         queue = new LinkedBlockingQueue<>();
-        new Thread() {
-            @Override
-            public void run() {
+        new Thread(() -> {
+
                 try {
                     while (true) {
                         SubscriptionConfig subscriptionConfig = queue.take();
@@ -94,7 +93,7 @@ final class SubscriptionConfigQueue {
                     queue = null;
                 }
             }
-        }.start();
+        ).start();
     }
 
     static synchronized void stop() {

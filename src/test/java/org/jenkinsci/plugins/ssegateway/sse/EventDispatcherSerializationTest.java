@@ -23,7 +23,9 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -38,6 +40,9 @@ import java.io.ObjectOutputStream;
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 public class EventDispatcherSerializationTest {
+
+    @Rule
+    public JenkinsRule jenkins = new JenkinsRule();
 
     @Test
     public void test_AsynchEventDispatcher() throws IOException {

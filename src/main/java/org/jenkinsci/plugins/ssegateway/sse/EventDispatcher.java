@@ -293,7 +293,7 @@ public abstract class EventDispatcher implements Serializable {
         }
         if (delay > 0) {
             try {
-                new Timer().schedule(new TimerTask() {
+                new Timer().schedule( new TimerTask() {
                     @Override
                     public void run() {
                         processRetries();

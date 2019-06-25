@@ -39,7 +39,7 @@ public class WaitTimer {
         
         while (System.currentTimeMillis() < waitUntil) {
             try {
-                Thread.sleep(0, 1);
+                Thread.sleep(5);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
