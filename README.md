@@ -2,6 +2,10 @@
 
 Uses the [pubsub-light-module] jenkins-module to receive light-weight events and forward them into browser-land via SSE.
 
+[![Build Status](https://ci.jenkins.io/job/Plugins/job/sse-gateway-plugin/job/master/badge/icon)](https://ci.jenkins.io/job/Plugins/job/sse-gateway-plugin/job/master/)
+[![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/sse-gateway.svg)](https://plugins.jenkins.io/sse-gateway)
+[![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/sse-gateway.svg?color=blue)](https://plugins.jenkins.io/sse-gateway)
+
 # Install
 
 ```sh
@@ -10,9 +14,9 @@ npm install --save @jenkins-cd/sse-gateway
 
 # Requirements
 
-This plugin requires Jenkins version 2.2 or later.
+This plugin requires Jenkins version 2.60.3 or later.
 
-2.2+ is needed because it supports Servlet 3 asynchronous requests, which are needed for Server Sent Events. 
+2.60.3+ is needed because it supports Servlet 3 asynchronous requests, which are needed for Server Sent Events and its the first version of Jenkins that requires java 8.
 
 # Usage
 
