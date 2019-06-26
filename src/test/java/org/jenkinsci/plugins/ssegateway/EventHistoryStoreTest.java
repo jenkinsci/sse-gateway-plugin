@@ -67,7 +67,8 @@ public class EventHistoryStoreTest {
         Assert.assertEquals(6, EventHistoryStore.getChannelEventCount("job"));
         EventHistoryStore.deleteStaleHistory();
         Assert.assertTrue(EventHistoryStore.getChannelEventCount("job") > 0);
-        Assert.assertTrue(EventHistoryStore.getChannelEventCount("job") < 6);
+        int count = EventHistoryStore.getChannelEventCount("job");
+        Assert.assertTrue( "count is " + count, count < 6);
         
         // All of those mesages should be stale after about 9 seconds, so
         // lets wait 'till 10 seconds on the clock and run the delete again
@@ -134,7 +135,8 @@ public class EventHistoryStoreTest {
             // be a bit flaky though, so lets just make sure some of the messages
             // have expired, but not all.
             Assert.assertTrue(EventHistoryStore.getChannelEventCount("job") > 0);
-            Assert.assertTrue(EventHistoryStore.getChannelEventCount("job") < 150);
+            int count = EventHistoryStore.getChannelEventCount("job");
+            Assert.assertTrue("count is " + count, count < 150);
             
             // Now lets wait until after all of the messages would be expired
             // The should all expire after about 7.5 seconds (see above), but lets

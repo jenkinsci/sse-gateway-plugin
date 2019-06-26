@@ -107,6 +107,10 @@
           <version>3.0.0-M3</version>
           <configuration>
             <reuseForks>false</reuseForks>
+            <runOrder>alphabetical</runOrder>
+            <systemPropertyVariables>
+              <jenkins.test.timeout>90</jenkins.test.timeout>
+            </systemPropertyVariables>
           </configuration>
         </plugin>
       </plugins>

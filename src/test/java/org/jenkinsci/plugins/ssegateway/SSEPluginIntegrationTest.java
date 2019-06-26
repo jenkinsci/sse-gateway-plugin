@@ -24,7 +24,6 @@
 package org.jenkinsci.plugins.ssegateway;
 
 import com.github.eirslett.maven.plugins.frontend.lib.TaskRunnerException;
-import hudson.model.Job;
 import org.jenkinsci.test.node.GulpRunner;
 import org.junit.Before;
 import org.junit.Rule;

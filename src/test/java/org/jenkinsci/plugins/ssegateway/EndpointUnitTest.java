@@ -17,7 +17,6 @@ import org.mockito.Mockito;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -35,7 +34,7 @@ public class EndpointUnitTest {
         response = Mockito.mock(StaplerResponse.class);
     }
     @After
-    public void tearDown() {
+    public void tearDown() throws Exception  {
         eventDispatcher.unsubscribeAll();
         SubscriptionConfigQueue.stop();
         waitForQueueStopped();
