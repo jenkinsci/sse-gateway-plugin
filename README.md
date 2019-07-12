@@ -1,6 +1,6 @@
 [Server Sent Events (SSE)](https://html.spec.whatwg.org/multipage/comms.html#server-sent-events) Gateway plugin for Jenkins.
 
-Uses the [pubsub-light-module] jenkins-module to receive light-weight events and forward them into browser-land via SSE.
+Uses the [pubsub-light-plugin] jenkins-module to receive light-weight events and forward them into browser-land via SSE.
 
 [![Build Status](https://ci.jenkins.io/job/Plugins/job/sse-gateway-plugin/job/master/badge/icon)](https://ci.jenkins.io/job/Plugins/job/sse-gateway-plugin/job/master/)
 [![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/sse-gateway.svg)](https://plugins.jenkins.io/sse-gateway)
@@ -26,7 +26,7 @@ notification "channels".
 ## Subscribing to "job" channel events (basic)
 
 The "job" channel is where you listen for events relating to Jenkins Jobs, all of which are enumerated in
- [the Events.JobChannel Javadoc](http://jenkinsci.github.io/pubsub-light-module/org/jenkinsci/plugins/pubsub/Events.JobChannel.html).
+ [the Events.JobChannel Javadoc](http://jenkinsci.github.io/pubsub-light-plugin/org/jenkinsci/plugins/pubsub/Events.JobChannel.html).
 
 ```javascript
 var sse = require('@jenkins-cd/sse-gateway');
@@ -152,4 +152,4 @@ The SSE Gateway client code uses the `@jenkins-cd/logging` package for client-si
 
 See the [sse-gateway-sample-plugin](https://github.com/tfennelly/sse-gateway-sample-plugin).
 
-[pubsub-light-module]: https://github.com/jenkinsci/pubsub-light-module
+[pubsub-light-plugin]: https://github.com/jenkinsci/pubsub-light-plugin
