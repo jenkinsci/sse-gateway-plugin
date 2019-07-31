@@ -92,7 +92,7 @@ final class SubscriptionConfigQueue {
                 } finally {
                     queue = null;
                 }
-            }
+            }, "SubscriptionConfigQueue.start"
         ).start();
     }
 

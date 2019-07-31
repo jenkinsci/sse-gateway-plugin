@@ -250,7 +250,7 @@ public final class EventHistoryStore {
         long taskSchedule = expiresAfter / 3;
         autoExpireTimer = new Timer("EventHistoryStore.autoExpireTimer");
         autoExpireTimer.schedule(new DeleteStaleHistoryTask(), taskSchedule, taskSchedule);
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> disableAutoDeleteOnExpire()));
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> disableAutoDeleteOnExpire(), "EventHistoryStore.disableAutoExpireTimer"));
     }
     
     public synchronized static void disableAutoDeleteOnExpire() {
