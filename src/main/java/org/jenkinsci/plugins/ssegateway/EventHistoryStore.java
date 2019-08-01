@@ -248,9 +248,9 @@ public final class EventHistoryStore {
         // every 10 seconds i.e. in that case, events are never left lying around
         // for more than 10 seconds past their expiration.
         long taskSchedule = expiresAfter / 3;
-        autoExpireTimer = new Timer();
+        autoExpireTimer = new Timer("EventHistoryStore.autoExpireTimer");
         autoExpireTimer.schedule(new DeleteStaleHistoryTask(), taskSchedule, taskSchedule);
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> disableAutoDeleteOnExpire()));
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> disableAutoDeleteOnExpire(), "EventHistoryStore.disableAutoExpireTimer"));
     }
     
     public synchronized static void disableAutoDeleteOnExpire() {

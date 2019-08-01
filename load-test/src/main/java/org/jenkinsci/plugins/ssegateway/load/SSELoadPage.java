@@ -54,7 +54,7 @@ public class SSELoadPage implements RootAction {
         final String intervalMillisParam = request.getParameter("intervalMillis");
 
         if (numMessagesParam != null && intervalMillisParam != null) {
-            new Thread() {
+            new Thread("SSELoadPage.doFireEvents") {
                 @Override
                 public void run() {
                     final int numMessages = new Integer(numMessagesParam);
