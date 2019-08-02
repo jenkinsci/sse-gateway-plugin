@@ -9,7 +9,7 @@
     <relativePath />
   </parent>
   <artifactId>sse-gateway</artifactId>
-  <version>1.19-SNAPSHOT</version>
+  <version>1.19</version>
   <packaging>hpi</packaging>
 
   <properties>
@@ -28,6 +28,7 @@
     <connection>scm:git:https://github.com/jenkinsci/sse-gateway-plugin.git</connection>
     <developerConnection>scm:git:https://github.com/jenkinsci/sse-gateway-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/sse-gateway-plugin</url>
+    <tag>sse-gateway-1.19</tag>
   </scm>
 
   <licenses>
