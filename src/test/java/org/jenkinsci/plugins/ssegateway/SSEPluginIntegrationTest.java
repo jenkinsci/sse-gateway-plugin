@@ -24,6 +24,7 @@
 package org.jenkinsci.plugins.ssegateway;
 
 import com.github.eirslett.maven.plugins.frontend.lib.TaskRunnerException;
+import org.jenkinsci.plugins.pubsub.PubsubBus;
 import org.jenkinsci.test.node.GulpRunner;
 import org.junit.Before;
 import org.junit.Rule;
@@ -43,6 +44,7 @@ public class SSEPluginIntegrationTest {
     @Before
     public void setupRealm() {
         jenkins.jenkins.setSecurityRealm(jenkins.createDummySecurityRealm());
+        PubsubBus.getBus().start();
     }
 
     @Test

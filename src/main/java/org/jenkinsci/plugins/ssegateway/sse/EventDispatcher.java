@@ -57,6 +57,9 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -68,6 +71,10 @@ public abstract class EventDispatcher implements Serializable {
 
     public static final String SESSION_SYNC_OBJ = "org.jenkinsci.plugins.ssegateway.sse.session.sync";
     private static final Logger LOGGER = Logger.getLogger(EventDispatcher.class.getName());
+
+    private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(
+        Integer.getInteger( EventDispatcher.class.getName() + ".scheduledExecutorService.size", 4 ),
+        r -> new Thread( "EventDispatcher.retryProcessor" ));
 
     private volatile boolean isRetryLoopActive = false;
 
@@ -293,12 +300,13 @@ public abstract class EventDispatcher implements Serializable {
         }
         if (delay > 0) {
             try {
-                new Timer("EventDispatcher.retryProcessor").schedule( new TimerTask() {
-                    @Override
-                    public void run() {
-                        processRetries();
-                    }
-                }, delay);
+//                new Timer("EventDispatcher.retryProcessor").schedule( new TimerTask() {
+//                    @Override
+//                    public void run() {
+//                        processRetries();
+//                    }
+//                }, delay);
+                scheduledExecutorService.schedule(this::processRetries, delay, TimeUnit.MILLISECONDS);
             } catch (Exception e) {
                 LOGGER.log(Level.INFO, String.format("EventDispatcher (%s) - scheduleRetryQueueProcessing - Error creating timer.", this));
             }
