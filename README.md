@@ -1,5 +1,6 @@
-[Server Sent Events (SSE)](https://html.spec.whatwg.org/multipage/comms.html#server-sent-events) Gateway plugin for Jenkins.
+# [Server Sent Events (SSE)](https://html.spec.whatwg.org/multipage/comms.html#server-sent-events)
 
+Gateway plugin for Jenkins.
 Uses the [pubsub-light-plugin] jenkins-module to receive light-weight events and forward them into browser-land via SSE.
 
 [![Build Status](https://ci.jenkins.io/job/Plugins/job/sse-gateway-plugin/job/master/badge/icon)](https://ci.jenkins.io/job/Plugins/job/sse-gateway-plugin/job/master/)
