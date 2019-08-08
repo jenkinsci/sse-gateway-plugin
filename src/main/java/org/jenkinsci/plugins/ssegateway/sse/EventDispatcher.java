@@ -300,12 +300,6 @@ public abstract class EventDispatcher implements Serializable {
         }
         if (delay > 0) {
             try {
-//                new Timer("EventDispatcher.retryProcessor").schedule( new TimerTask() {
-//                    @Override
-//                    public void run() {
-//                        processRetries();
-//                    }
-//                }, delay);
                 scheduledExecutorService.schedule(this::processRetries, delay, TimeUnit.MILLISECONDS);
             } catch (Exception e) {
                 LOGGER.log(Level.INFO, String.format("EventDispatcher (%s) - scheduleRetryQueueProcessing - Error creating timer.", this));
@@ -435,7 +429,7 @@ public abstract class EventDispatcher implements Serializable {
                 }
 
             } catch (Exception e) {
-                LOGGER.log(Level.FINE, String.format("EventDispatcher (%s) - Error dispatching retry event to SSE channel. Write failed.", this));
+                LOGGER.log(Level.WARNING, String.format("EventDispatcher (%s) - Error dispatching retry event to SSE channel. Write failed.", this));
                 return;
 
             } finally {
