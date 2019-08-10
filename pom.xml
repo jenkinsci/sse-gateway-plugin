@@ -61,7 +61,7 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>pubsub-light</artifactId>
-      <version>1.6</version>
+      <version>1.12</version>
     </dependency>
     
     <!-- Test deps -->
@@ -85,11 +85,12 @@
         <plugin>
           <groupId>org.jenkins-ci.tools</groupId>
           <artifactId>maven-hpi-plugin</artifactId>
+          <version>3.7</version>
           <extensions>true</extensions>
           <configuration>
             <showDeprecation>true</showDeprecation>
             <contextPath>/jenkins</contextPath>
-            <!-- TODO specify ${java.level} when JENKINS-20679 implemented -->
+            <java.level>${java.level}</java.level>
             <disabledTestInjection>true</disabledTestInjection>
           </configuration>
         </plugin>
