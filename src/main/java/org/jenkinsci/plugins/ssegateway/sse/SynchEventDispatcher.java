@@ -23,11 +23,11 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.Serializable;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Synchronous event dispatcher.
@@ -40,14 +40,14 @@ class SynchEventDispatcher extends EventDispatcher {
 
     private static final long serialVersionUID = -1L;
 
-    private static final Logger LOGGER = Logger.getLogger(SynchEventDispatcher.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger( SynchEventDispatcher.class.getName());
 
     private transient HttpServletResponse response;
 
     @Override
     public void start(HttpServletRequest request, HttpServletResponse response) {
         this.response = response;
-        LOGGER.log(Level.WARNING, "This servlet container does not support asynchronous requests. Servicing of Server Sent Events (SSE) may result in servlet request thread starvation. DO NOT use this in production!!!");
+        LOGGER.warn("This servlet container does not support asynchronous requests. Servicing of Server Sent Events (SSE) may result in servlet request thread starvation. DO NOT use this in production!!!");
     }
 
     @Override

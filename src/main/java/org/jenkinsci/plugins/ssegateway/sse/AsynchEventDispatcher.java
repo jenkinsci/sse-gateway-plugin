@@ -24,6 +24,8 @@
 package org.jenkinsci.plugins.ssegateway.sse;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.AsyncEvent;
@@ -33,8 +35,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -43,7 +43,7 @@ class AsynchEventDispatcher extends EventDispatcher {
 
     private static final long serialVersionUID = -1L;
 
-    private static final Logger LOGGER = Logger.getLogger(AsynchEventDispatcher.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger( AsynchEventDispatcher.class.getName());
     
     // Set the timeout low so as to accommodate proxies like Nginx, which
     // kill the connection after e.g. 90 seconds. 30 seconds is the default
@@ -67,7 +67,7 @@ class AsynchEventDispatcher extends EventDispatcher {
                 public void onTimeout(AsyncEvent event) throws IOException {
                     asyncContextLock.lock();
                     try {
-                        LOGGER.log(Level.FINE, "Async dispatcher 'onTimeout' event: {0}", dispatcher);
+                        LOGGER.debug("Async dispatcher 'onTimeout' event: {}", event);
                         if (event.getAsyncContext() == asyncContext) {
                             // nulling asyncContext will force messages to the retry
                             // queue until we restart the connection.
@@ -80,15 +80,15 @@ class AsynchEventDispatcher extends EventDispatcher {
                 }
                 @Override
                 public void onStartAsync(AsyncEvent event) throws IOException {
-                    LOGGER.log(Level.FINE, "Async dispatcher 'onStartAsync' event: {0}", dispatcher);
+                    LOGGER.debug("Async dispatcher 'onStartAsync' event: {}", event);
                 }
                 @Override
                 public void onError(AsyncEvent event) throws IOException {
-                    LOGGER.log(Level.WARNING, "Async dispatcher 'onError' event: {0}", dispatcher);
+                    LOGGER.warn("Async dispatcher 'onError' event: {}", dispatcher);
                 }
                 @Override
                 public void onComplete(AsyncEvent event) throws IOException {
-                    LOGGER.log(Level.FINE, "Async dispatcher 'onComplete' event: {0}", dispatcher);
+                    LOGGER.debug("Async dispatcher 'onComplete' event: {}", event);
                 }
             });
         } finally {

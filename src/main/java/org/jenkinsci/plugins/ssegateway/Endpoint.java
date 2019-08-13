@@ -39,6 +39,8 @@ import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -52,8 +54,6 @@ import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -65,7 +65,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     public static final String SSE_GATEWAY_URL = "/sse-gateway";
     public static final String SSE_LISTEN_URL_PREFIX = SSE_GATEWAY_URL + "/listen/";
     
-    private static final Logger LOGGER = Logger.getLogger(Endpoint.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger( Endpoint.class.getName());
 
     public Endpoint() throws ServletException {
         init();
@@ -94,7 +94,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                 EventHistoryStore.setHistoryRoot(getHistoryDirectory(jenkins));
                 EventHistoryStore.enableAutoDeleteOnExpire();
             } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "Unexpected error setting EventHistoryStore event history root dir.", e);
+                LOGGER.error("Unexpected error setting EventHistoryStore event history root dir.", e);
             }
         }
         PluginServletFilter.addFilter(new SSEListenChannelFilter());
@@ -147,7 +147,9 @@ public class Endpoint extends CrumbExclusion implements RootAction {
         // If there was already a dispatcher with this ID, then remove
         // all subscriptions from it and reuse the instance.
         if (dispatcher != null) {
-            LOGGER.log(Level.FINE, "We already have a Dispatcher for clientId {0}. Removing all subscriptions on the existing Dispatcher instance and reusing it.", dispatcher.toString());
+            if(LOGGER.isDebugEnabled()){
+                LOGGER.debug("We already have a Dispatcher for clientId {}. Removing all subscriptions on the existing Dispatcher instance and reusing it.", dispatcher.toString());
+            }
             dispatcher.unsubscribeAll();
         } else {
             // Else create a new instance with this id.
@@ -166,9 +168,10 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     @Restricted(DoNotUse.class) // Web only
     public HttpResponse doConfigure(StaplerRequest request, StaplerResponse response) throws IOException {
         SubscriptionConfigQueue.SubscriptionConfig subscriptionConfig = SubscriptionConfigQueue.SubscriptionConfig.fromRequest(request);
+        if(LOGGER.isDebugEnabled()){
+            LOGGER.debug("Processing configuration request. batchId={}", subscriptionConfig.getBatchId());
+        }
 
-        LOGGER.log(Level.FINE, "Processing configuration request. batchId={0}", subscriptionConfig.getBatchId());
-        
         if (subscriptionConfig.getDispatcherId() == null) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return HttpResponses.errorJSON("'dispatcherId' not specified.");
@@ -199,7 +202,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                 try {
                     dispatcher.dispatchEvent("pingback", "ack");
                 } catch (ServletException e) {
-                    LOGGER.log(Level.FINE, "Failed to send pingback to dispatcher " + dispatcherId + ".", e);
+                    LOGGER.debug("Failed to send pingback to dispatcher " + dispatcherId + ".", e);
                     return HttpResponses.errorJSON("Failed to send pingback to dispatcher " + dispatcherId + ".");
                 }
             }
