@@ -41,6 +41,8 @@ import org.jenkinsci.plugins.ssegateway.EventHistoryStore;
 import org.jenkinsci.plugins.ssegateway.Util;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
@@ -54,14 +56,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -70,7 +68,7 @@ import java.util.logging.Logger;
 public abstract class EventDispatcher implements Serializable {
 
     public static final String SESSION_SYNC_OBJ = "org.jenkinsci.plugins.ssegateway.sse.session.sync";
-    private static final Logger LOGGER = Logger.getLogger(EventDispatcher.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger( EventDispatcher.class.getName());
 
     private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(
         Integer.getInteger( EventDispatcher.class.getName() + ".scheduledExecutorService.size", 4 ),
@@ -145,11 +143,14 @@ public abstract class EventDispatcher implements Serializable {
     private void checkDispatcherFailTimeout(String step) {
         long t_curr = System.currentTimeMillis();
         long t_diff = t_curr - timestamp_dispatchEventOK;
-        if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, String.format("SSE dispatcher %s %s fail - %d - %d - %d", this, step, t_curr, t_diff, TIMEOUT_DISPATCHERFAIL));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(String.format("SSE dispatcher %s %s fail - %d - %d - %d", this, step, t_curr, t_diff, TIMEOUT_DISPATCHERFAIL));
         }
         if (t_diff > TIMEOUT_DISPATCHERFAIL) {
-            LOGGER.log(Level.FINE, String.format("SSE dispatcher %s %s fail - timediff > TIMEOUT_DISPATCHERFAIL", this, step));
+            if(LOGGER.isDebugEnabled()) {
+                LOGGER.debug(
+                    String.format( "SSE dispatcher %s %s fail - timediff > TIMEOUT_DISPATCHERFAIL", this, step ) );
+            }
             retryQueue.clear();
             this.unsubscribeAll();
         }
@@ -175,8 +176,8 @@ public abstract class EventDispatcher implements Serializable {
             return false;
         }
 
-        if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, String.format("SSE dispatcher %s sending event: %s", this, data));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(String.format("SSE dispatcher %s sending event: %s", this, data));
         }
         
         PrintWriter writer = response.getWriter();
@@ -197,8 +198,8 @@ public abstract class EventDispatcher implements Serializable {
         boolean writerStatus = writer.checkError();
 
         if (!writerStatus) {
-            if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINEST, String.format("SSE dispatcher %s writer ok - %d", this, System.currentTimeMillis()));
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(String.format("SSE dispatcher %s writer ok - %d", this, System.currentTimeMillis()));
             }
             timestamp_dispatchEventOK = System.currentTimeMillis();
         } else {
@@ -244,7 +245,7 @@ public abstract class EventDispatcher implements Serializable {
 
             return true;
         } else {
-            LOGGER.log(Level.SEVERE, String.format("Invalid SSE subscribe configuration. '%s' not specified.", EventProps.Jenkins.jenkins_channel));
+            LOGGER.error(String.format("Invalid SSE subscribe configuration. '%s' not specified.", EventProps.Jenkins.jenkins_channel));
         }
         
         return false;
@@ -274,10 +275,10 @@ public abstract class EventDispatcher implements Serializable {
                 );
                 return true;
             } else {
-                LOGGER.log(Level.FINE, "Invalid SSE unsubscribe configuration. No active subscription for channel: " + channelName);
+                LOGGER.info("Invalid SSE unsubscribe configuration. No active subscription for channel: {}", channelName);
             }
         } else {
-            LOGGER.log(Level.SEVERE, String.format("Invalid SSE unsubscribe configuration. '%s' not specified.", EventProps.Jenkins.jenkins_channel));
+            LOGGER.error(String.format("Invalid SSE unsubscribe configuration. '%s' not specified.", EventProps.Jenkins.jenkins_channel));
         }
         return false;
     }
@@ -295,14 +296,14 @@ public abstract class EventDispatcher implements Serializable {
     }
 
     private void scheduleRetryQueueProcessing(long delay) {
-        if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, String.format("EventDispatcher (%s) - scheduleRetryQueueProcessing(%d)", this, delay));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(String.format("EventDispatcher (%s) - scheduleRetryQueueProcessing(%d)", this, delay));
         }
         if (delay > 0) {
             try {
                 scheduledExecutorService.schedule(this::processRetries, delay, TimeUnit.MILLISECONDS);
             } catch (Exception e) {
-                LOGGER.log(Level.INFO, String.format("EventDispatcher (%s) - scheduleRetryQueueProcessing - Error creating timer.", this));
+                LOGGER.info(String.format("EventDispatcher (%s) - scheduleRetryQueueProcessing - Error scheduling retry.", this), e);
             }
         } else {
             processRetries();
@@ -326,7 +327,7 @@ public abstract class EventDispatcher implements Serializable {
             }
             bus.publish(message);
         } catch (MessageException e) {
-            LOGGER.log(Level.WARNING, "Failed to publish SSE Dispatcher state event.", e);
+            LOGGER.warn("Failed to publish SSE Dispatcher state event.", e);
         }
     }
 
@@ -335,7 +336,7 @@ public abstract class EventDispatcher implements Serializable {
         try {
             dispatchEvent("reload", null);
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Unable to send reload event to client.", e);
+            LOGGER.error("Unable to send reload event to client.", e);
         }
     }
     
@@ -365,13 +366,13 @@ public abstract class EventDispatcher implements Serializable {
             if (retry != null) {
                 long ctime = System.currentTimeMillis();
                 long retry_age = (ctime - retry.timestamp);
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, String.format("EventDispatcher (%s) - timestamp: %d - current: %d - age: %d", this, retry.timestamp, ctime, retry_age));
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(String.format("EventDispatcher (%s) - timestamp: %d - current: %d - age: %d", this, retry.timestamp, ctime, retry_age));
                 }
                 // check time of oldest retry envent
                 if (retry_age > RETRY_QUEUE_EVENT_LIFETIME) {
                     // oldest event has timed out - remove all events from retry queue
-                    LOGGER.log(Level.FINE, String.format("EventDispatcher (%s) processRetries - clear retryQueue", this));
+                    LOGGER.debug("EventDispatcher {} processRetries - clear retryQueue", this);
                     retryQueue.clear();
                     retry = null;
                 }
@@ -409,17 +410,17 @@ public abstract class EventDispatcher implements Serializable {
                             eventJSON = eventJSONObj.toString();
                         }
 
-                        if (LOGGER.isLoggable(Level.FINEST)) {
-                            LOGGER.log(Level.FINEST, String.format("EventDispatcher (%s) - retry event: %s", this, eventJSON));
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug(String.format("EventDispatcher (%s) - retry event: %s", this, eventJSON));
                         }
                         if (!dispatchEvent(retry.channelName, eventJSON)) {
-                            LOGGER.log(Level.FINE, String.format("EventDispatcher (%s) - Error dispatching retry event to SSE channel. Write failed.", this));
+                            LOGGER.debug(String.format("EventDispatcher (%s) - Error dispatching retry event to SSE channel. dispatchEvent failed.", this));
                             return;
-                        } else if (LOGGER.isLoggable(Level.FINEST)) {
-                            LOGGER.log(Level.FINEST, "EventDispatcher ({0}) - Dispatched retry event to SSE channel. Event {1}.", new Object[]{this, eventJSON});
+                        } else if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("EventDispatcher ({0}) - Dispatched retry event to SSE channel. Event {1}.", new Object[]{this, eventJSON});
                         }
                     } catch (Exception e) {
-                        LOGGER.log(Level.FINE, String.format("EventDispatcher (%s) - Error dispatching retry event to SSE channel. Write failed.", this));
+                        LOGGER.debug(String.format("EventDispatcher (%s) - Error dispatching retry event to SSE channel. Write failed.", this), e);
                         return;
                     }
 
@@ -429,7 +430,7 @@ public abstract class EventDispatcher implements Serializable {
                 }
 
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, String.format("EventDispatcher (%s) - Error dispatching retry event to SSE channel. Write failed.", this));
+                LOGGER.warn(String.format("EventDispatcher (%s) - Error dispatching retry event to SSE channel. Write failed.", this), e);
                 return;
 
             } finally {
@@ -461,11 +462,11 @@ public abstract class EventDispatcher implements Serializable {
                 message.set(SSEChannel.EventProps.sse_subs_dispatcher_inst, Integer.toString(System.identityHashCode(this)));
 
                 if (!dispatchEvent(message.getChannelName(), message.toJSON())) {
-                    LOGGER.log(Level.FINE, "Error dispatching event to SSE channel. Write failed.");
+                    LOGGER.debug("Error dispatching event to SSE channel. dispatchEvent failed.");
                     addToRetryQueue(message);
                 }
             } catch (Exception e) {
-                LOGGER.log(Level.FINE, "Error dispatching event to SSE channel.", e);
+                LOGGER.debug("Error dispatching event to SSE channel.", e);
                 addToRetryQueue(message);
             }
         }
@@ -497,14 +498,16 @@ public abstract class EventDispatcher implements Serializable {
                         try {
                             dispatcher.unsubscribeAll();
                         } catch (Exception e) {
-                            LOGGER.log(Level.FINE, "Error during unsubscribeAll() for dispatcher " + dispatcher.getId() + ".", e);
+                            if(LOGGER.isDebugEnabled()){
+                                LOGGER.debug("Error during unsubscribeAll() for dispatcher " + dispatcher.getId() + ".", e);
+                            }
                         }
                     }
                 } finally {
                     dispatchers.clear();
                 }
             } catch (Exception e) {
-                LOGGER.log(Level.FINE, "Error during session cleanup. The session has probably timed out.", e);
+                LOGGER.debug("Error during session cleanup. The session has probably timed out." + this, e);
             }
         }
     }
