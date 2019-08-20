@@ -72,7 +72,7 @@ public abstract class EventDispatcher implements Serializable {
 
     private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(
         Integer.getInteger( EventDispatcher.class.getName() + ".scheduledExecutorService.size", 4 ),
-        r -> new Thread( "EventDispatcher.retryProcessor" ));
+        r -> new Thread( r, "EventDispatcher.retryProcessor" ));
 
     private volatile boolean isRetryLoopActive = false;
 
