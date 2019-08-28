@@ -32,6 +32,8 @@ import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.StaplerRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
@@ -40,8 +42,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -49,7 +49,7 @@ import java.util.logging.Logger;
 @Restricted(NoExternalUse.class)
 final class SubscriptionConfigQueue {
 
-    private static final Logger LOGGER = Logger.getLogger(SubscriptionConfigQueue.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger( SubscriptionConfigQueue.class.getName());
     
     private static BlockingQueue<SubscriptionConfig> queue = null;
     
@@ -83,12 +83,12 @@ final class SubscriptionConfigQueue {
                             try {
                                 doConfigure(subscriptionConfig);
                             } catch (Exception e) {
-                                LOGGER.log(Level.SEVERE, "Error processing SSE configuration request.", e);
+                                LOGGER.error("Error processing SSE configuration request.", e);
                             }
                         }
                     }
                 } catch (InterruptedException e) {
-                    LOGGER.log(Level.INFO, "SSE configure queue processing interrupted. Stopping.", e);
+                    LOGGER.info("SSE configure queue processing interrupted. Stopping.", e);
                 } finally {
                     queue = null;
                 }
@@ -105,7 +105,7 @@ final class SubscriptionConfigQueue {
         try {
             queue.put(SubscriptionConfig.STOP_CONFIG);
         } catch (InterruptedException e) {
-            LOGGER.log(Level.SEVERE, "Unexpected error stopping SSE Configure Queue.", e);
+            LOGGER.error("Unexpected error stopping SSE Configure Queue.", e);
         }
     }
 
@@ -120,7 +120,7 @@ final class SubscriptionConfigQueue {
         EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(subscriptionConfig.dispatcherId, subscriptionConfig.session);
 
         if (dispatcher == null) {
-            LOGGER.log(Level.FINE, "Failed Jenkins SSE Gateway configuration request. Unknown SSE event dispatcher " + subscriptionConfig.dispatcherId);
+            LOGGER.warn("Failed Jenkins SSE Gateway configuration request. Unknown SSE event dispatcher " + subscriptionConfig.dispatcherId);
             return;
         }
 
@@ -146,7 +146,7 @@ final class SubscriptionConfigQueue {
                 data.put("dispatcherInst", System.identityHashCode(dispatcher));
                 dispatcher.dispatchEvent("configure", data.toString());
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error sending configuration ACK for batchId=" + subscriptionConfig.batchId, e);
+                LOGGER.error("Error sending configuration ACK for batchId=" + subscriptionConfig.batchId, e);
             }
         }
     }
@@ -202,7 +202,7 @@ final class SubscriptionConfigQueue {
                         EventFilter filter = (EventFilter) jsonObj.toBean(EventFilter.class);
                         filterSet.add(filter);
                     } catch (JSONException e) {
-                        LOGGER.log(Level.SEVERE, "Invalid SSE payload. Expecting an array of JSON Objects for property " + key, e);
+                        LOGGER.error("Invalid SSE payload. Expecting an array of JSON Objects for property " + key, e);
                     }
                 }
                 return filterSet;

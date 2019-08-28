@@ -33,12 +33,14 @@ public class EndpointUnitTest {
         eventDispatcher = new MockEventDispatcher();
         response = Mockito.mock(StaplerResponse.class);
     }
+
     @After
     public void tearDown() throws Exception  {
         eventDispatcher.unsubscribeAll();
         SubscriptionConfigQueue.stop();
         waitForQueueStopped();
     }
+
     @AfterClass
     public static void shutDownBus() {
         PubsubBus.getBus().shutdown();

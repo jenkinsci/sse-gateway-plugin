@@ -29,6 +29,8 @@ import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.ssegateway.Util;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -37,8 +39,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
@@ -46,7 +46,7 @@ import java.util.logging.Logger;
 @Restricted(NoExternalUse.class)
 public class EventDispatcherFactory {
 
-    private static final Logger LOGGER = Logger.getLogger(EventDispatcherFactory.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger( EventDispatcherFactory.class.getName());
 
     public static final String DISPATCHER_SESSION_KEY = EventDispatcher.class.getName();
     
@@ -70,7 +70,7 @@ public class EventDispatcherFactory {
             EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(clientId, session);
             
             if (dispatcher == null) {
-                LOGGER.log(Level.FINE, String.format("Unknown dispatcher client Id '%s' on HTTP session '%s'. Creating a new one. " +
+                LOGGER.debug(String.format("Unknown dispatcher client Id '%s' on HTTP session '%s'. Creating a new one. " +
                         "Make sure you are calling 'connect' before 'listen' and that HTTP sessions are being maintained between 'connect' and 'configure' calls. " +
                         "SSE client reconnects will not work - probably fine if running in non-browser/test mode.", clientId, session.getId()));
                 dispatcher = EventDispatcherFactory.newDispatcher(clientId, session);
@@ -97,7 +97,7 @@ public class EventDispatcherFactory {
                     crumb.put("value", crumbIssuer.getCrumb(request));
                     openData.put("crumb", crumb);
                 } else {
-                    LOGGER.log(Level.WARNING, "No CrumbIssuer on Jenkins instance. Some POSTs might not work.");
+                    LOGGER.warn("No CrumbIssuer on Jenkins instance. Some POSTs might not work.");
                 }
             }
 
@@ -140,8 +140,8 @@ public class EventDispatcherFactory {
             EventDispatcher dispatcher = runtimeClass.newInstance();
             dispatcher.setId(clientId);
             dispatchers.put(clientId, dispatcher);
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, String.format("New dispatcher '%s' attached to HTTP session '%s'.", dispatcher, session.getId()));
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(String.format("New dispatcher '%s' attached to HTTP session '%s'.", dispatcher, session.getId()));
             }
             return dispatcher;
         } catch (Exception e) {
