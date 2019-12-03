@@ -21,7 +21,7 @@
 
   <name>Server Sent Events (SSE) Gateway Plugin</name>
   <description>Server Sent Events (SSE) Gateway Plugin</description>
-  <url>https://wiki.jenkins-ci.org/display/JENKINS/SSE+Gateway+Plugin</url>
+  <url>https://github.com/jenkinsci/sse-gateway-plugin</url>
 
   <scm>
     <connection>scm:git:https://github.com/jenkinsci/sse-gateway-plugin.git</connection>

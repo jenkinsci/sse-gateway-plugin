@@ -1,0 +1,2 @@
+_extends: .github
+tag-template: sse-gateway-plugin-$NEXT_MINOR_VERSION
