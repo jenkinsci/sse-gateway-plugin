@@ -552,7 +552,7 @@ SSEConnection.prototype = {
 
             this.configurationQueue.dispatcherId = sessionInfo.dispatcherId;
             // clone the config, just in case of bad change later.
-            var configurationQueue = JSON.parse(JSON.stringify(this.configurationQueue));
+            var configurationQueue = JSON.parse(json.stringify(this.configurationQueue));
             var sseConnection = this;
 
             ajax.post(configurationQueue, configureUrl, sessionInfo, function (data, http) {
