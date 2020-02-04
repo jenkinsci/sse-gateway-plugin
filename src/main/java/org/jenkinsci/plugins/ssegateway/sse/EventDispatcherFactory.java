@@ -89,7 +89,7 @@ public class EventDispatcherFactory {
 
                 // Crumb needed for testing because we use it to fire off some
                 // test builds via the POST API.
-                Jenkins jenkins = Jenkins.getInstance();
+                Jenkins jenkins = Jenkins.get();
                 CrumbIssuer crumbIssuer = jenkins.getCrumbIssuer();
                 if (crumbIssuer != null) {
                     JSONObject crumb = new JSONObject();

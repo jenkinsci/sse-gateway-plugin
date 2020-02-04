@@ -88,7 +88,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     }
 
     protected void init() throws ServletException {
-        Jenkins jenkins = Jenkins.getInstance();
+        Jenkins jenkins = Jenkins.getInstanceOrNull();
         if (jenkins != null) {
             try {
                 EventHistoryStore.setHistoryRoot(getHistoryDirectory(jenkins));
