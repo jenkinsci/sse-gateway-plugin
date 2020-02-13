@@ -107,6 +107,16 @@
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-resources-plugin</artifactId>
+          <!--
+          maven totally change his way to copy symlink
+          this mean the symlink is copied as a symlink and not anymore as a new file
+          see JENKINS-59291
+          -->
+          <version>2.7</version>
+        </plugin>
+        <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>findbugs-maven-plugin</artifactId>
           <version>3.0.5</version>
