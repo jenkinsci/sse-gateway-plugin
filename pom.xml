@@ -113,6 +113,7 @@
           maven totally change his way to copy symlink
           this mean the symlink is copied as a symlink and not anymore as a new file
           see JENKINS-59291
+          https://issues.apache.org/jira/browse/MRESOURCES-237
           -->
           <version>2.7</version>
         </plugin>
