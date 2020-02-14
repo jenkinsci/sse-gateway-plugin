@@ -352,7 +352,7 @@ public abstract class EventDispatcher implements Serializable {
         } else {
             // Event was added to the queue.
             // If it was the first event -> start the retry loop timer
-            if (isFirstEvent) {
+            if (isFirstEvent || !isRetryLoopActive) {
                 scheduleRetryQueueProcessing(RETRY_QUEUE_PROCESSING_DELAY);
             }
         }
