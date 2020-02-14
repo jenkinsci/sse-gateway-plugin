@@ -17,6 +17,9 @@
     <java.level>8</java.level>
     <node.version>5.8.0</node.version>
     <npm.version>3.7.3</npm.version>
+    <localRepoPath>${project.build.directory}/local-repo</localRepoPath>
+    <settingsPath>src/it/settings.xml</settingsPath>
+    <maven.dependency.plugin.version>3.1.1</maven.dependency.plugin.version>
   </properties>
 
   <name>Server Sent Events (SSE) Gateway Plugin</name>
@@ -92,17 +95,41 @@
 
   <build>
     <plugins>
-        <plugin>
-          <groupId>org.jenkins-ci.tools</groupId>
-          <artifactId>maven-hpi-plugin</artifactId>
-          <extensions>true</extensions>
-          <configuration>
-            <showDeprecation>true</showDeprecation>
-            <contextPath>/jenkins</contextPath>
-            <!-- TODO specify ${java.level} when JENKINS-20679 implemented -->
-            <disabledTestInjection>true</disabledTestInjection>
-          </configuration>
-        </plugin>
+      <plugin>
+        <groupId>org.jenkins-ci.tools</groupId>
+        <artifactId>maven-hpi-plugin</artifactId>
+        <extensions>true</extensions>
+        <configuration>
+          <showDeprecation>true</showDeprecation>
+          <contextPath>/jenkins</contextPath>
+          <!-- TODO specify ${java.level} when JENKINS-20679 implemented -->
+          <disabledTestInjection>true</disabledTestInjection>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-invoker-plugin</artifactId>
+        <version>3.2.1</version>
+        <executions>
+          <execution>
+            <id>integration-test</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>install</goal>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
+          <localRepositoryPath>${localRepoPath}</localRepositoryPath>
+          <settingsFile>${settingsPath}</settingsFile>
+          <goals>
+            <goal>clean</goal>
+          </goals>
+        </configuration>
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
