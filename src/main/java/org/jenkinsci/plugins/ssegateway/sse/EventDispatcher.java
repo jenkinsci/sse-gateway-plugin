@@ -24,6 +24,7 @@
 package org.jenkinsci.plugins.ssegateway.sse;
 
 import hudson.Extension;
+import hudson.model.PeriodicWork;
 import hudson.model.User;
 import hudson.util.CopyOnWriteMap;
 import jenkins.model.Jenkins;
@@ -339,11 +340,33 @@ public abstract class EventDispatcher implements Serializable {
             LOGGER.error("Unable to send reload event to client.", e);
         }
     }
+
+    /**
+     * Called on queue events to ensure queue items remain valid
+     */
+    private void validateRetryQueue() {
+        Retry retry = retryQueue.peek();
+        if (retry != null) {
+            long ctime = System.currentTimeMillis();
+            long retry_age = (ctime - retry.timestamp);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(String.format("EventDispatcher (%s) - timestamp: %d - current: %d - age: %d", this, retry.timestamp, ctime, retry_age));
+            }
+            // check time of oldest retry envent
+            if (retry_age > RETRY_QUEUE_EVENT_LIFETIME) {
+                // oldest event has timed out - remove all events from retry queue
+                LOGGER.debug("EventDispatcher {} processRetries - clear retryQueue", this);
+                retryQueue.clear();
+                retry = null;
+            }
+        }
+    }
     
     private void addToRetryQueue(@Nonnull Message message) {
         // check retry queue is empty
         //  -> we are adding the first element
         //  -> start the retryqueue timer
+        validateRetryQueue();
         boolean isFirstEvent = retryQueue.isEmpty();
         if (!retryQueue.add(new Retry(message))) {
             // Unable to add to the queue. Lets just tell the client
@@ -361,22 +384,8 @@ public abstract class EventDispatcher implements Serializable {
     synchronized void processRetries() {
         if (!isRetryLoopActive) {
             isRetryLoopActive = true;
+            validateRetryQueue();
             Retry retry = retryQueue.peek();
-
-            if (retry != null) {
-                long ctime = System.currentTimeMillis();
-                long retry_age = (ctime - retry.timestamp);
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug(String.format("EventDispatcher (%s) - timestamp: %d - current: %d - age: %d", this, retry.timestamp, ctime, retry_age));
-                }
-                // check time of oldest retry envent
-                if (retry_age > RETRY_QUEUE_EVENT_LIFETIME) {
-                    // oldest event has timed out - remove all events from retry queue
-                    LOGGER.debug("EventDispatcher {} processRetries - clear retryQueue", this);
-                    retryQueue.clear();
-                    retry = null;
-                }
-            }
 
             try {
                 while (retry != null) {
@@ -446,6 +455,9 @@ public abstract class EventDispatcher implements Serializable {
             // in my opinon the statement inside the finally should be
             // sufficient - but without this second false i had some
             // endless loops
+            if (!retryQueue.isEmpty()) {
+                scheduleRetryQueueProcessing(RETRY_QUEUE_PROCESSING_DELAY);
+            }
             isRetryLoopActive = false;
         }
     }
