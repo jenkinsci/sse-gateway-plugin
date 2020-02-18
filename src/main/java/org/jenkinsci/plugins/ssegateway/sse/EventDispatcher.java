@@ -341,9 +341,9 @@ public abstract class EventDispatcher implements Serializable {
     }
 
     /**
-     * Called on queue events to ensure queue items remain valid
+     * Called on queue events to validate that the disaptcher is still alive
      */
-    private void validateRetryQueue() {
+    private void validateDispatcher() {
         Retry retry = retryQueue.peek();
         if (retry != null) {
             long ctime = System.currentTimeMillis();
@@ -356,16 +356,16 @@ public abstract class EventDispatcher implements Serializable {
                 // oldest event has timed out - remove all events from retry queue
                 LOGGER.debug("EventDispatcher {} processRetries - clear retryQueue", this);
                 retryQueue.clear();
-                retry = null;
             }
         }
+        checkDispatcherFailTimeout("dispatcher.validation");
     }
     
     private void addToRetryQueue(@Nonnull Message message) {
         // check retry queue is empty
         //  -> we are adding the first element
         //  -> start the retryqueue timer
-        validateRetryQueue();
+        validateDispatcher();
         boolean isFirstEvent = retryQueue.isEmpty();
         if (!retryQueue.add(new Retry(message))) {
             // Unable to add to the queue. Lets just tell the client
@@ -383,7 +383,7 @@ public abstract class EventDispatcher implements Serializable {
     synchronized void processRetries() {
         if (!isRetryLoopActive) {
             isRetryLoopActive = true;
-            validateRetryQueue();
+            validateDispatcher();
             Retry retry = retryQueue.peek();
 
             try {
