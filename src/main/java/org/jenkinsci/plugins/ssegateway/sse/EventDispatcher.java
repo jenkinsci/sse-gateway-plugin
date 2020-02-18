@@ -24,7 +24,6 @@
 package org.jenkinsci.plugins.ssegateway.sse;
 
 import hudson.Extension;
-import hudson.model.PeriodicWork;
 import hudson.model.User;
 import hudson.util.CopyOnWriteMap;
 import jenkins.model.Jenkins;
