@@ -367,8 +367,8 @@ public abstract class EventDispatcher implements Serializable {
         //  -> start the retryqueue timer
         validateDispatcher();
         boolean isFirstEvent = retryQueue.isEmpty();
-        if (!retryQueue.add(new Retry(message))) {
-            // Unable to add to the queue. Lets just tell the client
+        if (!retryQueue.add(new Retry(message)) || subscribers.isEmpty()) {
+            // Unable to add to the queue or there are no subscribers. Lets just tell the client
             // that it needs to reload the page.
             dispatchReload();
         } else {
