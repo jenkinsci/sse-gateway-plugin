@@ -535,8 +535,19 @@ public abstract class EventDispatcher implements Serializable {
             // as well as saving the actual message bodies to file and reading those
             // back when it comes time to process the retry i.e. keep as little
             // in memory as possible + share references where we can.
-            this.channelName = message.getChannelName().intern();
-            this.eventUUID = message.getEventUUID().intern();
+            String channelName = message.getChannelName();
+            if (channelName != null) {
+                this.channelName = channelName.intern();
+            } else {
+                this.channelName = "";
+            }
+
+            String eventUUID = message.getEventUUID();
+            if (eventUUID != null) {
+                this.eventUUID = eventUUID.intern();
+            } else {
+                this.eventUUID = "";
+            }
         }
         
         private boolean needsMoreTimeToLandInStore() {
