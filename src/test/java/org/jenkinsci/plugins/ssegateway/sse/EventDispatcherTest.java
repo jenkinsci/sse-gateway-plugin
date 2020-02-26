@@ -6,14 +6,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.jenkinsci.plugins.pubsub.SimpleMessage;
 import org.jenkinsci.plugins.ssegateway.MockEventDispatcher;
-import org.junit.Before;
+import org.junit.After;
 import org.junit.Test;
 
 public class EventDispatcherTest {
     private static final long saveProcessingDelay = org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY;
     private static final long saveEventLifetime = org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME;
 
-    @Before
+    @After
     public void reset() {
         org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY = saveProcessingDelay;
         org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME = saveEventLifetime;
