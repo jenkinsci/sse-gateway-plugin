@@ -86,7 +86,7 @@ public abstract class EventDispatcher implements Serializable {
     private String id = null;
     private final transient PubsubBus bus;
     private final transient Authentication authentication;
-    private transient Map<EventFilter, ChannelSubscriber> subscribers = new CopyOnWriteMap.Hash<>();
+    transient Map<EventFilter, ChannelSubscriber> subscribers = new CopyOnWriteMap.Hash<>();
 
     // timestamp of last successfull dispatchEvent call
     // default to current time to avoid timeout if first call fails
@@ -97,7 +97,7 @@ public abstract class EventDispatcher implements Serializable {
     public static /* not final */ long TIMEOUT_DISPATCHERFAIL = Integer.getInteger(EventDispatcher.class.getName() + ".TIMEOUT_DISPATCHERFAIL", 4*60*60) * 1000;
 
     // Lists of events that need to be retried on the next reconnect.
-    private transient Queue<Retry> retryQueue = new ConcurrentLinkedQueue<>();
+    transient Queue<Retry> retryQueue = new ConcurrentLinkedQueue<>();
     
     public EventDispatcher() {
         this.bus = PubsubBus.getBus();
@@ -361,7 +361,7 @@ public abstract class EventDispatcher implements Serializable {
         checkDispatcherFailTimeout("dispatcher.validation");
     }
     
-    private void addToRetryQueue(@Nonnull Message message) {
+    void addToRetryQueue(@Nonnull Message message) {
         // check retry queue is empty
         //  -> we are adding the first element
         //  -> start the retryqueue timer
