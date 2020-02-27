@@ -362,10 +362,15 @@ public abstract class EventDispatcher implements Serializable {
     }
     
     void addToRetryQueue(@Nonnull Message message) {
+        /**
+         * Check the queue before adding so retries are re-scheduled.
+         * Also ensures that if retries are never scheduled and items are added, 
+         * the dispatcher will unsubscribe as the function checks the last dispatch timing using checkDispatcherFailTimeout  
+        */
+        validateDispatcher();
         // check retry queue is empty
         //  -> we are adding the first element
         //  -> start the retryqueue timer
-        validateDispatcher();
         boolean isFirstEvent = retryQueue.isEmpty();
         if (!retryQueue.add(new Retry(message)) || subscribers.isEmpty()) {
             // Unable to add to the queue or there are no subscribers. Lets just tell the client
