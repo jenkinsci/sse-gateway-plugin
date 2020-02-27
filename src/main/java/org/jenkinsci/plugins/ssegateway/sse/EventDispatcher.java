@@ -86,7 +86,7 @@ public abstract class EventDispatcher implements Serializable {
     private String id = null;
     private final transient PubsubBus bus;
     private final transient Authentication authentication;
-    private transient Map<EventFilter, ChannelSubscriber> subscribers = new CopyOnWriteMap.Hash<>();
+    transient Map<EventFilter, ChannelSubscriber> subscribers = new CopyOnWriteMap.Hash<>();
 
     // timestamp of last successfull dispatchEvent call
     // default to current time to avoid timeout if first call fails
@@ -97,7 +97,7 @@ public abstract class EventDispatcher implements Serializable {
     public static /* not final */ long TIMEOUT_DISPATCHERFAIL = Integer.getInteger(EventDispatcher.class.getName() + ".TIMEOUT_DISPATCHERFAIL", 4*60*60) * 1000;
 
     // Lists of events that need to be retried on the next reconnect.
-    private transient Queue<Retry> retryQueue = new ConcurrentLinkedQueue<>();
+    transient Queue<Retry> retryQueue = new ConcurrentLinkedQueue<>();
     
     public EventDispatcher() {
         this.bus = PubsubBus.getBus();
@@ -339,14 +339,41 @@ public abstract class EventDispatcher implements Serializable {
             LOGGER.error("Unable to send reload event to client.", e);
         }
     }
+
+    /**
+     * Called on queue events to validate that the disaptcher is still alive
+     */
+    private void validateDispatcher() {
+        Retry retry = retryQueue.peek();
+        if (retry != null) {
+            long ctime = System.currentTimeMillis();
+            long retry_age = (ctime - retry.timestamp);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug(String.format("EventDispatcher (%s) - timestamp: %d - current: %d - age: %d", this, retry.timestamp, ctime, retry_age));
+            }
+            // check time of oldest retry envent
+            if (retry_age > RETRY_QUEUE_EVENT_LIFETIME) {
+                // oldest event has timed out - remove all events from retry queue
+                LOGGER.debug("EventDispatcher {} processRetries - clear retryQueue", this);
+                retryQueue.clear();
+            }
+        }
+        checkDispatcherFailTimeout("dispatcher.validation");
+    }
     
-    private void addToRetryQueue(@Nonnull Message message) {
+    void addToRetryQueue(@Nonnull Message message) {
+        /**
+         * Check the queue before adding so retries are re-scheduled.
+         * Also ensures that if retries are never scheduled and items are added, 
+         * the dispatcher will unsubscribe as the function checks the last dispatch timing using checkDispatcherFailTimeout  
+        */
+        validateDispatcher();
         // check retry queue is empty
         //  -> we are adding the first element
         //  -> start the retryqueue timer
         boolean isFirstEvent = retryQueue.isEmpty();
-        if (!retryQueue.add(new Retry(message))) {
-            // Unable to add to the queue. Lets just tell the client
+        if (!retryQueue.add(new Retry(message)) || subscribers.isEmpty()) {
+            // Unable to add to the queue or there are no subscribers. Lets just tell the client
             // that it needs to reload the page.
             dispatchReload();
         } else {
@@ -361,22 +388,8 @@ public abstract class EventDispatcher implements Serializable {
     synchronized void processRetries() {
         if (!isRetryLoopActive) {
             isRetryLoopActive = true;
+            validateDispatcher();
             Retry retry = retryQueue.peek();
-
-            if (retry != null) {
-                long ctime = System.currentTimeMillis();
-                long retry_age = (ctime - retry.timestamp);
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug(String.format("EventDispatcher (%s) - timestamp: %d - current: %d - age: %d", this, retry.timestamp, ctime, retry_age));
-                }
-                // check time of oldest retry envent
-                if (retry_age > RETRY_QUEUE_EVENT_LIFETIME) {
-                    // oldest event has timed out - remove all events from retry queue
-                    LOGGER.debug("EventDispatcher {} processRetries - clear retryQueue", this);
-                    retryQueue.clear();
-                    retry = null;
-                }
-            }
 
             try {
                 while (retry != null) {
@@ -446,6 +459,9 @@ public abstract class EventDispatcher implements Serializable {
             // in my opinon the statement inside the finally should be
             // sufficient - but without this second false i had some
             // endless loops
+            if (!retryQueue.isEmpty()) {
+                scheduleRetryQueueProcessing(RETRY_QUEUE_PROCESSING_DELAY);
+            }
             isRetryLoopActive = false;
         }
     }
@@ -524,8 +540,19 @@ public abstract class EventDispatcher implements Serializable {
             // as well as saving the actual message bodies to file and reading those
             // back when it comes time to process the retry i.e. keep as little
             // in memory as possible + share references where we can.
-            this.channelName = message.getChannelName().intern();
-            this.eventUUID = message.getEventUUID().intern();
+            String channelName = message.getChannelName();
+            if (channelName != null) {
+                this.channelName = channelName.intern();
+            } else {
+                this.channelName = "";
+            }
+
+            String eventUUID = message.getEventUUID();
+            if (eventUUID != null) {
+                this.eventUUID = eventUUID.intern();
+            } else {
+                this.eventUUID = "";
+            }
         }
         
         private boolean needsMoreTimeToLandInStore() {
