@@ -151,15 +151,16 @@ SSEConnection.prototype = {
                 var listenUrl = sseConnection.jenkinsUrl + '/sse-gateway/listen/'
                     + encodeURIComponent(tabClientId);
 
+                var options = undefined;
                 if (sseConnection.configuration.sendSessionId) {
                     // Sending the jsessionid helps headless clients to maintain
                     // the session with the backend.
                     var jsessionid = response.data.jsessionid;
-                    listenUrl += ';jsessionid=' + jsessionid;
+                    options = {headers: {Cookie: 'jsessionid=' + jsessionid}}
                 }
 
                 var EventSource = window.EventSource;
-                var source = new EventSource(listenUrl);
+                var source = new EventSource(listenUrl, options);
 
                 source.addEventListener('open', function (e) {
                     LOGGER.debug('SSE channel "open" event.', e);
