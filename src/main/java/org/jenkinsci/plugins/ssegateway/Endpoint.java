@@ -231,6 +231,8 @@ public class Endpoint extends CrumbExclusion implements RootAction {
                 
                 if (requestedResource.startsWith(SSE_LISTEN_URL_PREFIX)) {
                     HttpServletResponse httpServletResponse = (HttpServletResponse) servletResponse;
+                    // This part is kept in case someone is sending the jsessionid with the ;
+                    // but this is no longer the case for the tests of this plugin
                     String[] clientTokens = requestedResource.substring(SSE_LISTEN_URL_PREFIX.length()).split(";");
                     String clientId = clientTokens[0];
                     
