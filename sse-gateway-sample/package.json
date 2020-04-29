@@ -17,6 +17,6 @@
   "dependencies": {
     "@jenkins-cd/sse-gateway": "../",
     "@jenkins-cd/js-modules": "latest",
-    "jquery": "^2.2.3"
+    "jquery": "^3.5.0"
   }
 }
