@@ -36,6 +36,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.StreamSupport;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.ACL;
@@ -162,16 +163,17 @@ public final class EventHistoryStore {
         getChannelSubsCounter(channelName).decrementAndGet();
     }
     
-    static int getChannelEventCount(@Nonnull String channelName) throws IOException {
+    static long getChannelEventCount(@Nonnull String channelName) throws IOException {
         Path dirPath = Paths.get(getChannelDir(channelName).toURI());
-        int count = 0;
-        try (final DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
-            for (final Path entry : dirStream) {
-                count++;
-            }
+        try (DirectoryStream<Path> dirStream = createDirectoryStream( dirPath )) {
+            return StreamSupport.stream( dirStream.spliterator(), false ).count();
         }
-        
-        return count;
+    }
+
+    // because of this https://github.com/spotbugs/spotbugs/issues/756
+    // olamy: ridiculous to have to change code because of a tool...
+    private static @Nonnull DirectoryStream<Path> createDirectoryStream(Path dirPath) throws IOException {
+        return Files.newDirectoryStream(dirPath);
     }
 
     /**
@@ -180,9 +182,9 @@ public final class EventHistoryStore {
     static void deleteAllHistory() throws IOException {
         assertHistoryRootSet();
         for(File directory : channelDirs.values()){
-            deleteAllFilesInDir(directory, null);
+            deleteAllFilesInDir(directory, Long.MAX_VALUE);
         }
-        deleteAllFilesInDir(EventHistoryStore.historyRoot, null);
+        deleteAllFilesInDir(EventHistoryStore.historyRoot, Long.MAX_VALUE);
     }
 
     /**
@@ -211,18 +213,18 @@ public final class EventHistoryStore {
         return channelDir;
     }
     
-    private synchronized static void deleteAllFilesInDir(File dir, Long olderThan) throws IOException {
+    private synchronized static void deleteAllFilesInDir(File dir, long olderThan) throws IOException {
         Path dirPath = Paths.get(dir.toURI());
         if(!Files.exists(dirPath)){
             return;
         }
-        try (final DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
-            for (final Path entry : dirStream) {
+        try (final DirectoryStream<Path> dirStream = createDirectoryStream(dirPath)) {
+            for (Path entry : dirStream) {
                 File file = entry.toFile();
                 if (file.isDirectory()) {
                     deleteAllFilesInDir(file, olderThan);
                 }
-                if (olderThan == null || file.lastModified() < olderThan) {
+                if (file.lastModified() < olderThan) {
                     if (!file.delete()) {
                         LOGGER.warn("Error deleting file {}", file.getAbsolutePath());
                     }
