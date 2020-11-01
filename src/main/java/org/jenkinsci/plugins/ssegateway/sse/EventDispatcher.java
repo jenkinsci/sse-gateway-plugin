@@ -76,9 +76,9 @@ public abstract class EventDispatcher implements Serializable {
 
     private volatile boolean isRetryLoopActive = false;
 
-    // set lifetime for retry events - default 5min - 300 sec - 300000 msec
+    // set lifetime for retry events - default 1min - 60 sec - 60000 msec
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("MS_SHOULD_BE_FINAL")
-    public static /* not final */ long RETRY_QUEUE_EVENT_LIFETIME = Integer.getInteger(EventDispatcher.class.getName() + ".RETRY_QUEUE_EVENT_LIFETIME", 5*60) * 1000;
+    public static /* not final */ long RETRY_QUEUE_EVENT_LIFETIME = Integer.getInteger(EventDispatcher.class.getName() + ".RETRY_QUEUE_EVENT_LIFETIME", 1*60) * 1000;
     // set delay for retry loop - default 250ms
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("MS_SHOULD_BE_FINAL")
     public static /* not final */ long RETRY_QUEUE_PROCESSING_DELAY = Integer.getInteger(EventDispatcher.class.getName() + ".RETRY_QUEUE_PROCESSING_DELAY", 250);
@@ -92,9 +92,9 @@ public abstract class EventDispatcher implements Serializable {
     // default to current time to avoid timeout if first call fails
     private long timestamp_dispatchEventOK = System.currentTimeMillis();
 
-    // set timeout for unsubscribe if last successful dispatchEvent call is older than this timeout  - default: 4 hrs - 240 min - 14400 sec - 14400000 msec
+    // set timeout for unsubscribe if last successful dispatchEvent call is older than this timeout  - default: 15min - 14400 sec - 900000 msec
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("MS_SHOULD_BE_FINAL")
-    public static /* not final */ long TIMEOUT_DISPATCHERFAIL = Integer.getInteger(EventDispatcher.class.getName() + ".TIMEOUT_DISPATCHERFAIL", 4*60*60) * 1000;
+    public static /* not final */ long TIMEOUT_DISPATCHERFAIL = Integer.getInteger(EventDispatcher.class.getName() + ".TIMEOUT_DISPATCHERFAIL", 15*60) * 1000;
 
     // Lists of events that need to be retried on the next reconnect.
     transient Queue<Retry> retryQueue = new ConcurrentLinkedQueue<>();
@@ -167,7 +167,19 @@ public abstract class EventDispatcher implements Serializable {
      *      false if the response is not writable
      */
     public synchronized boolean dispatchEvent(String name, String data) throws IOException, ServletException {
-        HttpServletResponse response = getResponse();
+        HttpServletResponse response = null;
+        // if the browser has been disconnected or for any reason connection cut
+        // AsynchEventDispatcher has an AsyncListener which call asyncContext#complete
+        // https://javadoc.io/doc/javax.servlet/javax.servlet-api/3.1.0/javax/servlet/AsyncContext.html#getResponse()
+        // javadoc says IllegalStateException if complete has been called but servlet container have different behaviour
+        // - Jetty will return null
+        // - Tomcat will throw IllegalStateException
+        // we have to manage both cases in the same way so in case of IllegalStateException we consider response as null
+        try {
+            response = getResponse();
+        } catch (IllegalStateException e) {
+            LOGGER.debug("cannot get response channel connection may have been closed", e);
+        }
 
         if (response == null) {
             checkDispatcherFailTimeout("response");
@@ -336,12 +348,12 @@ public abstract class EventDispatcher implements Serializable {
         try {
             dispatchEvent("reload", null);
         } catch (Exception e) {
-            LOGGER.error("Unable to send reload event to client.", e);
+            LOGGER.warn("Unable to send reload event to client.", e);
         }
     }
 
     /**
-     * Called on queue events to validate that the disaptcher is still alive
+     * Called on queue events to validate that the dispatcher is still alive
      */
     private void validateDispatcher() {
         Retry retry = retryQueue.peek();
