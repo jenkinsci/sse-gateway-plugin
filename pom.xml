@@ -163,7 +163,7 @@
           see JENKINS-59291
           https://issues.apache.org/jira/browse/MRESOURCES-237
           -->
-          <version>2.7</version>
+          <version>3.2.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
