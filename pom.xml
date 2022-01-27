@@ -61,11 +61,6 @@
         <scope>import</scope>
         <type>pom</type>
       </dependency>
-<!--      <dependency>-->
-<!--        <groupId>com.github.spotbugs</groupId>-->
-<!--        <artifactId>spotbugs-annotations</artifactId>-->
-<!--        <version>4.5.3</version>-->
-<!--      </dependency>-->
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
