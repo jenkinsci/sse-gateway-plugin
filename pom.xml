@@ -57,7 +57,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-2.176.x</artifactId>
-        <version>9</version>
+        <version>16</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -97,7 +97,7 @@
     <dependency>
       <groupId>com.github.eirslett</groupId>
       <artifactId>frontend-plugin-core</artifactId>
-      <version>1.7.6</version>
+      <version>1.12.1</version>
       <scope>test</scope>
       <exclusions>
         <!-- We want to pick these up as dependencies of Jenkins core in provided scope -->
