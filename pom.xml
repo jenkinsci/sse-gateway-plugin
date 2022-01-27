@@ -12,7 +12,7 @@
   <packaging>hpi</packaging>
 
   <properties>
-    <jenkins.version>2.176.4</jenkins.version>
+    <jenkins.version>2.277.4</jenkins.version>
     <java.level>8</java.level>
     <node.version>5.8.0</node.version>
     <npm.version>3.7.3</npm.version>
@@ -56,16 +56,16 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.176.x</artifactId>
-        <version>16</version>
+        <artifactId>bom-2.277.x</artifactId>
+        <version>984.vb5eaac999a7e</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
-      <dependency>
-        <groupId>com.github.spotbugs</groupId>
-        <artifactId>spotbugs-annotations</artifactId>
-        <version>4.5.3</version>
-      </dependency>
+<!--      <dependency>-->
+<!--        <groupId>com.github.spotbugs</groupId>-->
+<!--        <artifactId>spotbugs-annotations</artifactId>-->
+<!--        <version>4.5.3</version>-->
+<!--      </dependency>-->
       <dependency>
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
@@ -91,6 +91,11 @@
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>pubsub-light</artifactId>
       <version>1.16</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.spotbugs</groupId>
+      <artifactId>spotbugs-annotations</artifactId>
     </dependency>
     
     <!-- Test deps -->
@@ -121,17 +126,17 @@
 
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.jenkins-ci.tools</groupId>
-        <artifactId>maven-hpi-plugin</artifactId>
-        <extensions>true</extensions>
-        <configuration>
-          <showDeprecation>true</showDeprecation>
-          <contextPath>/jenkins</contextPath>
-          <!-- TODO specify ${java.level} when JENKINS-20679 implemented -->
-          <disabledTestInjection>true</disabledTestInjection>
-        </configuration>
-      </plugin>
+<!--      <plugin>-->
+<!--        <groupId>org.jenkins-ci.tools</groupId>-->
+<!--        <artifactId>maven-hpi-plugin</artifactId>-->
+<!--        <extensions>true</extensions>-->
+<!--        <configuration>-->
+<!--          <showDeprecation>true</showDeprecation>-->
+<!--          <contextPath>/jenkins</contextPath>-->
+<!--          &lt;!&ndash; TODO specify ${java.level} when JENKINS-20679 implemented &ndash;&gt;-->
+<!--          <disabledTestInjection>true</disabledTestInjection>-->
+<!--        </configuration>-->
+<!--      </plugin>-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-invoker-plugin</artifactId>

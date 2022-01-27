@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.User;
 import hudson.util.CopyOnWriteMap;
@@ -44,7 +45,6 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -234,7 +234,7 @@ public abstract class EventDispatcher implements Serializable {
         response.setHeader("Connection","keep-alive");
     }
 
-    public boolean subscribe(@Nonnull EventFilter filter) {
+    public boolean subscribe(@NonNull EventFilter filter) {
         String channelName = filter.getChannelName();
 
         if (channelName != null) {
@@ -267,7 +267,7 @@ public abstract class EventDispatcher implements Serializable {
         return User.current();
     }
 
-    public boolean unsubscribe(@Nonnull EventFilter filter) {
+    public boolean unsubscribe(@NonNull EventFilter filter) {
         String channelName = filter.getChannelName();
         if (channelName != null) {
             SSEChannelSubscriber subscriber = (SSEChannelSubscriber) subscribers.get(filter);
@@ -373,7 +373,7 @@ public abstract class EventDispatcher implements Serializable {
         checkDispatcherFailTimeout("dispatcher.validation");
     }
     
-    void addToRetryQueue(@Nonnull Message message) {
+    void addToRetryQueue(@NonNull Message message) {
         /**
          * Check the queue before adding so retries are re-scheduled.
          * Also ensures that if retries are never scheduled and items are added, 
@@ -478,7 +478,7 @@ public abstract class EventDispatcher implements Serializable {
         }
     }
 
-    private void doDispatch(@Nonnull Message message) {
+    private void doDispatch(@NonNull Message message) {
         if (!retryQueue.isEmpty()) {
             // We do not attempt to dispatch events directly
             // while there are events sitting in the retryQueue.
@@ -507,7 +507,7 @@ public abstract class EventDispatcher implements Serializable {
         private int numSubscribers = 0;
 
         @Override
-        public void onMessage(@Nonnull Message message) {
+        public void onMessage(@NonNull Message message) {
             doDispatch(message);
         }
     }
@@ -545,7 +545,7 @@ public abstract class EventDispatcher implements Serializable {
         private final String channelName;
         private final String eventUUID;
 
-        private Retry(@Nonnull Message message) {
+        private Retry(@NonNull Message message) {
             // We want to keep the memory footprint of the retryQueue
             // to a minimum. That is why we are interning these strings
             // (multiple dispatchers will likely be retrying the same messages)
