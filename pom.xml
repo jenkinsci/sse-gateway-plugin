@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.29</version>
+    <version>4.33</version>
     <relativePath />
   </parent>
   <artifactId>sse-gateway</artifactId>
@@ -71,6 +71,11 @@
         <artifactId>junit</artifactId>
         <version>4.13.2</version>
         <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.jenkins-ci.modules</groupId>
+        <artifactId>instance-identity</artifactId>
+        <version>2.2</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
