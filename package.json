@@ -34,7 +34,7 @@
     "@jenkins-cd/js-modules": "0.0.8",
     "@jenkins-cd/logging": "^0.0.6",
     "event-source-polyfill": "0.0.7",
-    "eventsource": "0.2.1",
+    "eventsource": "2.0.2",
     "gulp": "^3.9.1",
     "http-proxy": "^1.14.0",
     "jsdom": "^5.6.1",
