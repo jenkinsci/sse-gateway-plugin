@@ -67,11 +67,6 @@
         <version>4.13.2</version>
         <scope>test</scope>
       </dependency>
-      <dependency>
-        <groupId>org.jenkins-ci.modules</groupId>
-        <artifactId>instance-identity</artifactId>
-        <version>2.2</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
