@@ -115,17 +115,6 @@
 
   <build>
     <plugins>
-<!--      <plugin>-->
-<!--        <groupId>org.jenkins-ci.tools</groupId>-->
-<!--        <artifactId>maven-hpi-plugin</artifactId>-->
-<!--        <extensions>true</extensions>-->
-<!--        <configuration>-->
-<!--          <showDeprecation>true</showDeprecation>-->
-<!--          <contextPath>/jenkins</contextPath>-->
-<!--          &lt;!&ndash; TODO specify ${java.level} when JENKINS-20679 implemented &ndash;&gt;-->
-<!--          <disabledTestInjection>true</disabledTestInjection>-->
-<!--        </configuration>-->
-<!--      </plugin>-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-invoker-plugin</artifactId>
