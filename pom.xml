@@ -55,8 +55,9 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.277.x</artifactId>
-        <version>984.vb5eaac999a7e</version>
+        <!-- FIXME change this when 2.361.x has bom available -->
+        <artifactId>bom-2.346.x</artifactId>
+        <version>1577.v63609d9cb_5dc</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -73,13 +74,12 @@
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>javax.servlet-api</artifactId>
-      <version>3.1.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>pubsub-light</artifactId>
-      <version>1.16</version>
+      <version>1.17</version>
     </dependency>
 
     <dependency>
