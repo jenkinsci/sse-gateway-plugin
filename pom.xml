@@ -12,8 +12,7 @@
   <packaging>hpi</packaging>
 
   <properties>
-    <jenkins.version>2.277.4</jenkins.version>
-    <java.level>8</java.level>
+    <jenkins.version>2.361</jenkins.version>
     <node.version>5.8.0</node.version>
     <npm.version>3.7.3</npm.version>
     <localRepoPath>${project.build.directory}/local-repo</localRepoPath>
@@ -56,8 +55,9 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.277.x</artifactId>
-        <version>984.vb5eaac999a7e</version>
+        <!-- FIXME change this when 2.361.x has bom available -->
+        <artifactId>bom-2.346.x</artifactId>
+        <version>1577.v63609d9cb_5dc</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
@@ -72,17 +72,10 @@
 
   <dependencies>
     <dependency>
-      <groupId>javax.servlet</groupId>
-      <artifactId>javax.servlet-api</artifactId>
-      <version>3.1.0</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>pubsub-light</artifactId>
-      <version>1.16</version>
+      <version>1.17</version>
     </dependency>
-
     <dependency>
       <groupId>com.github.spotbugs</groupId>
       <artifactId>spotbugs-annotations</artifactId>
@@ -116,21 +109,9 @@
 
   <build>
     <plugins>
-<!--      <plugin>-->
-<!--        <groupId>org.jenkins-ci.tools</groupId>-->
-<!--        <artifactId>maven-hpi-plugin</artifactId>-->
-<!--        <extensions>true</extensions>-->
-<!--        <configuration>-->
-<!--          <showDeprecation>true</showDeprecation>-->
-<!--          <contextPath>/jenkins</contextPath>-->
-<!--          &lt;!&ndash; TODO specify ${java.level} when JENKINS-20679 implemented &ndash;&gt;-->
-<!--          <disabledTestInjection>true</disabledTestInjection>-->
-<!--        </configuration>-->
-<!--      </plugin>-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-invoker-plugin</artifactId>
-        <version>3.2.2</version>
         <executions>
           <execution>
             <id>integration-test</id>
@@ -173,7 +154,6 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>3.0.0-M5</version>
           <configuration>
             <reuseForks>false</reuseForks>
             <runOrder>alphabetical</runOrder>
