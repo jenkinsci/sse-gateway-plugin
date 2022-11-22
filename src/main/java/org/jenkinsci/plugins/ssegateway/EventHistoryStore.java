@@ -165,15 +165,9 @@ public final class EventHistoryStore {
     
     static long getChannelEventCount(@Nonnull String channelName) throws IOException {
         Path dirPath = Paths.get(getChannelDir(channelName).toURI());
-        try (DirectoryStream<Path> dirStream = createDirectoryStream( dirPath )) {
+        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
             return StreamSupport.stream( dirStream.spliterator(), false ).count();
         }
-    }
-
-    // because of this https://github.com/spotbugs/spotbugs/issues/756
-    // olamy: ridiculous to have to change code because of a tool...
-    private static @Nonnull DirectoryStream<Path> createDirectoryStream(Path dirPath) throws IOException {
-        return Files.newDirectoryStream(dirPath);
     }
 
     /**
@@ -218,7 +212,7 @@ public final class EventHistoryStore {
         if(!Files.exists(dirPath)){
             return;
         }
-        try (final DirectoryStream<Path> dirStream = createDirectoryStream(dirPath)) {
+        try (final DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
             for (Path entry : dirStream) {
                 File file = entry.toFile();
                 if (file.isDirectory()) {
