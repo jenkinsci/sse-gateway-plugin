@@ -57,7 +57,7 @@
         <groupId>io.jenkins.tools.bom</groupId>
         <!-- FIXME change this when 2.361.x has bom available -->
         <artifactId>bom-2.346.x</artifactId>
-        <version>1577.v63609d9cb_5dc</version>
+        <version>1750.v0071fa_4c4a_e3</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
