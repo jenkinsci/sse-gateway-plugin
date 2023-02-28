@@ -27,7 +27,7 @@ notification "channels".
 ## Configuration
 
 Due to some possible memory leak if message are never delivered, the messages have some System properties configuration parameters to avoid such issue:
-* `org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME` (default 300sec): definite how long an entry can stay in the queue
+* `org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME` (default 60sec): definite how long an entry can stay in the queue
 * `org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY` (default 250ms): time between each send retry
 
 
