@@ -86,7 +86,7 @@
     <dependency>
       <groupId>com.github.eirslett</groupId>
       <artifactId>frontend-plugin-core</artifactId>
-      <version>1.12.1</version>
+      <version>1.14.0</version>
       <scope>test</scope>
       <exclusions>
         <!-- We want to pick these up as dependencies of Jenkins core in provided scope -->
