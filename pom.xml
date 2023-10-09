@@ -12,7 +12,7 @@
   <packaging>hpi</packaging>
 
   <properties>
-    <jenkins.version>2.361</jenkins.version>
+    <jenkins.version>2.361.4</jenkins.version>
     <node.version>5.8.0</node.version>
     <npm.version>3.7.3</npm.version>
     <localRepoPath>${project.build.directory}/local-repo</localRepoPath>
@@ -55,9 +55,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <!-- FIXME change this when 2.361.x has bom available -->
-        <artifactId>bom-2.346.x</artifactId>
-        <version>1763.v092b_8980a_f5e</version>
+        <artifactId>bom-2.361.x</artifactId>
+	<version>2102.v854b_fec19c92</version>
         <scope>import</scope>
         <type>pom</type>
       </dependency>
