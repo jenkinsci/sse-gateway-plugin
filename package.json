@@ -9,7 +9,8 @@
     "README.md"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "mvnbuild": "gulp bundle",
+    "mvntest": "gulp test"
   },
   "repository": {
     "type": "git",
@@ -21,10 +22,6 @@
   ],
   "author": "Tom Fennelly <tom.fennelly@gmail.com> (https://github.com/tfennelly)",
   "license": "MIT",
-  "scripts": {
-    "mvnbuild": "gulp bundle",
-    "mvntest": "gulp test"
-  },
   "bugs": {
     "url": "https://issues.jenkins-ci.org/browse/JENKINS/component/21477"
   },

@@ -4,17 +4,20 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.66</version>
+    <version>4.74</version>
     <relativePath />
   </parent>
   <artifactId>sse-gateway</artifactId>
-  <version>1.27-SNAPSHOT</version>
+  <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
   <properties>
-    <jenkins.version>2.361</jenkins.version>
-    <node.version>5.8.0</node.version>
-    <npm.version>3.7.3</npm.version>
+    <revision>1.27</revision>
+    <changelist>-SNAPSHOT</changelist>
+    <jenkins.version>2.387.3</jenkins.version>
+    <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
+    <node.version>8.17.0</node.version>
+    <npm.version>6.13.4</npm.version>
     <localRepoPath>${project.build.directory}/local-repo</localRepoPath>
     <settingsPath>src/it/settings.xml</settingsPath>
     <maven.dependency.plugin.version>3.1.1</maven.dependency.plugin.version>
@@ -22,13 +25,13 @@
 
   <name>Server Sent Events (SSE) Gateway Plugin</name>
   <description>Server Sent Events (SSE) Gateway Plugin</description>
-  <url>https://github.com/jenkinsci/sse-gateway-plugin</url>
+  <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
 
   <scm>
-    <connection>scm:git:https://github.com/jenkinsci/sse-gateway-plugin.git</connection>
-    <developerConnection>scm:git:https://github.com/jenkinsci/sse-gateway-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/sse-gateway-plugin</url>
-    <tag>HEAD</tag>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
+    <url>https://github.com/${gitHubRepo}</url>
+    <tag>${scmTag}</tag>
   </scm>
 
   <licenses>
@@ -55,17 +58,10 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <!-- FIXME change this when 2.361.x has bom available -->
-        <artifactId>bom-2.346.x</artifactId>
-        <version>1763.v092b_8980a_f5e</version>
+        <artifactId>bom-2.387.x</artifactId>
+        <version>2507.vcb_18c56b_f57c</version>
         <scope>import</scope>
         <type>pom</type>
-      </dependency>
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13.2</version>
-        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -74,7 +70,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>pubsub-light</artifactId>
-      <version>1.17</version>
     </dependency>
     
     <!-- Test deps -->
@@ -86,7 +81,7 @@
     <dependency>
       <groupId>com.github.eirslett</groupId>
       <artifactId>frontend-plugin-core</artifactId>
-      <version>1.12.1</version>
+      <version>${frontend-version}</version>
       <scope>test</scope>
       <exclusions>
         <!-- We want to pick these up as dependencies of Jenkins core in provided scope -->
@@ -141,11 +136,6 @@
           https://issues.apache.org/jira/browse/MRESOURCES-237
           -->
           <version>2.7</version>
-        </plugin>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>findbugs-maven-plugin</artifactId>
-          <version>3.0.5</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
