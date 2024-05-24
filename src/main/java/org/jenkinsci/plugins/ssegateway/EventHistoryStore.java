@@ -23,8 +23,6 @@
  */
 package org.jenkinsci.plugins.ssegateway;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -38,6 +36,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.StreamSupport;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.security.ACL;
 import org.apache.commons.io.FileUtils;
@@ -73,7 +73,7 @@ public final class EventHistoryStore {
 
     @SuppressFBWarnings(value = "LI_LAZY_INIT_STATIC", 
                 justification = "internal class (marked @Restricted NoExternalUse + package private methods) - need it this way for testing.")
-    static void setHistoryRoot(@Nonnull File historyRoot) throws IOException {
+    static void setHistoryRoot(@NonNull File historyRoot) throws IOException {
         // In a non-test mode, we only allow setting of the historyRoot 
         // once (during plugin init - see Endpoint class).
         if (EventHistoryStore.historyRoot != null && !Util.isTestEnv()) {
@@ -114,7 +114,7 @@ public final class EventHistoryStore {
      * 
      * @param message The message instance to store.
      */
-    static void store(@Nonnull Message message) {
+    static void store(@NonNull Message message) {
         try {
             String channelName = message.getChannelName();
             String eventUUID = message.getEventUUID();
@@ -138,7 +138,7 @@ public final class EventHistoryStore {
         }
     }
     
-    public static @CheckForNull String getChannelEvent(@Nonnull String channelName, @Nonnull String eventUUID) throws IOException {
+    public static @CheckForNull String getChannelEvent(@NonNull String channelName, @NonNull String eventUUID) throws IOException {
         File channelDir = getChannelDir(channelName);
         File eventFile = new File(channelDir, eventUUID + ".json");
         
@@ -149,21 +149,21 @@ public final class EventHistoryStore {
         }
     }
     
-    public static void onChannelSubscribe(@Nonnull String channelName) {
+    public static void onChannelSubscribe(@NonNull String channelName) {
         if (historyRoot == null) {
             return;
         }
         getChannelSubsCounter(channelName).incrementAndGet();
     }
     
-    public static void onChannelUnsubscribe(@Nonnull String channelName) {
+    public static void onChannelUnsubscribe(@NonNull String channelName) {
         if (historyRoot == null) {
             return;
         }
         getChannelSubsCounter(channelName).decrementAndGet();
     }
     
-    static long getChannelEventCount(@Nonnull String channelName) throws IOException {
+    static long getChannelEventCount(@NonNull String channelName) throws IOException {
         Path dirPath = Paths.get(getChannelDir(channelName).toURI());
         try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
             return StreamSupport.stream( dirStream.spliterator(), false ).count();
@@ -190,7 +190,7 @@ public final class EventHistoryStore {
         deleteAllFilesInDir(EventHistoryStore.historyRoot, olderThan);
     }
 
-    static File getChannelDir(@Nonnull String channelName) throws IOException {
+    static File getChannelDir(@NonNull String channelName) throws IOException {
         assertHistoryRootSet();
 
         File channelDir = channelDirs.get(channelName);
@@ -268,7 +268,7 @@ public final class EventHistoryStore {
         }
     }
     
-    private static AtomicInteger getChannelSubsCounter(@Nonnull String channelName) {
+    private static AtomicInteger getChannelSubsCounter(@NonNull String channelName) {
         AtomicInteger counter = channelSubsCounters.get(channelName);
         if (counter == null) {
             counter = newChannelSubsCounter(channelName);
@@ -276,7 +276,7 @@ public final class EventHistoryStore {
         return counter;
     }
 
-    private static synchronized AtomicInteger newChannelSubsCounter(@Nonnull String channelName) {
+    private static synchronized AtomicInteger newChannelSubsCounter(@NonNull String channelName) {
         AtomicInteger counter = channelSubsCounters.get(channelName);
         if (counter == null) {
             counter = new AtomicInteger(0);
@@ -315,7 +315,7 @@ public final class EventHistoryStore {
         }
 
         @Override
-        public void onMessage(@Nonnull Message message) {
+        public void onMessage(@NonNull Message message) {
             if (channelSubsCounter.get() > 0) {
                 store(message);
             }

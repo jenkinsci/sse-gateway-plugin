@@ -32,8 +32,8 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
@@ -64,7 +64,7 @@ public class EventDispatcherFactory {
         }
     }
     
-    public static EventDispatcher start(@Nonnull String clientId, @Nonnull HttpServletRequest request, @Nonnull HttpServletResponse response) {
+    public static EventDispatcher start(@NonNull String clientId, @NonNull HttpServletRequest request, @NonNull HttpServletResponse response) {
         try {
             HttpSession session = request.getSession();
             EventDispatcher dispatcher = EventDispatcherFactory.getDispatcher(clientId, session);
@@ -118,7 +118,7 @@ public class EventDispatcherFactory {
      * @param session The {@link HttpSession}.
      * @return The session {@link EventDispatcher}s.
      */
-    public synchronized static Map<String, EventDispatcher> getDispatchers(@Nonnull HttpSession session) {
+    public synchronized static Map<String, EventDispatcher> getDispatchers(@NonNull HttpSession session) {
         Map<String, EventDispatcher> dispatchers = (Map<String, EventDispatcher>) session.getAttribute(DISPATCHER_SESSION_KEY);
         if (dispatchers == null) {
             dispatchers = new HashMap<>();
@@ -134,7 +134,7 @@ public class EventDispatcherFactory {
      * @param session The {@link HttpSession}.
      * @return The new {@link EventDispatcher} instance.
      */
-    public synchronized static EventDispatcher newDispatcher(@Nonnull String clientId, @Nonnull HttpSession session) {
+    public synchronized static EventDispatcher newDispatcher(@NonNull String clientId, @NonNull HttpSession session) {
         Map<String, EventDispatcher> dispatchers = getDispatchers(session);
         try {
             EventDispatcher dispatcher = runtimeClass.newInstance();
@@ -155,7 +155,7 @@ public class EventDispatcherFactory {
      * @param session The {@link HttpSession}.
      * @return The {@link EventDispatcher}, or {@code null} if no such dispatcher is known. 
      */
-    public static @CheckForNull EventDispatcher getDispatcher(@Nonnull String dispatcherId, @Nonnull HttpSession session) {
+    public static @CheckForNull EventDispatcher getDispatcher(@NonNull String dispatcherId, @NonNull HttpSession session) {
         Map<String, EventDispatcher> dispatchers = getDispatchers(session);
         return dispatchers.get(dispatcherId);
     }
