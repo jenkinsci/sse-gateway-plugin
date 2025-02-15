@@ -186,7 +186,7 @@ public final class EventHistoryStore {
         long fileCount = Files.walk(EventHistoryStore.historyRoot.toPath()).parallel().filter(p -> !p.toFile().isDirectory()).count();
         String prefix =  before ? "**** Deleting" : "**** Deleted";
         String suffix = oldFileCount == 0 ? "" : ", previous had " + oldFileCount + " files";
-        if (!before) {
+        if (!before && fileCount != oldFileCount) {
             System.out.println(prefix + " older than " + expiresAfter + " ms from " + path + " with " + fileCount + " files" + suffix);
         }
         return fileCount;
@@ -225,18 +225,27 @@ public final class EventHistoryStore {
         if(!Files.exists(dirPath)){
             return;
         }
+        int visitedFiles = 0;
+        int deletedFiles = 0;
         try (final DirectoryStream<Path> dirStream = Files.newDirectoryStream(dirPath)) {
             for (Path entry : dirStream) {
                 File file = entry.toFile();
                 if (file.isDirectory()) {
                     deleteAllFilesInDir(file, olderThan);
                 }
+                visitedFiles++;
                 if (file.lastModified() < olderThan) {
                     if (!file.delete()) {
+                        System.out.println("**** Failed to delete " + file.getPath());
                         LOGGER.warn("Error deleting file {}", file.getAbsolutePath());
+                    } else {
+                        deletedFiles++;
                     }
                 }
             }
+        }
+        if (visitedFiles != 0 && visitedFiles != 1) {
+            System.out.println("**** Visited " + visitedFiles + " files and deleted " + deletedFiles + " files in " + dir.getPath());
         }
     }
 
