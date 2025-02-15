@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.ssegateway;
 
+import hudson.Functions;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.pubsub.EventProps;
 import org.jenkinsci.plugins.pubsub.SimpleMessage;
@@ -121,9 +122,11 @@ public class EventHistoryStoreTest {
             
             // sleep 'til 4.5 seconds on the clock
             waitTimer.waitUntil(4500);
-            // we are about 4 seconds in now and there are 100 messages
-            // in the store.
-            
+            // we are about 4 seconds in now and there should be less than 100 messages
+            // in the store because the 3 second expiration has completed for the first 50.
+            // Windows tests on ci.jenkins.io show that the message store is not reduced at this
+            // point, even though the Linux message store is reduced as expected.
+
             // BATCH 3: Store some messages
             // These should expire a little after the 7.5 second mark (4.5 + 3).
             storeMessages(50);
@@ -135,13 +138,24 @@ public class EventHistoryStoreTest {
             // be a bit flaky though, so lets just make sure some of the messages
             // have expired, but not all.
             Assert.assertTrue(EventHistoryStore.getChannelEventCount("job") > 0);
+            // The Windows machines on ci.jenkins.io need extra time.  Assumed due
+            // to a slower file system or slower storage.
+            if (Functions.isWindows() && System.getenv("CI") != null) {
+                waitTimer.waitUntil(13500); // 13.5 sec = 4.5 + 9 seconds cushion
+            }
             long count = EventHistoryStore.getChannelEventCount("job");
             Assert.assertTrue("count is " + count, count < 150);
             
             // Now lets wait until after all of the messages would be expired
-            // The should all expire after about 7.5 seconds (see above), but lets
+            // They should all expire after about 7.5 seconds (see above), but lets
             // wait for a bit after that just to make sure that the test is not flaky.
-            waitTimer.waitUntil(10000); // 10 seconds
+            // The Windows machines on ci.jenkins.io need even more time.  Assumed due
+            // to a slower file system or slower storage.
+            if (Functions.isWindows() && System.getenv("CI") != null) {
+                waitTimer.waitUntil(19000); // 19 sec, another 5 seconds after last check
+            } else {
+                waitTimer.waitUntil(10000); // 10 seconds is enough for Linux
+            }
             Assert.assertEquals(0, EventHistoryStore.getChannelEventCount("job"));
             
         } finally {
