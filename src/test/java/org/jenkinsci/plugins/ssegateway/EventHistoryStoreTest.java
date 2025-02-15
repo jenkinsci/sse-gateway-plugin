@@ -136,6 +136,16 @@ public class EventHistoryStoreTest {
             // have expired, but not all.
             Assert.assertTrue(EventHistoryStore.getChannelEventCount("job") > 0);
             long count = EventHistoryStore.getChannelEventCount("job");
+            // TODO Remove diagnostics once Windows test failure is resolved
+            System.out.println("**** Count before sleeping is " + count);
+
+            waitTimer.waitUntil(6300);
+            count = EventHistoryStore.getChannelEventCount("job");
+            System.out.println("**** Count after sleeping until 6.3 seconds is " + count);
+
+            waitTimer.waitUntil(8100);
+            count = EventHistoryStore.getChannelEventCount("job");
+            System.out.println("**** Count after sleeping until 8.1 seconds is " + count);
             Assert.assertTrue("count is " + count, count < 150);
             
             // Now lets wait until after all of the messages would be expired
