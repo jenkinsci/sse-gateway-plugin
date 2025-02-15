@@ -237,7 +237,7 @@ public final class EventHistoryStore {
                 if (file.lastModified() < olderThan) {
                     if (!file.delete()) {
                         System.out.println("**** Failed to delete " + file.getPath());
-                        LOGGER.warn("Error deleting file {}", file.getAbsolutePath());
+                        LOGGER.warn("Error deleting file {}", file.getPath());
                     } else {
                         deletedFiles++;
                     }
