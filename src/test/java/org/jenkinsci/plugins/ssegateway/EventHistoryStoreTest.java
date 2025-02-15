@@ -25,6 +25,7 @@ public class EventHistoryStoreTest {
         EventHistoryStore.setHistoryRoot(historyRoot);
         EventHistoryStore.setExpiryMillis(3000); // a 3s history window ... anything older than that would be "stale"
         EventHistoryStore.deleteAllHistory();
+        EventHistoryStore.disableAutoDeleteOnExpire();
     }
 
     @Test
@@ -99,8 +100,6 @@ public class EventHistoryStoreTest {
         // What we're trying to test is that after 3 second (or so - see @Before)
         // stale messages start being automatically deleted.
         
-        try {
-            EventHistoryStore.deleteAllHistory();
             Assert.assertEquals(0, EventHistoryStore.getChannelEventCount("job"));
             
             // We use this guy to control the pauses in the test.
@@ -123,6 +122,7 @@ public class EventHistoryStoreTest {
             waitTimer.waitUntil(4500);
             // we are about 4 seconds in now and there are 100 messages
             // in the store.
+            System.out.println("**** Count at 4.5 seconds is " + EventHistoryStore.getChannelEventCount("job"));
             
             // BATCH 3: Store some messages
             // These should expire a little after the 7.5 second mark (4.5 + 3).
@@ -153,10 +153,6 @@ public class EventHistoryStoreTest {
             // wait for a bit after that just to make sure that the test is not flaky.
             waitTimer.waitUntil(10000); // 10 seconds
             Assert.assertEquals(0, EventHistoryStore.getChannelEventCount("job"));
-            
-        } finally {
-            EventHistoryStore.disableAutoDeleteOnExpire();
-        }
     }
     
     private void storeMessages(int numMessages) throws Exception {
