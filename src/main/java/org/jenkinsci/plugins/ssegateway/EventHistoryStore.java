@@ -235,7 +235,8 @@ public final class EventHistoryStore {
     
     public synchronized static void enableAutoDeleteOnExpire() {
         if (autoExpireTimer != null) {
-            LOGGER.warn("AutoExpireTimer was already enable.");
+            System.out.println("**** AutoExpireTimer was already enabled ****");
+            LOGGER.warn("AutoExpireTimer was already enabled.");
             return;
         }
         
@@ -251,10 +252,13 @@ public final class EventHistoryStore {
     
     public synchronized static void disableAutoDeleteOnExpire() {
         if (autoExpireTimer == null) {
+            System.out.println("**** AutoExpireTimer already null, nothing to cancel ****");
             return;
         }
+        System.out.println("**** AutoExpireTimer cancelling ****");
         autoExpireTimer.cancel();
         autoExpireTimer = null;
+        System.out.println("**** AutoExpireTimer cancelled ****");
     }
     
     private static class DeleteStaleHistoryTask extends TimerTask {
