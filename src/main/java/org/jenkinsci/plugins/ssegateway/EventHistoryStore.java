@@ -274,7 +274,6 @@ public final class EventHistoryStore {
         @Override
         public void run() {
             try {
-                System.out.println("**** Deleting stale history ****");
                 deleteStaleHistory();
             } catch (Exception e) {
                 LOGGER.warn("Error deleting stale/expired events from EventHistoryStore.", e);
