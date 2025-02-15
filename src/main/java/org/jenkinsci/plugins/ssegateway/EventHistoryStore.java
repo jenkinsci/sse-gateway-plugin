@@ -187,9 +187,9 @@ public final class EventHistoryStore {
     static void deleteStaleHistory() throws IOException {
         assertHistoryRootSet();
         long olderThan = System.currentTimeMillis() - expiresAfter;
-        System.out.println("**** Deleting history older than " + expiresAfter + " ms from " + EventHistoryStore.historyRoot.getAbsolutePath());
+        System.out.println("**** Deleting history older than " + expiresAfter + " ms from " + EventHistoryStore.historyRoot.getPath() + " with " + EventHistoryStore.historyRoot.list().length + " files");
         deleteAllFilesInDir(EventHistoryStore.historyRoot, olderThan);
-        System.out.println("**** Deleted history older than " + expiresAfter + " ms from " + EventHistoryStore.historyRoot.getAbsolutePath());
+        System.out.println("**** Deleted history older than " + expiresAfter + " ms from " + EventHistoryStore.historyRoot.getPath() + " with " + EventHistoryStore.historyRoot.list().length + " files");
     }
 
     static File getChannelDir(@NonNull String channelName) throws IOException {
