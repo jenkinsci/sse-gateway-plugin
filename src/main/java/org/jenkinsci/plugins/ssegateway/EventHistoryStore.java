@@ -272,7 +272,6 @@ public final class EventHistoryStore {
         System.out.println("**** AutoExpireTimer cancelling ****");
         autoExpireTimer.cancel();
         autoExpireTimer = null;
-        System.out.println("**** AutoExpireTimer cancelled ****");
     }
     
     private static class DeleteStaleHistoryTask extends TimerTask {
