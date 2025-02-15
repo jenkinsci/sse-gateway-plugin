@@ -181,15 +181,21 @@ public final class EventHistoryStore {
         deleteAllFilesInDir(EventHistoryStore.historyRoot, Long.MAX_VALUE);
     }
 
+    private static void diagnose(boolean before) throws IOException {
+        String path = EventHistoryStore.historyRoot.getPath();
+        long fileCount = Files.walk(EventHistoryStore.historyRoot.toPath()).parallel().filter(p -> !p.toFile().isDirectory()).count();
+        System.out.println("**** " + (before ? "Deleting" : "Deleted") + " history older than " + expiresAfter + " ms from " + path + " with " + fileCount + " files");
+    }
+
     /**
      * Delete all stale history (events that have expired).
      */
     static void deleteStaleHistory() throws IOException {
         assertHistoryRootSet();
         long olderThan = System.currentTimeMillis() - expiresAfter;
-        System.out.println("**** Deleting history older than " + expiresAfter + " ms from " + EventHistoryStore.historyRoot.getPath() + " with " + EventHistoryStore.historyRoot.list().length + " files");
+        diagnose(true);
         deleteAllFilesInDir(EventHistoryStore.historyRoot, olderThan);
-        System.out.println("**** Deleted history older than " + expiresAfter + " ms from " + EventHistoryStore.historyRoot.getPath() + " with " + EventHistoryStore.historyRoot.list().length + " files");
+        diagnose(false);
     }
 
     static File getChannelDir(@NonNull String channelName) throws IOException {
