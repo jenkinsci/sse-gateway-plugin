@@ -187,7 +187,9 @@ public final class EventHistoryStore {
     static void deleteStaleHistory() throws IOException {
         assertHistoryRootSet();
         long olderThan = System.currentTimeMillis() - expiresAfter;
+        System.out.println("**** Deleting history older than " + olderThan + " ms from " + EventHistoryStore.historyRoot.getAbsolutePath());
         deleteAllFilesInDir(EventHistoryStore.historyRoot, olderThan);
+        System.out.println("**** Deleted history older than " + olderThan + " ms from " + EventHistoryStore.historyRoot.getAbsolutePath());
     }
 
     static File getChannelDir(@NonNull String channelName) throws IOException {
@@ -266,6 +268,7 @@ public final class EventHistoryStore {
         @Override
         public void run() {
             try {
+                System.out.println("**** Deleting stale history ****");
                 deleteStaleHistory();
             } catch (Exception e) {
                 LOGGER.warn("Error deleting stale/expired events from EventHistoryStore.", e);
