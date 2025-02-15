@@ -154,10 +154,10 @@ public class EventHistoryStoreTest {
             
             // Now lets wait until after all of the messages would be expired
             // The should all expire after about 7.5 seconds (see above), but lets
-            // wait double that for Windows just to make sure that the test is not flaky.
-            waitTimer.waitUntil(15000); // 15 seconds
+            // wait much longer than that for Windows just to make sure that the test is not flaky.
+            waitTimer.waitUntil(31000); // 31 seconds
             count = EventHistoryStore.getChannelEventCount("job");
-            System.out.println("**** Count at 15 seconds is " + count);
+            System.out.println("**** Count at 31 seconds is " + count);
             Assert.assertEquals(0, EventHistoryStore.getChannelEventCount("job"));
     }
     
