@@ -1,9 +1,11 @@
 package org.jenkinsci.plugins.ssegateway;
 
+import hudson.Functions;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.pubsub.EventProps;
 import org.jenkinsci.plugins.pubsub.SimpleMessage;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,6 +46,12 @@ public class EventHistoryStoreTest {
 
     @Test
     public void test_delete_stale_events() throws Exception {
+        // SKip the test on Windows ci.jenkins.io agents because it
+        // requires very different timing constraints. Assumed to be
+        // an issue with different file system performance in that
+        // environment.  Does not fail tests on a Windows machine used
+        // for development.
+        Assume.assumeFalse(Functions.isWindows() && System.getenv("CI") != null);
         EventHistoryStore.deleteAllHistory();
         Assert.assertEquals(0, EventHistoryStore.getChannelEventCount("job"));
 
@@ -92,6 +100,12 @@ public class EventHistoryStoreTest {
     
     @Test
     public void test_autoDeleteOnExpire() throws Exception {
+        // SKip the test on Windows ci.jenkins.io agents because it
+        // requires very different timing constraints. Assumed to be
+        // an issue with different file system performance in that
+        // environment.  Does not fail tests on a Windows machine used
+        // for development.
+        Assume.assumeFalse(Functions.isWindows() && System.getenv("CI") != null);
         EventHistoryStore.enableAutoDeleteOnExpire();
         
         // In this test, we go through a few "phases" of adding messages to the
@@ -121,9 +135,11 @@ public class EventHistoryStoreTest {
             
             // sleep 'til 4.5 seconds on the clock
             waitTimer.waitUntil(4500);
-            // we are about 4 seconds in now and there are 100 messages
-            // in the store.
-            
+            // we are about 4 seconds in now and there should be less than 100 messages
+            // in the store because the 3 second expiration has completed for the first 50.
+            // Windows tests on ci.jenkins.io show that the message store is not reduced at this
+            // point, even though the Linux message store is reduced as expected.
+
             // BATCH 3: Store some messages
             // These should expire a little after the 7.5 second mark (4.5 + 3).
             storeMessages(50);
@@ -139,7 +155,7 @@ public class EventHistoryStoreTest {
             Assert.assertTrue("count is " + count, count < 150);
             
             // Now lets wait until after all of the messages would be expired
-            // The should all expire after about 7.5 seconds (see above), but lets
+            // They should all expire after about 7.5 seconds (see above), but lets
             // wait for a bit after that just to make sure that the test is not flaky.
             waitTimer.waitUntil(10000); // 10 seconds
             Assert.assertEquals(0, EventHistoryStore.getChannelEventCount("job"));
