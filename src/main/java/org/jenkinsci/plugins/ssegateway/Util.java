@@ -28,9 +28,9 @@ import net.sf.json.JSONObject;
 import org.apache.commons.io.IOUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSession;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -48,7 +48,7 @@ public class Util {
     private Util() {
     }
 
-    public static JSONObject readJSONPayload(StaplerRequest request) throws IOException {
+    public static JSONObject readJSONPayload(StaplerRequest2 request) throws IOException {
         String characterEncoding = request.getCharacterEncoding();
         
         if (characterEncoding == null) {

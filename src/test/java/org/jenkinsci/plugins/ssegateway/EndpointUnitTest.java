@@ -10,12 +10,12 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.mockito.Mockito;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.Map;
 
@@ -25,13 +25,13 @@ import java.util.Map;
 public class EndpointUnitTest {
     
     private EventDispatcher eventDispatcher;
-    private StaplerResponse response;
+    private StaplerResponse2 response;
     
     @Before
     public void setup() {
         SubscriptionConfigQueue.start();
         eventDispatcher = new MockEventDispatcher();
-        response = Mockito.mock(StaplerResponse.class);
+        response = Mockito.mock(StaplerResponse2.class);
     }
 
     @After
@@ -51,7 +51,7 @@ public class EndpointUnitTest {
         Endpoint endpoint = new Endpoint() {
             @Override protected void init() {}
         };
-        StaplerRequest request = newRequest("/sample-config-01.json");
+        StaplerRequest2 request = newRequest("/sample-config-01.json");
         
         endpoint.doConfigure(request, response);
 
@@ -99,8 +99,8 @@ public class EndpointUnitTest {
         waitForCountToShrink(subscribers, 0);
     }
 
-    private StaplerRequest newRequest(String config) throws IOException {
-        StaplerRequest request = Mockito.mock(StaplerRequest.class);
+    private StaplerRequest2 newRequest(String config) throws IOException {
+        StaplerRequest2 request = Mockito.mock(StaplerRequest2.class);
         HttpSession session = Mockito.mock(HttpSession.class);
         Map dispatchers = Mockito.mock(Map.class);
         
