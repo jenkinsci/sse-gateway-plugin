@@ -1,0 +1,36 @@
+name: GitHub CI
+
+on:
+  push:
+    branches-ignore:
+      - dependabot/**
+  pull_request:
+
+jobs:
+  build:
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        java: [17, 21]
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4
+        with:
+          cache: 'maven'
+          distribution: adopt
+          java-version: ${{ matrix.java }}
+
+      - name: Set up Maven
+        run:
+          mvn --errors --batch-mode --show-version org.apache.maven.plugins:maven-wrapper-plugin:3.3.2:wrapper "-Dmaven=3.9.9"
+
+      - name: Build with Maven
+        run: mvn verify -e -B -V javadoc:javadoc
