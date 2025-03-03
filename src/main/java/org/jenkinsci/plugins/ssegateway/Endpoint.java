@@ -36,21 +36,21 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.HttpResponse;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -134,7 +134,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     }
     
     @Restricted(DoNotUse.class) // Web only
-    public HttpResponse doConnect(StaplerRequest request, StaplerResponse response) throws IOException {
+    public HttpResponse doConnect(StaplerRequest2 request, StaplerResponse2 response) throws IOException {
         String clientId = request.getParameter("clientId");
 
         if (clientId == null) {
@@ -166,7 +166,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     
     @RequirePOST
     @Restricted(DoNotUse.class) // Web only
-    public HttpResponse doConfigure(StaplerRequest request, StaplerResponse response) throws IOException {
+    public HttpResponse doConfigure(StaplerRequest2 request, StaplerResponse2 response) throws IOException {
         SubscriptionConfigQueue.SubscriptionConfig subscriptionConfig = SubscriptionConfigQueue.SubscriptionConfig.fromRequest(request);
         if(LOGGER.isDebugEnabled()){
             LOGGER.debug("Processing configuration request. batchId={}", subscriptionConfig.getBatchId());
@@ -193,7 +193,7 @@ public class Endpoint extends CrumbExclusion implements RootAction {
     }
 
     @Restricted(DoNotUse.class) // Web only
-    public HttpResponse doPing(StaplerRequest request) throws IOException {
+    public HttpResponse doPing(StaplerRequest2 request) throws IOException {
         String dispatcherId = request.getParameter("dispatcherId");
 
         if (dispatcherId != null) {
