@@ -1,78 +1,77 @@
 package org.jenkinsci.plugins.ssegateway;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.jenkinsci.plugins.pubsub.ChannelSubscriber;
 import org.jenkinsci.plugins.pubsub.EventFilter;
 import org.jenkinsci.plugins.pubsub.PubsubBus;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcherFactory;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.mockito.Mockito;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpSession;
-import java.io.IOException;
 import java.util.Map;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-public class EndpointUnitTest {
-    
+class EndpointUnitTest {
+
     private EventDispatcher eventDispatcher;
     private StaplerResponse2 response;
-    
-    @Before
-    public void setup() {
+
+    @BeforeEach
+    void setUp() {
         SubscriptionConfigQueue.start();
         eventDispatcher = new MockEventDispatcher();
         response = Mockito.mock(StaplerResponse2.class);
     }
 
-    @After
-    public void tearDown() throws Exception  {
+    @AfterEach
+    void tearDown() {
         eventDispatcher.unsubscribeAll();
         SubscriptionConfigQueue.stop();
         waitForQueueStopped();
     }
 
-    @AfterClass
-    public static void shutDownBus() {
+    @AfterAll
+    static void tearDownAll() {
         PubsubBus.getBus().shutdown();
     }
 
     @Test
-    public void test_configure_empty_config() throws IOException, ServletException {
+    void test_configure_empty_config() throws Exception {
         Endpoint endpoint = new Endpoint() {
             @Override protected void init() {}
         };
         StaplerRequest2 request = newRequest("/sample-config-01.json");
-        
+
         endpoint.doConfigure(request, response);
 
         Map<EventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();
-        Assert.assertEquals(0, subscribers.size());
+        assertEquals(0, subscribers.size());
     }
 
     @Test
-    public void test_configure_subscribe_unsubscribe() throws IOException, ServletException {
+    void test_configure_subscribe_unsubscribe() throws Exception {
         Endpoint endpoint = new Endpoint() {
             @Override protected void init() {}
         };
 
         Map<EventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();
-        Assert.assertEquals(0, subscribers.size());
+        assertEquals(0, subscribers.size());
 
         // Subscribe ...
         endpoint.doConfigure(newRequest("/sample-config-02.json"), response);
         subscribers = eventDispatcher.getSubscribers();
         waitForCountToGrow(subscribers, 1);
-        
+
         // Unsubscribe ...
         endpoint.doConfigure(newRequest("/sample-config-03.json"), response);
         subscribers = eventDispatcher.getSubscribers();
@@ -80,13 +79,13 @@ public class EndpointUnitTest {
     }
 
     @Test
-    public void test_configure_subscribe_unsubscribeAll() throws IOException, ServletException {
+    void test_configure_subscribe_unsubscribeAll() throws Exception {
         Endpoint endpoint = new Endpoint() {
             @Override protected void init() {}
         };
 
         Map<EventFilter, ChannelSubscriber> subscribers = eventDispatcher.getSubscribers();
-        Assert.assertEquals(0, subscribers.size());
+        assertEquals(0, subscribers.size());
 
         // Subscribe ...
         endpoint.doConfigure(newRequest("/sample-config-04.json"), response);
@@ -99,17 +98,17 @@ public class EndpointUnitTest {
         waitForCountToShrink(subscribers, 0);
     }
 
-    private StaplerRequest2 newRequest(String config) throws IOException {
+    private StaplerRequest2 newRequest(String config) throws Exception {
         StaplerRequest2 request = Mockito.mock(StaplerRequest2.class);
         HttpSession session = Mockito.mock(HttpSession.class);
         Map dispatchers = Mockito.mock(Map.class);
-        
+
         Mockito.when(dispatchers.get("1111111111")).thenReturn(eventDispatcher);
         Mockito.when(request.getSession()).thenReturn(session);
         Mockito.when(session.getAttribute(EventDispatcher.SESSION_SYNC_OBJ)).thenReturn("blah");
         Mockito.when(session.getAttribute(EventDispatcherFactory.DISPATCHER_SESSION_KEY)).thenReturn(dispatchers);
         Mockito.when(request.getInputStream()).thenReturn(new MockServletInputStream(config));
-        
+
         return request;
     }
 
@@ -120,13 +119,13 @@ public class EndpointUnitTest {
                 return;
             }
             if (System.currentTimeMillis() > (start + 10000)) {
-                Assert.fail("Timed out waiting for subscribers count/size to reach " + count);
+                fail("Timed out waiting for subscribers count/size to reach " + count);
                 return;
             }
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
-                Assert.fail("Timed out waiting for subscribers count/size to reach " + count);
+                fail("Timed out waiting for subscribers count/size to reach " + count);
             }
         }
     }
@@ -138,13 +137,13 @@ public class EndpointUnitTest {
                 return;
             }
             if (System.currentTimeMillis() > (start + 10000)) {
-                Assert.fail("Timed out waiting for subscribers count/size to reach " + count);
+                fail("Timed out waiting for subscribers count/size to reach " + count);
                 return;
             }
             try {
                 Thread.sleep(50);
             } catch (InterruptedException e) {
-                Assert.fail("Timed out waiting for subscribers count/size to reach " + count);
+                fail("Timed out waiting for subscribers count/size to reach " + count);
             }
         }
     }
@@ -156,14 +155,10 @@ public class EndpointUnitTest {
                 return;
             }
             if (System.currentTimeMillis() > (start + 10000)) {
-                Assert.fail("Timed out waiting for queue to stop");
+                fail("Timed out waiting for queue to stop");
                 return;
             }
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Assert.fail("Timed out waiting for queue to stop");
-            }
+            assertDoesNotThrow(() -> Thread.sleep(50), "Timed out waiting for queue to stop");
         }
     }
 }

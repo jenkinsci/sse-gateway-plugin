@@ -27,18 +27,18 @@ import hudson.model.User;
 import org.jenkinsci.plugins.ssegateway.sse.EventDispatcher;
 import org.mockito.Mockito;
 
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 public class MockEventDispatcher extends EventDispatcher {
+
     @Override
-    public void start(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+    public void start(HttpServletRequest request, HttpServletResponse response) {
     }
+
     @Override
     public HttpServletResponse getResponse() {
         return null;

@@ -23,13 +23,13 @@
  */
 package org.jenkinsci.plugins.ssegateway.sse;
 
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.ObjectOutputStream;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 /**
  * See https://issues.jenkins-ci.org/browse/JENKINS-41063
@@ -39,22 +39,27 @@ import java.io.ObjectOutputStream;
  *
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-public class EventDispatcherSerializationTest {
+@WithJenkins
+class EventDispatcherSerializationTest {
 
-    @Rule
-    public JenkinsRule jenkins = new JenkinsRule();
+    private JenkinsRule j;
+
+    @BeforeEach
+    void setUp(JenkinsRule rule) {
+        j = rule;
+    }
 
     @Test
-    public void test_AsynchEventDispatcher() throws IOException {
+    void test_AsynchEventDispatcher() throws Exception {
         serialize(new AsynchEventDispatcher());
     }
 
     @Test
-    public void test_SynchEventDispatcher() throws IOException {
+    void test_SynchEventDispatcher() throws Exception {
         serialize(new SynchEventDispatcher());
     }
 
-    private void serialize(EventDispatcher dispatcher) throws IOException {
+    private void serialize(EventDispatcher dispatcher) throws Exception {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
              ObjectOutputStream out = new ObjectOutputStream(outputStream)) {
 
