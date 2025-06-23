@@ -32,10 +32,13 @@ import java.io.InputStream;
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 public class MockServletInputStream extends ServletInputStream {
+
     private final InputStream inputStream;
+
     public MockServletInputStream(String dataFile) {
         this.inputStream = MockServletInputStream.class.getResourceAsStream(dataFile);
     }
+
     @Override
     public int read() throws IOException {
         return inputStream.read();

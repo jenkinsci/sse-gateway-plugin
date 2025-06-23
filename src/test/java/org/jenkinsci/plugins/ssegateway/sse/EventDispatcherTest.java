@@ -1,33 +1,35 @@
 package org.jenkinsci.plugins.ssegateway.sse;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.concurrent.TimeUnit;
 
 import org.jenkinsci.plugins.pubsub.SimpleMessage;
 import org.jenkinsci.plugins.ssegateway.MockEventDispatcher;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
-public class EventDispatcherTest {
-    private static final long saveProcessingDelay = org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY;
-    private static final long saveEventLifetime = org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME;
+class EventDispatcherTest {
 
-    @After
-    public void reset() {
-        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY = saveProcessingDelay;
-        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME = saveEventLifetime;
+    private static final long SAVE_PROCESSING_DELAY = org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY;
+    private static final long SAVE_EVENT_LIFETIME = org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME;
+
+    @AfterEach
+    void tearDown() {
+        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY = SAVE_PROCESSING_DELAY;
+        org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME = SAVE_EVENT_LIFETIME;
     }
 
     @Test
-    public void queueClearOnNoSubs() throws Exception {
+    void queueClearOnNoSubs() {
         EventDispatcher ed = new MockEventDispatcher();
         ed.addToRetryQueue(new SimpleMessage());
         assertTrue(ed.retryQueue.isEmpty());
     }
 
     @Test
-    public void queueClearTimeout() throws Exception {
+    void queueClearTimeout() {
         EventDispatcher ed = new MockEventDispatcher();
         ed.subscribers.put(null,null);
         org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME = -1;
@@ -37,7 +39,7 @@ public class EventDispatcherTest {
     }
 
     @Test
-    public void queueClearTimeoutOnAdd() throws Exception {
+    void queueClearTimeoutOnAdd() {
         EventDispatcher ed = new MockEventDispatcher();
         ed.subscribers.put(null,null);
         org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_EVENT_LIFETIME = -1;
