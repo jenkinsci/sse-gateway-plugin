@@ -26,7 +26,9 @@ package org.jenkinsci.plugins.ssegateway.sse;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.User;
+import hudson.util.ClassLoaderSanityThreadFactory;
 import hudson.util.CopyOnWriteMap;
+import hudson.util.NamingThreadFactory;
 import jenkins.model.Jenkins;
 import jenkins.util.HttpSessionListener;
 import net.sf.json.JSONObject;
@@ -72,7 +74,7 @@ public abstract class EventDispatcher implements Serializable {
 
     private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(
         Integer.getInteger( EventDispatcher.class.getName() + ".scheduledExecutorService.size", 4 ),
-        r -> new Thread( r, "EventDispatcher.retryProcessor" ));
+        new NamingThreadFactory(new ClassLoaderSanityThreadFactory(Executors.defaultThreadFactory()), "EventDispatcher.retryProcessor"));
 
     private volatile boolean isRetryLoopActive = false;
 
