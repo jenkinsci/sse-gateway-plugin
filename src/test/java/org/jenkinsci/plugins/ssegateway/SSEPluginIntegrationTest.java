@@ -23,72 +23,75 @@
  */
 package org.jenkinsci.plugins.ssegateway;
 
-import com.github.eirslett.maven.plugins.frontend.lib.TaskRunnerException;
 import org.jenkinsci.plugins.pubsub.PubsubBus;
 import org.jenkinsci.test.node.GulpRunner;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import java.io.IOException;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 /**
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
-public class SSEPluginIntegrationTest {
-    
-    @Rule
-    public JenkinsRule jenkins = new JenkinsRule();
-    
-    @Before
-    public void setupRealm() {
-        jenkins.jenkins.setSecurityRealm(jenkins.createDummySecurityRealm());
+@WithJenkins
+class SSEPluginIntegrationTest {
+
+    private JenkinsRule j;
+
+    @BeforeEach
+    void setUp(JenkinsRule rule) {
+        j = rule;
+    }
+
+    @BeforeEach
+    void setupRealm() {
+        j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
         PubsubBus.getBus().start();
     }
 
     @Test
-    public void test_no_filter() throws TaskRunnerException, IOException {
+    void test_no_filter() throws Exception {
         // Create a job. We will trigger a build of the job inside
         // sse-plugin-no-filters-ispec.js (the integration test). That build execution
         // should trigger events to the event subscribers in the test.
-        jenkins.createFreeStyleProject("sse-gateway-test-job");
-        
-        GulpRunner gulpRunner = new GulpRunner(jenkins);
+        j.createFreeStyleProject("sse-gateway-test-job");
+
+        GulpRunner gulpRunner = new GulpRunner(j);
 
         gulpRunner.runIntegrationSpec("sse-plugin-no-filter");
     }
 
     @Test
-    public void test_with_filter() throws TaskRunnerException, IOException {
+    void test_with_filter() throws Exception {
         // Create a job. We will trigger a build of the job inside
         // sse-plugin-with-filters-ispec.js (the integration test). That build execution
         // should trigger events to the event subscribers in the test.
-        jenkins.createFreeStyleProject("sse-gateway-test-job");
-        
-        GulpRunner gulpRunner = new GulpRunner(jenkins);
+        j.createFreeStyleProject("sse-gateway-test-job");
+
+        GulpRunner gulpRunner = new GulpRunner(j);
 
         gulpRunner.runIntegrationSpec("sse-plugin-with-filter");
     }
 
     @Test
-    public void test_store_and_forward() throws TaskRunnerException, IOException {
+    void test_store_and_forward() throws Exception {
         // Create a job. We will trigger a build of the job inside
         // sse-plugin-store-and-forward.js (the integration test). That build execution
         // should trigger events to the event subscribers in the test.
-        jenkins.createFreeStyleProject("sse-gateway-test-job");
-        
-        GulpRunner gulpRunner = new GulpRunner(jenkins);
+        j.createFreeStyleProject("sse-gateway-test-job");
+
+        GulpRunner gulpRunner = new GulpRunner(j);
 
         gulpRunner.runIntegrationSpec("sse-plugin-store-and-forward");
     }
 
     @Test
-    public void test_retryqueue_timeout() throws TaskRunnerException, IOException {
+    void test_retryqueue_timeout() throws Exception {
         // Create a job. We will trigger a build of the job inside
         // sse-plugin-retryqueue-timeout.js (the integration test). That build execution
         // should trigger events to the event subscribers in the test.
-        jenkins.createFreeStyleProject("sse-gateway-test-job");
+        j.createFreeStyleProject("sse-gateway-test-job");
 
         // set lifetime for retry events to 15 sec - default is 300 sec
         // in the integration test waiting time is 20000ms until restarting the proxy
@@ -100,7 +103,7 @@ public class SSEPluginIntegrationTest {
         long saveProcessingDelay = org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY;
         org.jenkinsci.plugins.ssegateway.sse.EventDispatcher.RETRY_QUEUE_PROCESSING_DELAY = 500;
 
-        GulpRunner gulpRunner = new GulpRunner(jenkins);
+        GulpRunner gulpRunner = new GulpRunner(j);
 
         gulpRunner.runIntegrationSpec("sse-plugin-retryqueue-timeout");
 

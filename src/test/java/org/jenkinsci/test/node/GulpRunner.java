@@ -23,13 +23,13 @@
  */
 package org.jenkinsci.test.node;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 import com.github.eirslett.maven.plugins.frontend.lib.FrontendPluginFactory;
 import com.github.eirslett.maven.plugins.frontend.lib.TaskRunnerException;
-import org.junit.Assert;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -38,43 +38,38 @@ import java.util.Map;
  * <p>
  * Allows us to run gulp commands from inside tests e.g. to run integration tests
  * i.e. where we have a running Jenkins, and then we run some node code that can
- * executes against the running Jenkins. 
- * 
+ * executes against the running Jenkins.
+ *
  * @author <a href="mailto:tom.fennelly@gmail.com">tom.fennelly@gmail.com</a>
  */
 public class GulpRunner {
-    
+
     // TODO: maybe move this out into a reusable component.
 
-    private static File workDir;
-    private JenkinsRule jenkinsRule = null;
-    
+    private static final File workDir;
+    private final JenkinsRule jenkinsRule;
+
     static {
         workDir = new File("./");
         if (!new File(workDir, "node").isDirectory()) {
             throw new IllegalStateException("Local/build env node is not yet installed. Run an mvn build; it will installed the required bits.");
         }
     }
-    
-    public GulpRunner() {
-    }
-    
+
     public GulpRunner(JenkinsRule jenkinsRule) {
         this.jenkinsRule = jenkinsRule;
     }
-    
+
     public void run(String command) throws TaskRunnerException {
         FrontendPluginFactory frontendPluginFactory = new FrontendPluginFactory(workDir, workDir);
         Map<String, String> env = new HashMap<>();
 
-        try {
+        assertDoesNotThrow(() -> {
             if (jenkinsRule != null) {
                 env.put("JENKINS_URL", jenkinsRule.getURL().toString());
                 env.put("JENKINS_HOME", jenkinsRule.jenkins.getRootDir().getAbsolutePath());
             }
-        } catch (IOException e) {
-            Assert.fail("Unexpected error: " + e.getMessage());
-        }
+        }, "Unexpected error: ");
 
         System.out.println("------------- GulpRunner <<Start>> -------------");
         System.out.println(" command: [" + command + "]");
@@ -85,7 +80,7 @@ public class GulpRunner {
         frontendPluginFactory.getGulpRunner().execute(command, env);
         System.out.println("-------------- GulpRunner <<End>> --------------");
     }
-    
+
     public void runIntegrationSpec(String specName) throws TaskRunnerException {
         run(String.format("test --test %s --testFileSuffix ispec", specName));
     }
